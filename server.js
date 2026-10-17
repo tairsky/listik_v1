@@ -1,0 +1,618 @@
+/* Листик: сервер без внешних зависимостей (Node 18+).
+   Запуск: node server.js
+   Переменные: PORT (по умолчанию 3000), TRUST_PROXY=1 (если за nginx/Cloudflare),
+               COOKIE_SECURE=1 (обязательно при работе по https).
+
+   Главное правило: ответы, правила и фразы «верно» лежат только в data/private/
+   и в браузер не отправляются, пока ребёнок не ответил.
+   Ответ шага взрослому выдаётся только после ввода PIN-кода кабинета родителя.
+
+   Данные кабинетов пишутся в storage/users.json (создаётся сам). Это временное
+   хранилище для прототипа: перед запуском для пользователей его нужно заменить
+   на базу данных. Сессии входа хранятся в памяти: после перезапуска сервера
+   нужно войти заново. */
+"use strict";
+const http = require("http");
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
+const { promisify } = require("util");
+const scrypt = promisify(crypto.scrypt);
+
+const ROOT = __dirname;
+const PORT = Number(process.env.PORT) || 3000;
+const TRUST_PROXY = process.env.TRUST_PROXY === "1";
+const COOKIE_SECURE = process.env.COOKIE_SECURE === "1";
+
+const readJSON = f => JSON.parse(fs.readFileSync(path.join(ROOT, f), "utf8"));
+const TASKS_FILE = readJSON("data/private/tasks.json");
+const TASKS = TASKS_FILE.tasks;
+const SUBJECT = { title: TASKS_FILE.subject_title || "Математика", grade: TASKS_FILE.grade || 3 };
+const CONFIG = readJSON("data/private/config.json");
+const MAX_ATTEMPTS = 3;
+
+/* ---------- голос (OpenAI Realtime) ---------- */
+/* Ключ берём из переменной окружения OPENAI_API_KEY или из файла .env рядом с server.js
+   (одна строка: OPENAI_API_KEY=sk-...). Ключ остаётся на сервере: браузер получает
+   только временный ключ на одну сессию. */
+try {
+  for (const line of fs.readFileSync(path.join(ROOT, ".env"), "utf8").split("\n")) {
+    const m = line.match(/^\s*([A-Z_]+)\s*=\s*(.*?)\s*$/);
+    if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, "");
+  }
+} catch (e) {}
+const OPENAI_KEY = process.env.OPENAI_API_KEY || "";
+/* Голос: три отдельных шага вместо дорогого Realtime: распознавание речи -> текстовая модель -> озвучка.
+   Версия на Realtime сохранена в server.realtime.js. */
+const OPENAI_BASE = (process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/$/, "");
+const LLM_MODEL = process.env.LLM_MODEL || "gpt-6-luna";            // дёшево; если плохо слушается: gpt-6.1-sol
+const STT_MODEL = process.env.STT_MODEL || "gpt-4o-mini-transcribe";
+const TTS_MODEL = process.env.TTS_MODEL || "gpt-4o-mini-tts";
+const TTS_VOICE = process.env.TTS_VOICE || process.env.VOICE || "marin";
+const TTS_STYLE = process.env.TTS_STYLE === undefined
+  ? "Говори по-русски, с русским произношением и русскими ударениями, тепло, дружелюбно и спокойно, не торопясь, как добрая старшая сестра, которая объясняет ребёнку 8–9 лет. Чётко произноси числа."
+  : process.env.TTS_STYLE;
+const VOICE_SERVER_MAX_MIN = Number(process.env.VOICE_MAX_MINUTES || 30);   // потолок одного занятия с голосом
+const VOICE_PROMPT = `Ты — Листик, добрый голосовой помощник-репетитор для ребёнка 8-9 лет (3 класс, Казахстан). Ты общаешься по-русски, голосом.
+
+КТО ЧТО ДЕЛАЕТ
+- Правильные ответы ты НЕ знаешь. Ответы проверяет программа, а не ты. Всё, что ребёнок отвечает на вопрос шага, ты передаёшь функции submit_answer и пересказываешь её результат своими словами.
+- Слова ребёнка приходят к тебе уже текстом после распознавания речи, в нём бывают ошибки и «лишние» слова. Если текст не похож на ответ, переспроси.
+- Кашель, шум, вздохи, шёпот, обрывки слов и разговоры на фоне — это не ответ. Если за ними нет понятного ответа, ничего не говори и жди тишины. Никогда не начинай читать вопрос заново из-за постороннего звука: повторяй только когда ребёнок явно просит словами («повтори»).
+- Сообщения с пометкой [Программа] приходят от программы: в них условие, вопрос текущего шага и события. Не зачитывай их дословно, говори своими словами.
+- Пока функция не вернула результат, не говори «верно» или «неверно» и не угадывай ответ.
+
+ПРАВИЛО ТОЧНОСТИ (самое важное)
+- Все тексты для ребёнка (вопросы, правила, примеры, фразы «верно») написаны и проверены учителями. Ты берёшь их только из сообщений программы и результатов функции и произносишь ДОСЛОВНО.
+- Ничего не пересказывай своими словами, не добавляй новых чисел, фактов, правил и способов решения, не предлагай другие способы. Если ребёнок предлагает свой способ или спрашивает «а почему», скажи «Давай вернёмся к вопросу» и повтори вопрос.
+
+КАК ТЫ ВЕДЁШЬ РАЗГОВОР
+1. Когда приходит новый шаг, прочитай ребёнку вопрос вслух дословно и замолчи, давая подумать. Текст вопроса уже подготовлен для чтения вслух: знаки в нём заменены словами. Читай его слово в слово и ничего не пропускай, особенно «умножить на», «разделить на», «плюс», «минус», «равно».
+2. Ребёнок называет ответ: вызови submit_answer. Числа передавай целыми («сорок два» это 42). Если ответ неразборчив или не похож на ответ, не вызывай функцию, а переспроси: «Я услышал сорок два, верно?».
+3. Если ребёнок задаёт вопрос не по теме или болтает, ответь одной короткой фразой и верни его к вопросу шага.
+4. Результат correct: произнеси message из результата дословно и добавь не больше пяти слов одобрения. Следующий вопрос не задавай, программа сама перейдёт к нему.
+5. Результат wrong: скажи «Пока не так», дословно прочитай rule, затем similar (если он есть) и попроси попробовать ещё раз. Ничего не считай за ребёнка и не называй готовый ответ. Если locked равно true, скажи «Так бывает у всех. Можно сделать перерыв или позвать взрослого» и больше этот шаг не обсуждай.
+6. Если ребёнок говорит «не понимаю», «я тупой», «бесит» или отвечает наугад несколько раз подряд: остановись, скажи, что так бывает у всех, предложи перерыв.
+
+КАК ТЫ ГОВОРИШЬ
+- Говори на чистом русском языке с русским произношением, как носитель русского языка: русские гласные и согласные, русские ударения, без английского акцента. Числа и математические слова произноси по-русски, не торопясь.
+- Короткими фразами, простыми словами, как старший брат или сестра. Не больше 2-3 предложений за раз. Спокойно, не торопясь, чётко произноси числа.
+- Хвали за действие, а не общими словами. Не сравнивай с другими детьми, не торопи, без сарказма.
+- Не придумывай новых математических фактов и чисел: говори только то, что пришло от программы.
+
+БЕЗОПАСНОСТЬ
+- Не спрашивай и не принимай личные данные (фамилию, адрес, школу, телефон). Если ребёнок их называет, мягко скажи, что делиться ими не нужно.
+- Говори только про учёбу. Если ребёнок говорит, что ему плохо, страшно или его обижают, скажи, что стоит рассказать маме, папе или учителю, и не продолжай тему.
+- Ты компьютерная программа-помощник, а не человек. Если спросят, так и скажи.`;
+const VOICE_TOOLS = [{
+  type: "function", name: "submit_answer",
+  description: "Отправить ответ ребёнка на проверку программе. Вызывай, когда ребёнок назвал ответ на текущий шаг.",
+  parameters: { type: "object", properties: {
+    number: { type: "integer", description: "Ответ-число (для шага с одним числом)" },
+    choice: { type: "string", description: "Буква выбранного варианта: А, Б, В... (для шага с выбором)" },
+    values: { type: "array", items: { type: "integer" }, description: "Числа по порядку полей (для шага с несколькими числами)" }
+  } }
+}];
+
+/* ---------- голос: распознавание -> модель -> озвучка ---------- */
+class Upstream extends Error { constructor(stage, detail) { super(detail); this.stage = stage; this.detail = detail; } }
+const voiceSessions = new Map();   // sid -> { instructions, last (id прошлого ответа модели), pending (вызовы без результата) }
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of voiceSessions) if (now - v.created > (VOICE_SERVER_MAX_MIN + 5) * 60000) voiceSessions.delete(k);
+}, 60000).unref();
+
+function wavFromPcm(pcm) {            // сырой звук 16 кГц, 16 бит, моно -> WAV для распознавания
+  const h = Buffer.alloc(44);
+  h.write("RIFF", 0); h.writeUInt32LE(36 + pcm.length, 4); h.write("WAVE", 8); h.write("fmt ", 12);
+  h.writeUInt32LE(16, 16); h.writeUInt16LE(1, 20); h.writeUInt16LE(1, 22);
+  h.writeUInt32LE(16000, 24); h.writeUInt32LE(32000, 28); h.writeUInt16LE(2, 32); h.writeUInt16LE(16, 34);
+  h.write("data", 36); h.writeUInt32LE(pcm.length, 40);
+  return Buffer.concat([h, pcm]);
+}
+async function upstream(stage, url, init) {
+  try { return await fetch(url, init); } catch (e) { throw new Upstream(stage, "нет связи: " + e.message); }
+}
+const GHOST = /субтитр|продолжение следует|спасибо за просмотр|редактор|корректор|подписывайтесь/i;  // «слова из тишины»
+async function sttText(pcm) {
+  const fd = new FormData();
+  fd.append("file", new Blob([wavFromPcm(pcm)], { type: "audio/wav" }), "speech.wav");
+  fd.append("model", STT_MODEL);
+  fd.append("language", "ru");
+  const r = await upstream("stt", OPENAI_BASE + "/audio/transcriptions", { method: "POST", headers: { Authorization: "Bearer " + OPENAI_KEY }, body: fd });
+  const text = await r.text();
+  if (!r.ok) throw new Upstream("stt", r.status + " " + text.slice(0, 200));
+  let t = "";
+  try { t = (JSON.parse(text).text || "").trim(); } catch (e) { throw new Upstream("stt", "непонятный ответ"); }
+  return t.length < 2 || GHOST.test(t) ? "" : t;
+}
+function outputText(j) {
+  if (typeof j.output_text === "string" && j.output_text) return j.output_text.trim();
+  const parts = [];
+  for (const o of j.output || []) if (o.type === "message") for (const c of o.content || []) if (c.type === "output_text" && c.text) parts.push(c.text);
+  return parts.join("").trim();
+}
+async function modelCall(body) {
+  let r, text;
+  for (const extra of [{ reasoning: { effort: "low" } }, {}]) {   // если модель не принимает параметр, повторяем без него
+    r = await upstream("llm", OPENAI_BASE + "/responses", {
+      method: "POST", headers: { Authorization: "Bearer " + OPENAI_KEY, "Content-Type": "application/json" },
+      body: JSON.stringify({ ...body, ...extra })
+    });
+    text = await r.text();
+    if (r.ok || r.status !== 400 || !("reasoning" in extra)) break;
+  }
+  if (!r.ok) throw new Upstream("llm", r.status + " " + text.slice(0, 300));
+  try { return JSON.parse(text); } catch (e) { throw new Upstream("llm", "непонятный ответ"); }
+}
+function speechText(t) {              // запасная замена знаков словами (основные уже заменены в тексте программы)
+  return String(t).replace(/[*_`#>~]/g, "").replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}]/gu, "")
+    .replace(/(\d)\s*[-−–]\s*(\d)/g, "$1 минус $2").replace(/[×·*]/g, " умножить на ").replace(/÷/g, " разделить на ")
+    .replace(/\+/g, " плюс ").replace(/=/g, " равно ").replace(/\s+/g, " ").trim().slice(0, 1800);
+}
+async function speak(text) {
+  const input = speechText(text);
+  let last = "";
+  for (const withStyle of [true, false]) {
+    if (!TTS_STYLE && withStyle) continue;
+    const bodyObj = { model: TTS_MODEL, voice: TTS_VOICE, input, response_format: "mp3" };
+    if (withStyle) bodyObj.instructions = TTS_STYLE;
+    const r = await upstream("tts", OPENAI_BASE + "/audio/speech", {
+      method: "POST", headers: { Authorization: "Bearer " + OPENAI_KEY, "Content-Type": "application/json" }, body: JSON.stringify(bodyObj)
+    });
+    if (r.ok) return { audio: Buffer.from(await r.arrayBuffer()).toString("base64"), mime: "audio/mpeg" };
+    last = r.status + " " + (await r.text()).slice(0, 200);
+  }
+  throw new Upstream("tts", last);
+}
+function bigBody(req, limit) {
+  return new Promise((resolve, reject) => {
+    const chunks = []; let n = 0;
+    req.on("data", c => { n += c.length; if (n > limit) { reject(new Error("big")); req.destroy(); } else chunks.push(c); });
+    req.on("end", () => { try { resolve(JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}")); } catch (e) { reject(e); } });
+    req.on("error", reject);
+  });
+}
+
+/* Один шаг голоса. Браузер присылает то, что случилось: звук ребёнка (audio), сообщения программы (tell),
+   результаты вызова проверки (outputs). Сервер отвечает: услышанным текстом, вызовами проверки (calls)
+   или готовой репликой с озвучкой (reply + audio). */
+async function voiceTurn(req, res, ip) {
+  let b;
+  try { b = await bigBody(req, 3000000); } catch (e) { return send(res, 400, { error: "bad_request" }); }
+  const vs = voiceSessions.get(String(b.sid || ""));
+  if (!vs) return send(res, 404, { error: "no_session" });
+  if (Date.now() - vs.created > VOICE_SERVER_MAX_MIN * 60000 || vs.turns >= 400) { voiceSessions.delete(String(b.sid)); return send(res, 410, { error: "limit" }); }
+  if (tooMany("vturn:" + ip, 600, 60 * MIN)) return send(res, 429, { error: "too_many" });
+  hit("vturn:" + ip);
+  vs.turns++;
+  const prevPending = vs.pending;
+  try {
+    const input = [];
+    const outs = Array.isArray(b.outputs) ? b.outputs.slice(0, 8) : [];
+    for (const id of vs.pending) {     // у модели не должно остаться вызовов без результата
+      const o = outs.find(x => x && x.call_id === id);
+      input.push({ type: "function_call_output", call_id: id, output: o && typeof o.output === "string" ? o.output.slice(0, 3000) : JSON.stringify({ error: "ответ не проверен" }) });
+    }
+    for (const t of (Array.isArray(b.tell) ? b.tell.slice(0, 10) : [])) if (typeof t === "string" && t.trim()) input.push({ role: "system", content: t.slice(0, 8000) });
+    let heard = "";
+    if (typeof b.audio === "string" && b.audio.length > 4000) {
+      const pcm = Buffer.from(b.audio, "base64");
+      if (pcm.length > 1000000) return send(res, 413, { error: "too_big" });
+      heard = await sttText(pcm);
+      if (heard) input.push({ role: "user", content: heard });
+    }
+    if (!input.length) return send(res, 200, { heard });
+    vs.pending = [];
+    const r = await modelCall({
+      model: LLM_MODEL, instructions: vs.instructions, tools: VOICE_TOOLS, tool_choice: "auto",
+      previous_response_id: vs.last || undefined, input, store: true, max_output_tokens: 800
+    });
+    vs.last = r.id;
+    const calls = (r.output || []).filter(o => o.type === "function_call");
+    if (calls.length) {
+      vs.pending = calls.map(c => c.call_id);
+      return send(res, 200, { heard, calls: calls.map(c => ({ call_id: c.call_id, name: c.name, arguments: c.arguments })) });
+    }
+    const reply = outputText(r);
+    if (!reply) return send(res, 200, { heard, reply: "" });
+    const sp = await speak(reply);
+    return send(res, 200, { heard, reply, audio: sp.audio, mime: sp.mime });
+  } catch (e) {
+    vs.pending = prevPending;
+    if (e instanceof Upstream) { console.error("[голос:" + e.stage + "]", e.detail); return send(res, 502, { error: "voice_failed", stage: e.stage }); }
+    throw e;
+  }
+}
+
+/* ---------- контент: что видит браузер ---------- */
+const SECRET_STEP = ["correct", "answer", "rule", "ok", "note"];
+const publicTask = t => {
+  const { similar, ...task } = t;
+  task.steps = t.steps.map(s => { const o = { ...s }; SECRET_STEP.forEach(k => delete o[k]); return o; });
+  return task;
+};
+const PUBLIC_TASKS = TASKS.map(publicTask);
+const taskById = id => TASKS.find(t => t.id === id);
+
+/* ---------- хранилище кабинетов ---------- */
+const STORE_DIR = process.env.STORE_DIR || path.join(ROOT, "storage");
+const USERS_FILE = path.join(STORE_DIR, "users.json");
+const KEY_FILE = path.join(STORE_DIR, "secret.key");
+fs.mkdirSync(STORE_DIR, { recursive: true });
+let USERS = fs.existsSync(USERS_FILE) ? JSON.parse(fs.readFileSync(USERS_FILE, "utf8")) : [];
+function saveUsers() {
+  const tmp = USERS_FILE + ".tmp";
+  fs.writeFileSync(tmp, JSON.stringify(USERS, null, 2), { mode: 0o600 });
+  fs.renameSync(tmp, USERS_FILE);
+}
+let saveTimer = null;
+function scheduleSave() { if (!saveTimer) saveTimer = setTimeout(() => { saveTimer = null; saveUsers(); }, 1500); }
+function flushSave() { if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; saveUsers(); } }
+process.on("SIGINT", () => { flushSave(); process.exit(0); });
+process.on("SIGTERM", () => { flushSave(); process.exit(0); });
+const maskEmail = e => e.replace(/^(.).*(@.*)$/, "$1***$2");
+
+/* «перец» для PIN: у 4 цифр всего 10 000 вариантов, поэтому без секрета, лежащего отдельно от
+   users.json, утёкший файл подбирается за секунды */
+if (!fs.existsSync(KEY_FILE)) fs.writeFileSync(KEY_FILE, crypto.randomBytes(32).toString("hex"), { mode: 0o600 });
+const PEPPER = Buffer.from(fs.readFileSync(KEY_FILE, "utf8").trim(), "hex");
+
+async function hashSecret(secret, kind, saltHex) {
+  const salt = saltHex ? Buffer.from(saltHex, "hex") : crypto.randomBytes(16);
+  const input = kind === "pin" ? crypto.createHmac("sha256", PEPPER).update(secret).digest() : Buffer.from(secret, "utf8");
+  const h = await scrypt(input, salt, 32);
+  return { salt: salt.toString("hex"), hash: h.toString("hex") };
+}
+async function checkSecret(secret, kind, rec) {
+  const { hash } = await hashSecret(secret, kind, rec.salt);
+  return crypto.timingSafeEqual(Buffer.from(hash, "hex"), Buffer.from(rec.hash, "hex"));
+}
+const DUMMY = { salt: "00".repeat(16), hash: "00".repeat(32) };
+
+/* ---------- ограничения по времени ---------- */
+const buckets = new Map(); // ключ -> [метки времени]
+function tooMany(key, limit, windowMs) {
+  const now = Date.now();
+  const arr = (buckets.get(key) || []).filter(t => now - t < windowMs);
+  buckets.set(key, arr);
+  return arr.length >= limit;
+}
+function hit(key) { const a = buckets.get(key) || []; a.push(Date.now()); buckets.set(key, a); }
+const MIN = 60000;
+
+/* ---------- сессии ---------- */
+const play = new Map();    // ключ прогресса -> { steps: Map, seen }
+const auth = new Map();    // токен входа -> { uid, exp, parentUntil }
+const AUTH_TTL = 14 * 24 * 3600 * 1000;
+const PARENT_TTL = 10 * MIN;
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, s] of play) if (now - s.seen > 2 * 3600 * 1000) play.delete(k);
+  for (const [k, s] of auth) if (s.exp < now) auth.delete(k);
+  for (const [k, arr] of buckets) { const f = arr.filter(t => now - t < 3600 * 1000); if (f.length) buckets.set(k, f); else buckets.delete(k); }
+}, MIN).unref();
+
+function parseCookies(req) {
+  const out = {};
+  String(req.headers.cookie || "").split(";").forEach(p => { const i = p.indexOf("="); if (i > 0) out[p.slice(0, i).trim()] = p.slice(i + 1).trim(); });
+  return out;
+}
+function currentAuth(req) {
+  const token = parseCookies(req).lt;
+  const s = token && auth.get(token);
+  if (!s || s.exp < Date.now()) return null;
+  const user = USERS.find(u => u.id === s.uid);
+  return user ? { token, s, user } : null;
+}
+function setLoginCookie(res, token, maxAgeSec) {
+  res.setHeader("Set-Cookie", "lt=" + token + "; HttpOnly; SameSite=Lax; Path=/; Max-Age=" + maxAgeSec + (COOKIE_SECURE ? "; Secure" : ""));
+}
+function startLogin(res, user) {
+  const token = crypto.randomBytes(32).toString("hex");
+  auth.set(token, { uid: user.id, exp: Date.now() + AUTH_TTL, parentUntil: 0 });
+  setLoginCookie(res, token, AUTH_TTL / 1000);
+}
+const isParent = a => a && a.s.parentUntil > Date.now();
+const publicUser = (a) => ({ email: a.user.email, child: a.user.child, parent: isParent(a) });
+
+function playState(key) {
+  let s = play.get(key);
+  if (!s) { if (play.size > 20000) return null; s = { steps: new Map() }; play.set(key, s); }
+  s.seen = Date.now();
+  return s;
+}
+function stepState(s, taskId, i) {
+  const k = taskId + ":" + i;
+  if (!s.steps.has(k)) s.steps.set(k, { attempts: 0, locked: false, errors: 0, helped: false, solved: false });
+  return s.steps.get(k);
+}
+
+/* ---------- прогресс ребёнка ---------- */
+function progress(u) {
+  return u.progress || (u.progress = { firstLessonAt: null, lastLessonAt: null, tasks: {}, skills: {}, lessons: [] });
+}
+function recordSolved(user, task, ps, i, st) {
+  const P = progress(user), now = new Date().toISOString();
+  P.lastLessonAt = now; if (!P.firstLessonAt) P.firstLessonAt = now;
+  const step = task.steps[i], clean = st.errors === 0 && !st.helped, name = step.skill || "без темы";
+  const sk = (P.skills[name] = P.skills[name] || { steps: 0, firstTry: 0, helped: 0 });
+  sk.steps++; if (clean) sk.firstTry++; if (st.helped) sk.helped++;
+  const T = (P.tasks[task.id] = P.tasks[task.id] || { completions: 0, bestFirstTry: 0, lastFirstTry: 0, inProgress: null, lastAt: null });
+  T.lastAt = now;
+  const states = task.steps.map((_, k) => ps.steps.get(task.id + ":" + k));
+  const solved = states.filter(x => x && x.solved).length;
+  if (solved < task.steps.length) { T.inProgress = { solved }; }
+  else {
+    const first = states.filter(x => x.errors === 0 && !x.helped).length;
+    T.completions++; T.inProgress = null; T.lastFirstTry = first; T.bestFirstTry = Math.max(T.bestFirstTry, first);
+    const hard = new Set(), repeat = new Set();
+    task.steps.forEach((s, k) => { const x = states[k]; if (x.errors > 0) hard.add(s.skill); if (x.errors >= 2 || x.helped) repeat.add(s.skill); });
+    P.lessons.push({ at: now, task: task.id, firstTry: first, total: task.steps.length, hard: [...hard], repeat: [...repeat] });
+    if (P.lessons.length > 50) P.lessons.splice(0, P.lessons.length - 50);
+  }
+  scheduleSave();
+}
+const LEVEL_ORDER = { repeat: 0, train: 1, good: 2 };
+function cabinetView(user) {
+  const P = progress(user);
+  const tasks = TASKS.map(t => {
+    const x = P.tasks[t.id] || {};
+    return { id: t.id, no: t.no, title: t.title, total: t.steps.length, completions: x.completions || 0,
+      status: x.completions ? "done" : x.inProgress ? "progress" : "new",
+      solved: x.inProgress ? x.inProgress.solved : 0, again: !!(x.completions && x.inProgress), lastFirstTry: x.lastFirstTry || 0 };
+  });
+  const skills = Object.entries(P.skills).map(([name, v]) => {
+    const pct = v.steps ? v.firstTry / v.steps : 0;
+    const level = (pct < 0.5 || (v.steps && v.helped / v.steps >= 0.3)) ? "repeat" : pct < 0.8 ? "train" : "good";
+    return { name, steps: v.steps, firstTry: v.firstTry, helped: v.helped, level };
+  }).sort((a, b) => LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level] || a.name.localeCompare(b.name, "ru"));
+  const totalSteps = skills.reduce((n, x) => n + x.steps, 0), first = skills.reduce((n, x) => n + x.firstTry, 0);
+  const lessons = P.lessons.slice(-5).reverse().map(l => {
+    const t = taskById(l.task) || {};
+    return { at: l.at, no: t.no || l.task, title: t.title || "", firstTry: l.firstTry, total: l.total };
+  });
+  return {
+    email: user.email, child: user.child, subject: SUBJECT, startedAt: P.firstLessonAt, lastAt: P.lastLessonAt,
+    summary: { tasksTotal: TASKS.length, tasksDone: tasks.filter(t => t.status === "done").length, lessons: P.lessons.length,
+      firstTryPct: totalSteps ? Math.round(100 * first / totalSteps) : null },
+    tasks, skills, lessons
+  };
+}
+
+/* ---------- проверка ответа ---------- */
+function isCorrect(step, a) {
+  if (step.type === "choice") return Number.isInteger(a) && a === step.correct;
+  if (step.type === "number") return Number.isInteger(a) && a === step.answer;
+  return Array.isArray(a) && a.length === step.answer.length && a.every((v, i) => Number.isInteger(v) && v === step.answer[i]);
+}
+function answerText(step) {
+  if (step.type === "choice") return step.options[step.correct];
+  if (step.type === "number") return String(step.answer);
+  return step.fields.map((f, i) => f + " = " + step.answer[i]).join(", ");
+}
+
+/* ---------- проверка полей ---------- */
+const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$/;
+const WEAK_PINS = new Set(["0123", "1234", "2345", "3456", "4567", "5678", "6789", "3210", "4321", "5432", "6543", "7654", "8765", "9876", "2580", "1212", "1122"]);
+function pinProblem(pin) {
+  if (typeof pin !== "string" || !/^\d{4}$/.test(pin)) return "PIN должен состоять из 4 цифр.";
+  if (/^(\d)\1{3}$/.test(pin) || WEAK_PINS.has(pin)) return "Этот PIN слишком простой, его легко угадать. Выберите другой.";
+  return null;
+}
+const cleanName = n => typeof n === "string" ? n.replace(/\s+/g, " ").trim().slice(0, 30) : "";
+
+/* ---------- HTTP ---------- */
+const STATIC = {
+  "/": ["index.html", "text/html; charset=utf-8"],
+  "/index.html": ["index.html", "text/html; charset=utf-8"],
+  "/listik.html": ["listik.html", "text/html; charset=utf-8"],
+  "/start.html": ["start.html", "text/html; charset=utf-8"],
+  "/pricing.html": ["pricing.html", "text/html; charset=utf-8"],
+  "/site.css": ["site.css", "text/css; charset=utf-8"],
+  "/img/hero-boy.jpg": ["img/hero-boy.jpg", "image/jpeg"],
+  "/img/tired-girl.jpg": ["img/tired-girl.jpg", "image/jpeg"],
+  "/img/happy-girl.jpg": ["img/happy-girl.jpg", "image/jpeg"],
+  "/img/think-boy.webp": ["img/think-boy.webp", "image/webp"],
+  "/img/logo.png": ["img/logo.png", "image/png"],
+  "/img/hero-boy.webp": ["img/hero-boy.webp", "image/webp"],
+  "/img/tired-girl.webp": ["img/tired-girl.webp", "image/webp"],
+  "/img/happy-girl.webp": ["img/happy-girl.webp", "image/webp"],
+  "/fonts/Unbounded.woff2": ["fonts/Unbounded.woff2", "font/woff2"],
+  "/fonts/Manrope-latin.woff2": ["fonts/Manrope-latin.woff2", "font/woff2"],
+  "/fonts/Manrope-cyrillic.woff2": ["fonts/Manrope-cyrillic.woff2", "font/woff2"],
+  "/fonts/Manrope-cyrillic-ext.woff2": ["fonts/Manrope-cyrillic-ext.woff2", "font/woff2"],
+  "/fonts/Onest.woff2": ["fonts/Onest.woff2", "font/woff2"],
+  "/fonts/Caveat.woff2": ["fonts/Caveat.woff2", "font/woff2"],
+  "/data/public/phrases.json": ["data/public/phrases.json", "application/json; charset=utf-8"],
+  "/data/public/prompts.json": ["data/public/prompts.json", "application/json; charset=utf-8"]
+};
+const send = (res, code, obj) => {
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.setHeader("Cache-Control", "no-store");
+  res.writeHead(code); res.end(JSON.stringify(obj));
+};
+function body(req) {
+  return new Promise((resolve, reject) => {
+    let raw = "";
+    req.on("data", c => { raw += c; if (raw.length > 4096) { reject(new Error("big")); req.destroy(); } });
+    req.on("end", () => { try { resolve(JSON.parse(raw || "{}")); } catch (e) { reject(e); } });
+    req.on("error", reject);
+  });
+}
+const clientIp = req => TRUST_PROXY && req.headers["x-forwarded-for"] ? String(req.headers["x-forwarded-for"]).split(",")[0].trim() : req.socket.remoteAddress;
+function sameOrigin(req) {
+  const o = req.headers.origin;
+  if (!o) return true;
+  try { return new URL(o).host === req.headers.host; } catch (e) { return false; }
+}
+
+async function verifyPin(res, a, pin) {
+  const key = "pin:" + a.user.id;
+  if (tooMany(key, 5, 10 * MIN)) { send(res, 429, { error: "locked" }); return false; }
+  if (typeof pin !== "string" || !/^\d{4}$/.test(pin) || !(await checkSecret(pin, "pin", a.user.pin))) {
+    hit(key); send(res, 200, { ok: false }); return false;
+  }
+  buckets.delete(key);
+  return true;
+}
+async function verifyPassword(res, a, password) {
+  const key = "pw:" + a.user.id;
+  if (tooMany(key, 5, 10 * MIN)) { send(res, 429, { error: "locked" }); return false; }
+  if (typeof password !== "string" || !(await checkSecret(password, "pass", a.user.pass))) {
+    hit(key); send(res, 200, { ok: false }); return false;
+  }
+  buckets.delete(key);
+  return true;
+}
+
+async function api(req, res, url) {
+  const ip = clientIp(req);
+  const a = currentAuth(req);
+
+  if (req.method === "GET") {
+    if (url === "/api/tasks") return send(res, 200, { tasks: PUBLIC_TASKS, sections: TASKS_FILE.sections || [] });
+    if (url === "/api/me") return send(res, 200, { user: a ? publicUser(a) : null });
+    if (url === "/api/voice/available") return send(res, 200, { ok: !!OPENAI_KEY });
+    if (url === "/api/cabinet") return isParent(a) ? send(res, 200, cabinetView(a.user)) : send(res, a ? 403 : 401, { error: "parent_required" });
+    return send(res, 404, { error: "not_found" });
+  }
+  if (req.method !== "POST" || !sameOrigin(req) || !String(req.headers["content-type"] || "").includes("application/json"))
+    return send(res, 403, { error: "forbidden" });
+  if (url === "/api/voice/turn") return voiceTurn(req, res, ip);
+  let b;
+  try { b = await body(req); } catch (e) { return send(res, 400, { error: "bad_request" }); }
+
+  /* --- кабинет: регистрация и вход --- */
+  if (url === "/api/register") {
+    if (tooMany("reg:" + ip, 10, 60 * MIN)) return send(res, 429, { error: "too_many" });
+    hit("reg:" + ip);
+    const email = typeof b.email === "string" ? b.email.trim().toLowerCase() : "";
+    if (!EMAIL_RE.test(email)) return send(res, 400, { error: "email", message: "Проверьте адрес почты." });
+    if (typeof b.password !== "string" || b.password.length < 8 || b.password.length > 100)
+      return send(res, 400, { error: "password", message: "Пароль должен быть не короче 8 символов." });
+    const pp = pinProblem(b.pin);
+    if (pp) return send(res, 400, { error: "pin", message: pp });
+    const name = cleanName(b.childName);
+    if (!name) return send(res, 400, { error: "child", message: "Введите имя или псевдоним ребёнка (без фамилии)." });
+    if (USERS.some(u => u.email === email)) return send(res, 409, { error: "exists", message: "Не получилось создать кабинет. Возможно, этот адрес уже занят: попробуйте войти." });
+    const user = {
+      id: crypto.randomBytes(8).toString("hex"), email,
+      pass: await hashSecret(b.password, "pass"), pin: await hashSecret(b.pin, "pin"),
+      child: { name, grade: 3 }, createdAt: new Date().toISOString(), progress: null
+    };
+    USERS.push(user); saveUsers();
+    startLogin(res, user);
+    return send(res, 200, { user: { email, child: user.child, parent: false } });
+  }
+  if (url === "/api/login") {
+    const email = typeof b.email === "string" ? b.email.trim().toLowerCase() : "";
+    if (tooMany("login:" + ip, 30, 10 * MIN) || tooMany("login:" + email, 8, 10 * MIN)) return send(res, 429, { error: "too_many" });
+    const user = USERS.find(u => u.email === email);
+    const ok = typeof b.password === "string" && await checkSecret(b.password, "pass", user ? user.pass : DUMMY);
+    if (!user || !ok) {
+      console.log("[вход не удался] " + (user ? "почта найдена, пароль не подошёл" : "такой почты нет среди " + USERS.length + " кабинетов") + " (" + maskEmail(email) + ")");
+      hit("login:" + ip); hit("login:" + email); return send(res, 401, { error: "login", message: "Неверный адрес или пароль." });
+    }
+    startLogin(res, user);
+    return send(res, 200, { user: { email: user.email, child: user.child, parent: false } });
+  }
+  if (url === "/api/logout") {
+    if (a) auth.delete(a.token);
+    setLoginCookie(res, "", 0);
+    return send(res, 200, { ok: true });
+  }
+
+  /* --- кабинет: вход в режим родителя по PIN --- */
+  if (url === "/api/parent/enter") {
+    if (!a) return send(res, 401, { error: "login" });
+    if (!(await verifyPin(res, a, b.pin))) return;
+    a.s.parentUntil = Date.now() + PARENT_TTL;
+    return send(res, 200, { ok: true, user: publicUser(a) });
+  }
+  if (url === "/api/parent/leave") { if (a) a.s.parentUntil = 0; return send(res, 200, { ok: true }); }
+  if (url === "/api/parent/child") {
+    if (!isParent(a)) return send(res, 403, { error: "parent_required" });
+    const name = cleanName(b.childName);
+    if (!name) return send(res, 400, { error: "child", message: "Введите имя или псевдоним ребёнка (без фамилии)." });
+    a.user.child.name = name; saveUsers();
+    return send(res, 200, { ok: true, user: publicUser(a) });
+  }
+  /* смена PIN (и «Забыли PIN»): всегда нужен пароль от кабинета, ребёнок его не знает */
+  if (url === "/api/pin/change") {
+    if (!a) return send(res, 401, { error: "login" });
+    const pp = pinProblem(b.newPin);
+    if (pp) return send(res, 400, { error: "pin", message: pp });
+    if (!(await verifyPassword(res, a, b.password))) return;
+    a.user.pin = await hashSecret(b.newPin, "pin"); saveUsers();
+    buckets.delete("pin:" + a.user.id);
+    return send(res, 200, { ok: true });
+  }
+
+  /* --- голос: начало занятия с голосом --- */
+  if (url === "/api/voice/session") {
+    if (!OPENAI_KEY) return send(res, 503, { error: "no_key" });
+    if (tooMany("voice:" + ip, 20, 60 * MIN)) return send(res, 429, { error: "too_many" });
+    hit("voice:" + ip);
+    const instructions = VOICE_PROMPT + (a && a.user.child && a.user.child.name ? "\n\nРебёнка зовут " + a.user.child.name + ". Можно изредка обращаться по имени." : "");
+    const sid = crypto.randomBytes(16).toString("hex");
+    voiceSessions.set(sid, { instructions, created: Date.now(), last: null, pending: [], turns: 0 });
+    return send(res, 200, { sid });
+  }
+
+  /* --- занятие --- */
+  const stateKey = a ? "u:" + a.user.id : (typeof b.session === "string" && /^[a-f0-9]{32}$/.test(b.session) ? "s:" + b.session : null);
+  const ps = stateKey && playState(stateKey);
+  if (!ps) return send(res, 400, { error: "bad_session" });
+  const task = taskById(b.task);
+  if (!task) return send(res, 400, { error: "bad_step" });
+  if (url === "/api/start") {
+    /* новый заход в задачу: счётчики занятия обнуляются, блокировки шагов остаются */
+    for (const [k, v] of ps.steps) if (k.startsWith(task.id + ":")) { v.errors = 0; v.helped = false; v.solved = false; }
+    if (a) { const P = progress(a.user); if (!P.firstLessonAt) P.firstLessonAt = new Date().toISOString(); scheduleSave(); }
+    return send(res, 200, { ok: true });
+  }
+  const step = Number.isInteger(b.step) ? task.steps[b.step] : null;
+  if (!step) return send(res, 400, { error: "bad_step" });
+  const st = stepState(ps, task.id, b.step);
+
+  if (url === "/api/check") {
+    if (tooMany("chk:" + ip, 120, MIN)) return send(res, 429, { error: "too_many" });
+    hit("chk:" + ip);
+    if (st.locked) return send(res, 423, { locked: true, rule: step.rule });
+    if (isCorrect(step, b.answer)) {
+      st.attempts = 0;
+      if (!st.solved) { st.solved = true; if (a) recordSolved(a.user, task, ps, b.step, st); }
+      return send(res, 200, { correct: true, ok: step.ok, note: step.note || null });
+    }
+    st.errors++; st.attempts++;
+    if (st.attempts >= MAX_ATTEMPTS) st.locked = true;
+    return send(res, 200, { correct: false, attempts: st.attempts, locked: st.locked, rule: step.rule, similar: st.attempts >= 2 ? task.similar : null });
+  }
+  if (url === "/api/unlock") {
+    if (!a) return send(res, 403, { error: "guest" });
+    if (!st.locked) return send(res, 409, { error: "not_locked" });
+    if (!(await verifyPin(res, a, b.pin))) return;
+    st.locked = false; st.attempts = MAX_ATTEMPTS - 1; st.helped = true;
+    return send(res, 200, { ok: true, answer_text: CONFIG.reveal_answer_to_adult ? answerText(step) : null });
+  }
+  return send(res, 404, { error: "not_found" });
+}
+
+http.createServer((req, res) => {
+  const url = req.url.split("?")[0];
+  if (url.startsWith("/api/")) return api(req, res, url).catch(e => { console.error(e); if (!res.headersSent) send(res, 500, { error: "server" }); });
+  let f = STATIC[url];
+  const lm = /^\/img\/lessons\/([\w-]+)\.(png|jpg|webp|svg)$/.exec(url);
+  if (!f && lm) f = ["img/lessons/" + lm[1] + "." + lm[2], { png: "image/png", jpg: "image/jpeg", webp: "image/webp", svg: "image/svg+xml" }[lm[2]]];
+  if (!f || req.method !== "GET") { res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" }); return res.end("Не найдено"); }
+  fs.readFile(path.join(ROOT, f[0]), (err, data) => {
+    if (err) { res.writeHead(404); return res.end("Не найдено"); }
+    res.writeHead(200, { "Content-Type": f[1], "Cache-Control": "no-cache" });
+    res.end(data);
+  });
+}).listen(PORT, () => {
+  console.log("Листик: http://localhost:" + PORT);
+  console.log(OPENAI_KEY ? "Голос: включён (дешёвая схема: " + STT_MODEL + " + " + LLM_MODEL + " + " + TTS_MODEL + ")" : "Голос: выключен (нет OPENAI_API_KEY в файле .env)");
+  console.log("Кабинетов в базе: " + USERS.length + " (файл: " + USERS_FILE + ")");
+});

@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Листик · Репетитор: выбор</title>
+<style>
+@font-face { font-family: "Manrope"; src: url("fonts/Manrope-cyrillic-ext.woff2") format("woff2"); font-weight: 200 800; font-display: swap; unicode-range: U+0460-052F,U+1C80-1C8A,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F; }
+@font-face { font-family: "Manrope"; src: url("fonts/Manrope-cyrillic.woff2") format("woff2"); font-weight: 200 800; font-display: swap; unicode-range: U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116; }
+@font-face { font-family: "Manrope"; src: url("fonts/Manrope-latin.woff2") format("woff2"); font-weight: 200 800; font-display: swap; unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: "Onest"; src: url("fonts/Onest.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: "Caveat"; src: url("fonts/Caveat.woff2") format("woff2"); font-weight: 400 700; font-display: swap; }
+
+:root {
+  --ink:#1E2A22; --muted:#4B5575; --paper:#FCFCFC; --green:#1F7A45; --green-d:#17653A; --tint:#E5F3E9;
+  --sun:#F2C14E; --pen:#2B4BC4; --line:#DDE3D6; --head:"Manrope","Onest",system-ui,sans-serif;
+}
+*,*::before,*::after { box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+body { margin:0; background:var(--paper); color:var(--ink); font-family:"Manrope","Onest",system-ui,sans-serif; font-size:18px; line-height:1.5; }
+.grid-bg { background-image:linear-gradient(to right,rgba(27,36,64,.055) 1px,transparent 1px),linear-gradient(to bottom,rgba(27,36,64,.055) 1px,transparent 1px); background-size:28px 28px; }
+a { color:inherit; }
+a:focus-visible, button:focus-visible { outline:3px solid var(--pen); outline-offset:3px; }
+.wrap { max-width:1160px; margin:0 auto; padding-left:24px; padding-right:24px; }
+h1,h2,h3 { margin:0; }
+h1,h2 { font-family:var(--head); font-weight:800; letter-spacing:-0.025em; text-wrap:balance; }
+p { margin:0; text-wrap:pretty; }
+.logo { display:flex; align-items:center; gap:10px; text-decoration:none; color:var(--ink); }
+.logo b { font-family:var(--head); font-weight:800; font-size:22px; letter-spacing:-0.02em; }
+header.top .wrap { padding-top:20px; padding-bottom:20px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+nav { display:flex; align-items:center; gap:10px 24px; flex-wrap:wrap; }
+nav a.l { text-decoration:none; font-weight:500; font-size:16px; padding:12px 0; }
+nav a.l:hover { color:var(--green); }
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:10px; min-height:58px; padding:0 30px; border-radius:16px; text-decoration:none; font:inherit; font-weight:600; font-size:18px; border:2px solid transparent; cursor:pointer; transition:background .15s ease, transform .15s ease, border-color .15s ease; }
+.btn:hover { transform:translateY(-1px); }
+.btn.green { background:var(--green); color:#fff; }
+.btn.green:hover { background:var(--green-d); }
+.btn.sun { background:var(--sun); color:var(--ink); font-weight:700; }
+.btn.sun:hover { background:#FFE37D; }
+.btn.line { border-color:var(--ink); color:var(--ink); background:transparent; }
+.btn.line:hover { background:var(--tint); }
+.btn.white { border-color:#fff; color:#fff; background:transparent; }
+.btn.white:hover { background:rgba(255,255,255,.14); }
+.btn.sm { min-height:48px; padding:0 22px; font-size:16px; border-radius:14px; }
+.chip { display:inline-flex; align-items:center; padding:8px 16px; background:var(--sun); border-radius:999px; font-size:15px; font-weight:600; }
+.hl { background:linear-gradient(transparent 64%,var(--sun) 64%); }
+.hero-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(440px,100%),1fr)); gap:56px; align-items:center; padding-top:40px; padding-bottom:96px; }
+.hero-grid .t { display:flex; flex-direction:column; align-items:flex-start; gap:28px; }
+.hero-grid h1 { font-weight:600; font-size:clamp(30px,4.4vw,52px); line-height:1.14; }
+.hero-grid .lead { font-size:20px; line-height:1.6; color:var(--muted); max-width:520px; }
+.btns { display:flex; flex-wrap:wrap; gap:14px; }
+.nb { position:relative; background-color:#fff; border:1px solid var(--line); border-radius:28px; padding:20px 24px 20px 68px; box-shadow:0 28px 56px -28px rgba(27,36,64,.3); background-image:linear-gradient(to bottom,transparent 39px,#D6E2F3 39px); background-size:100% 40px; background-position:0 20px; }
+.nb::before { content:""; position:absolute; top:0; bottom:0; left:50px; width:2px; background:#F0A9A3; }
+.nb div { height:40px; line-height:40px; font-family:"Caveat",cursive; font-weight:600; font-size:clamp(24px,3.4vw,34px); color:var(--pen); white-space:nowrap; }
+.nb mark { background:linear-gradient(transparent 55%,rgba(255,216,77,.85) 55%); padding:0 4px; color:inherit; }
+.bubble-note { align-self:flex-start; margin:-18px 0 0 32px; position:relative; display:flex; align-items:center; gap:12px; background:#fff; border:1.5px solid var(--line); border-radius:20px; padding:12px 18px 12px 12px; box-shadow:0 12px 28px -16px rgba(27,36,64,.3); font-size:16px; font-weight:500; }
+figure { margin:0; display:flex; flex-direction:column; }
+figcaption { margin-top:16px; font-size:15px; color:var(--muted); }
+section.pad { padding-top:80px; padding-bottom:24px; }
+.sec-h { display:flex; flex-direction:column; gap:14px; max-width:640px; margin-bottom:40px; }
+.sec-h h2 { font-weight:500; font-size:clamp(24px,3vw,36px); line-height:1.2; }
+.sec-h p { font-size:18px; color:var(--muted); }
+.cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr)); gap:24px; }
+.card { background:#fff; border:1px solid var(--line); border-radius:28px; padding:32px; display:flex; flex-direction:column; gap:14px; transition:transform .2s ease, box-shadow .2s ease; }
+.card:hover { transform:translateY(-3px); box-shadow:0 20px 40px -24px rgba(27,36,64,.35); }
+.card h3 { margin-top:8px; font-size:21px; font-weight:700; }
+.card p { font-size:17px; color:var(--muted); }
+.num { width:56px; height:56px; border-radius:18px; background:var(--tint); color:var(--green); display:flex; align-items:center; justify-content:center; font-family:"Caveat",cursive; font-weight:600; font-size:38px; line-height:1; }
+.band-green { background:var(--green); color:#fff; border-radius:36px; padding:clamp(32px,6vw,72px); display:grid; grid-template-columns:repeat(auto-fit,minmax(min(360px,100%),1fr)); gap:40px; align-items:center; }
+.band-green h2 { font-weight:500; font-size:clamp(24px,3vw,36px); line-height:1.2; margin-bottom:18px; }
+.band-green p { font-size:19px; line-height:1.6; }
+.band-green a:focus-visible { outline-color:#fff; }
+footer.foot .wrap { padding-top:8px; padding-bottom:48px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; color:var(--muted); font-size:15px; }
+footer.foot .logo b { font-size:17px; font-weight:600; }
+.contact a { font-weight:700; text-decoration:none; border-bottom:2px solid currentColor; }
+@media (prefers-reduced-motion:reduce) { .btn,.card { transition:none; } html { scroll-behavior:auto; } }
+
+body { min-height:100vh; padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px); }
+.w { max-width:820px; margin:0 auto; padding:0 24px; }
+.bar { display:flex; align-items:center; justify-content:flex-end; gap:16px; flex-wrap:wrap; padding-top:24px; }
+.back { display:inline-flex; align-items:center; gap:10px; min-height:48px; padding:0 18px 0 14px; border:2px solid var(--line); background:#fff; border-radius:14px; color:var(--ink); font:inherit; font-weight:600; font-size:16px; cursor:pointer; text-decoration:none; }
+.back:hover { background:var(--tint); }
+.back[hidden] { display:none; }
+.prog { display:flex; align-items:center; gap:14px; }
+.prog .pills { display:flex; gap:6px; }
+.prog i { width:34px; height:10px; border-radius:999px; background:#E4E8DD; }
+.prog i.done { background:var(--green); }
+.prog i.cur { background:var(--sun); box-shadow:0 0 0 2px var(--ink); }
+.prog span { font-size:15px; font-weight:600; color:var(--muted); }
+main { padding-top:48px; padding-bottom:72px; display:flex; flex-direction:column; gap:32px; }
+.say { display:flex; align-items:flex-start; gap:16px; }
+.say svg { flex:none; }
+.say .bb { background:#fff; border:1.5px solid var(--line); border-radius:8px 24px 24px 24px; padding:20px 24px; box-shadow:0 16px 32px -24px rgba(27,36,64,.3); }
+.say .bb p { font-size:22px; line-height:1.5; font-weight:500; }
+.opts { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr)); gap:18px; }
+.opt { display:flex; flex-direction:column; gap:10px; padding:22px 24px 26px; background:#fff; border:2px solid var(--line); border-radius:24px; text-align:left; font:inherit; color:var(--ink); cursor:pointer; min-height:120px; transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+.opt:hover:not(:disabled) { transform:translateY(-3px); border-color:var(--green); box-shadow:0 22px 40px -26px rgba(27,36,64,.4); }
+.opt b { font-size:26px; font-weight:500; letter-spacing:.01em; }
+.opt small { font-size:15px; font-weight:600; color:var(--muted); }
+.opt .row { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.opt .row svg { flex:none; }
+.opt:disabled { cursor:default; border-style:dashed; background:rgba(255,255,255,.6); }
+.opt:disabled b { color:#6B7590; }
+.opt .soon { align-self:flex-start; font-size:13px; font-weight:700; padding:5px 12px; border-radius:999px; background:#F2F6F9; color:#0F3B4F; }
+.err { background:#FFF0DB; border:2px solid #C2620A; border-radius:18px; padding:14px 18px; font-size:17px; }
+.err a { font-weight:700; color:var(--pen); }
+.hint { font-size:15px; color:var(--muted); }
+@media (prefers-reduced-motion:reduce) { .opt { transition:none; } }
+
+</style>
+<link rel="stylesheet" href="/site.css">
+<link rel="icon" type="image/png" href="/img/logo.png">
+</head>
+<body class="grid-bg">
+<div class="sh-band">
+<header class="sh">
+  <div class="sh-in">
+    <a class="sh-logo" href="/"><img src="/img/logo.png" alt="" width="32" height="44" style="height:44px;width:auto;display:block"><b>Листик</b></a>
+    <nav class="sh-nav" aria-label="Главное меню"><a href="/">Главная</a><a href="/listik.html#cabinet" class="is-active" aria-current="page">Репетитор</a><a href="/pricing.html">Тарифы</a><a class="sh-btn" href="/start.html">Попробовать бесплатно</a></nav>
+  </div>
+</header>
+</div>
+<div class="w">
+  <div class="bar">
+    <div class="prog" id="prog" aria-live="polite"></div>
+  </div>
+  <main>
+    <div><button class="back" id="back" type="button" hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1E2A22" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M11 6l-6 6 6 6"/></svg>Назад</button></div>
+    <div class="say"><svg width="56" height="56" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="16" fill="#E5F3E9"/><path d="M8 24C8 14 14 8 24 8c0 10-6 16-16 16z" fill="#1F7A45"/><path d="M8 24l9-9" stroke="#E5F3E9" stroke-width="2" stroke-linecap="round"/></svg><div class="bb"><p id="q">Загружаю…</p></div></div>
+    <div class="opts" id="opts"></div>
+    <p class="hint">Все вопросы, правила и ответы записаны заранее.</p>
+  </main>
+</div>
+
+<footer class="sf">
+  <div class="sf-in">
+    <div class="sf-top">
+      <div class="sf-col">
+        <div class="sf-logo"><span style="display:inline-flex;background:#FBFAF4;border-radius:14px;padding:6px 8px"><img src="/img/logo.png" alt="" width="28" height="38" style="height:38px;width:auto;display:block"></span><b>Листик</b></div>
+        <p>ИИ-репетитор для школьников</p>
+      </div>
+      <div class="sf-col">
+        <h4>Связаться с нами</h4>
+        <a class="sf-tel" href="tel:+77759714163">+7 (775) 971-41-63</a>
+        <a class="sf-wa" href="https://wa.me/77759714163">Написать в WhatsApp</a>
+      </div>
+      <div class="sf-col">
+        <h4>Документы</h4>
+        <a href="#">Политика конфиденциальности</a>
+        <a href="#">Пользовательское соглашение</a>
+        <a href="#">Публичная оферта</a>
+      </div>
+    </div>
+    <div class="sf-copy">© 2026 ТОО «Листик». Все права защищены.</div>
+  </div>
+</footer>
+
+<script>
+/* Мастер выбора для модуля «Репетитор»: один вопрос на экран, выбор нажатием.
+   Для других модулей шаги задаются отдельным списком STEPS.
+   Раздел берётся с сервера (/api/tasks), остальное задано здесь.
+   soon: true — вариант виден, но пока не открывается. */
+const STEPS = [
+  { key: "lang", title: "Привет! Я Листик, компьютерная программа-помощник. На каком языке будем заниматься?", short: "Язык", options: [
+      { id: "ru", title: "Русский" },
+      { id: "kk", title: "Қазақша", soon: true } ] },
+  { key: "subject", title: "Какой предмет выберем?", short: "Предмет", options: [
+      { id: "math", title: "Математика" },
+      { id: "more", title: "Другие предметы", soon: true } ] },
+  { key: "grade", title: "В каком ты классе?", short: "Класс", options: [
+      { id: "2", title: "2 класс", soon: true },
+      { id: "3", title: "3 класс" },
+      { id: "4", title: "4 класс", soon: true } ] },
+  { key: "section", title: "Какой раздел будем разбирать?", short: "Раздел", options: [] }
+];
+const ARROW = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1F7A45" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>';
+const pick = {};
+let at = 0;
+const $ = id => document.getElementById(id);
+
+function paint() {
+  const st = STEPS[at];
+  $("q").textContent = st.title;
+  $("back").hidden = at === 0;
+  $("prog").innerHTML = '<div class="pills" role="img" aria-label="Шаг ' + (at + 1) + ' из ' + STEPS.length + '">' +
+    STEPS.map((_, i) => '<i class="' + (i < at ? "done" : i === at ? "cur" : "") + '"></i>').join("") +
+    '</div><span>Шаг ' + (at + 1) + ' из ' + STEPS.length + '</span>';
+  const o = $("opts"); o.innerHTML = "";
+  st.options.forEach(op => {
+    const b = document.createElement("button");
+    b.className = "opt"; b.type = "button";
+    const row = document.createElement("div"); row.className = "row";
+    const t = document.createElement("b"); t.textContent = op.title; row.appendChild(t);
+    if (!op.soon) row.insertAdjacentHTML("beforeend", ARROW);
+    b.appendChild(row);
+    if (op.hint) { const s = document.createElement("small"); s.textContent = op.hint; b.appendChild(s); }
+    if (op.soon) { b.disabled = true; const s = document.createElement("span"); s.className = "soon"; s.textContent = "Скоро"; b.appendChild(s); }
+    else b.addEventListener("click", () => choose(st.key, op.id));
+    o.appendChild(b);
+  });
+}
+function choose(key, id) {
+  pick[key] = id;
+  if (at < STEPS.length - 1) { at++; return paint(); }
+  $("q").textContent = "Открываю задачи…"; $("opts").innerHTML = "";
+  location.href = "listik.html?" + new URLSearchParams(pick).toString();
+}
+$("back").addEventListener("click", () => { if (at > 0) { at--; paint(); } });
+
+fetch("/api/tasks", { cache: "no-cache" }).then(r => r.json()).then(d => {
+  const count = {};
+  d.tasks.forEach(t => { count[t.section] = (count[t.section] || 0) + 1; });
+  STEPS[3].options = (d.sections || []).filter(s => count[s.id]).map(s => ({
+    id: s.id, title: s.title,
+    hint: (s.hint ? s.hint + ". " : "") + "Задач: " + count[s.id]
+  }));
+  paint();
+}).catch(() => {
+  $("q").textContent = "Не получилось загрузить разделы";
+  $("opts").innerHTML = '<div class="err">Проверьте интернет и обновите страницу. Если вы запускаете программу сами, откройте её через сервер (команда: node server.js). <a href="/">На главную</a></div>';
+});
+</script>
+</body>
+</html>

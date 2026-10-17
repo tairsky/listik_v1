@@ -1,0 +1,17 @@
+.env
+node_modules
+.DS_Store
+storage/
+
+# не нужно на хостинге
+_backup_*/
+_cut/
+Midjourney/
+База уроков/
+*.zip
+ziprb0kN
+_server.js.bak
+server.realtime.js
+listik.realtime.html
+start.bat
+_server.js.before_deploy.bak

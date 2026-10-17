@@ -1,0 +1,69 @@
+/* Общая шапка и подвал сайта «Листик» (стиль «Тетрадь»). Единственное место, где они описаны.
+   Подключается на всех страницах: <link rel="stylesheet" href="/site.css">. */
+.sh, .sf { font-family: "Manrope", "Onest", system-ui, sans-serif; line-height: 1.5; -webkit-text-size-adjust: 100%; color: #1B2440; }
+.sh *, .sf * { box-sizing: border-box; }
+
+/* бумага в клетку под шапкой на страницах без большого блока */
+.sh-band { background-color: #FBFAF6; background-image: linear-gradient(to right, rgba(27,36,64,.055) 1px, transparent 1px), linear-gradient(to bottom, rgba(27,36,64,.055) 1px, transparent 1px); background-size: 28px 28px; }
+
+/* шапка */
+.sh { font-size: 16px; }
+.sh-in { max-width: 1160px; margin: 0 auto; padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.sh-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #1B2440; }
+.sh-logo svg { width: 36px; height: 36px; flex: none; }
+.sh-logo b { font-weight: 800; font-size: 22px; letter-spacing: -0.02em; }
+.sh-nav { display: flex; align-items: center; gap: 6px 22px; flex-wrap: wrap; }
+.sh-nav a { color: #1B2440; text-decoration: none; font-weight: 500; font-size: 16px; line-height: 24px; padding: 12px 0 9px; border-bottom: 3px solid transparent; }
+.sh-nav a:hover { color: #1A7F45; }
+.sh-nav a.is-active { border-bottom-color: #FFD84D; font-weight: 700; }
+.sh-nav a.sh-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 22px; border: 2px solid #1A7F45; border-radius: 14px; background: #1A7F45; color: #fff; font-weight: 600; transition: background .15s ease, transform .15s ease; }
+.sh-nav a.sh-btn:hover { background: #15683A; border-color: #15683A; color: #fff; transform: translateY(-1px); }
+.sh a:focus-visible, .sf a:focus-visible { outline: 3px solid #2B4BC4; outline-offset: 3px; border-radius: 4px; }
+
+/* подвал */
+.sf { background: transparent; color: #4B5575; font-size: 15px; }
+.sf-in { max-width: 1160px; margin: 0 auto; padding: 32px 24px 48px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 28px; }
+.sf-logo { display: flex; align-items: center; gap: 10px; color: #1B2440; }
+.sf-logo svg { width: 28px; height: 28px; flex: none; }
+.sf-logo b { font-weight: 700; font-size: 18px; }
+.sf-links { display: flex; flex-wrap: wrap; gap: 8px 24px; font-size: 16px; }
+.sf-links a { color: #1B2440; text-decoration: none; font-weight: 600; border-bottom: 1px solid #DDE3D6; }
+.sf-links a:hover { border-color: #1A7F45; color: #1A7F45; }
+@media (max-width: 720px) { .sh-nav a { padding: 8px 4px 6px; } .sf-in { justify-content: center; text-align: center; } }
+
+
+/* ===== Новый дизайн (как на главной): тёплый фон, зелёные «таблетки», тёмный подвал ===== */
+:root { --paper:#FBFAF4; --ink:#1E2A22; --text:#1E2A22; --green:#1F7A45; --green-d:#15683A; --sun:#F2C14E; --tint:#E3F1E7; --line:#E3E8DC; --muted:#4E5D52; }
+body { background:#FBFAF4 !important; color:#1E2A22; }
+.grid-bg { background-image:none !important; }
+.sh-band { background:#FBFAF4; background-image:none; }
+.sh, .sf { color:#1E2A22; }
+.sh-in { max-width:1120px; }
+.sh-logo svg { width:34px; height:34px; }
+.sh-logo b { font-size:28px; font-weight:800; color:#1E2A22; }
+.sh-nav a { color:#1E2A22; font-weight:600; }
+.sh-nav a:hover { color:#1F7A45; }
+.sh-nav a.is-active { border-bottom-color:#F2C14E; font-weight:800; }
+.sh-nav a.sh-btn { min-height:44px; padding:10px 22px; border-radius:999px; border:0; background:#1F7A45; font-weight:800; border-bottom:0; }
+.sh-nav a.sh-btn:hover { background:#15683A; }
+.btn, .btn.sm { border-radius:999px !important; font-weight:800; }
+.btn.green { background:#1F7A45; }
+.btn.sun { background:#F2C14E; }
+.card, .plan, .opt, .say .bb, .nb { border-color:#E3E8DC; }
+
+/* тёмный подвал */
+.sf { background:#1E2A22; color:#E6F2E8; margin-top:48px; font-size:16px; }
+.sf-in { max-width:1120px; margin:0 auto; padding:56px 24px 32px; display:block; text-align:left; }
+.sf-top { display:flex; flex-wrap:wrap; justify-content:space-between; gap:32px; }
+.sf-col { flex:1 1 240px; min-width:0; display:flex; flex-direction:column; gap:6px; }
+.sf-col h4 { margin:0 0 6px; font-size:14px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:#BFDFC6; }
+.sf-col p { margin:0; color:#BFDFC6; }
+.sf .sf-logo { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+.sf .sf-logo b { font-size:26px; font-weight:800; color:#fff; }
+.sf a { color:#fff; text-decoration:none; display:inline-flex; align-items:center; min-height:32px; border:0; font-weight:500; }
+.sf a:hover { color:#BFE3C8; }
+.sf a.sf-tel { font-size:20px; font-weight:800; min-height:44px; }
+.sf a.sf-wa { color:#BFDFC6; min-height:44px; }
+.sf-copy { border-top:1px solid #3A4A40; margin-top:32px; padding-top:20px; font-size:14px; color:#BFDFC6; }
+.sf a:focus-visible { outline-color:#fff; }
+@media (max-width:720px) { .sf-in { text-align:left; } }

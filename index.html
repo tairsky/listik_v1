@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Листик — ИИ-репетитор для школьников</title>
+<meta name="description" content="Листик не решает за ребёнка, а ведёт к ответу шаг за шагом и простыми словами, по материалу учебника.">
+<style>
+@font-face{font-family:"Manrope";src:url("fonts/Manrope-cyrillic-ext.woff2") format("woff2");font-weight:200 800;font-display:swap;unicode-range:U+0460-052F,U+1C80-1C8A,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F}
+@font-face{font-family:"Manrope";src:url("fonts/Manrope-cyrillic.woff2") format("woff2");font-weight:200 800;font-display:swap;unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:"Manrope";src:url("fonts/Manrope-latin.woff2") format("woff2");font-weight:200 800;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Onest";src:url("fonts/Onest.woff2") format("woff2");font-weight:100 900;font-display:swap}
+body{margin:0;background:#1E2A22}
+html{scroll-behavior:smooth}
+.lk-float{animation:lkfloat 5s ease-in-out infinite}
+.lk-float2{animation:lkfloat 6.5s ease-in-out -2s infinite}
+.lk-float3{animation:lkfloat 4.2s ease-in-out -1s infinite}
+svg .lk-float,svg .lk-float2{transform-box:fill-box;transform-origin:center}
+@keyframes lkfloat{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-12px) rotate(3deg)}}
+.lk-globe-land{animation:lkspin 16s linear infinite}
+@keyframes lkspin{from{transform:translateX(0)}to{transform:translateX(-200px)}}
+.lk-flip{transform-origin:left center;transform-style:preserve-3d;animation:lkflip 6s ease-in-out infinite}
+@keyframes lkflip{0%,12%{transform:rotateY(0deg)}42%,62%{transform:rotateY(-180deg)}92%,100%{transform:rotateY(0deg)}}
+.lk-face{position:absolute;top:0;left:0;right:0;bottom:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.lk-back{transform:rotateY(180deg)}
+svg .lk-orbit{transform-box:fill-box;transform-origin:center;animation:lkorbit 9s linear infinite}
+@keyframes lkorbit{to{transform:rotate(360deg)}}
+.lk-glow{animation:lkglow 2.4s ease-in-out infinite}
+@keyframes lkglow{0%,100%{opacity:.2}50%{opacity:1}}
+.lk-dot{display:inline-block;width:8px;height:8px;border-radius:50%;animation:lkdot 1.2s ease-in-out infinite}
+.lk-dot:nth-child(2){animation-delay:.2s}
+.lk-dot:nth-child(3){animation-delay:.4s}
+@keyframes lkdot{0%,60%,100%{transform:translateY(0);opacity:.45}30%{transform:translateY(-6px);opacity:1}}
+.lk-cta{animation:lkpulse 2.8s ease-in-out infinite}
+@keyframes lkpulse{0%,100%{box-shadow:0 0 0 0 rgba(31,122,69,.4)}50%{box-shadow:0 0 0 12px rgba(31,122,69,0)}}
+.lk-cta2{animation:lkpulse2 2.8s ease-in-out infinite}
+@keyframes lkpulse2{0%,100%{box-shadow:0 0 0 0 rgba(251,250,244,.5)}50%{box-shadow:0 0 0 12px rgba(251,250,244,0)}}
+svg .lk-blink{transform-box:fill-box;transform-origin:center;animation:lkblink 5s ease-in-out infinite}
+@keyframes lkblink{0%,92%,100%{transform:scaleY(1)}96%{transform:scaleY(.1)}}
+.lk-breathe{animation:lkbreathe 5s ease-in-out infinite}
+@keyframes lkbreathe{0%,100%{transform:scale(.8)}50%{transform:scale(1.3)}}
+@media (prefers-reduced-motion:reduce){.lk-float,.lk-float2,.lk-float3,.lk-globe-land,.lk-flip,.lk-orbit,.lk-glow,.lk-dot,.lk-cta,.lk-cta2,.lk-blink,.lk-breathe{animation:none}}
+</style>
+<link rel="icon" type="image/png" href="/img/logo.png">
+</head>
+<body>
+<div style="width:100%;background:#FBFAF4;color:#1E2A22;font-family:Manrope,Onest,system-ui,sans-serif;font-size:18px;line-height:1.55">
+
+<!-- Шапка -->
+<div style="max-width:1120px;margin:0 auto;padding:20px 24px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+<div style="display:flex;align-items:center;gap:10px">
+<img src="/img/logo.png" alt="" width="32" height="44" style="height:44px;width:auto;display:block">
+<span style="font-size:28px;font-weight:800;color:#1E2A22">Листик</span>
+</div>
+<nav aria-label="Главное меню" style="display:flex;align-items:center;flex-wrap:wrap;gap:6px 24px">
+<a href="/" aria-current="page" style="color:#1E2A22;text-decoration:none;font-weight:800;font-size:16px;line-height:24px;padding:12px 0 9px;border-bottom:3px solid #F2C14E">Главная</a>
+<a href="/listik.html#cabinet" style="color:#1E2A22;text-decoration:none;font-weight:600;font-size:16px;line-height:24px;padding:12px 0 9px;border-bottom:3px solid transparent">Репетитор</a>
+<a href="/pricing.html" style="color:#1E2A22;text-decoration:none;font-weight:600;font-size:16px;line-height:24px;padding:12px 0 9px;border-bottom:3px solid transparent">Тарифы</a>
+<a href="/start.html" style="display:inline-flex;align-items:center;min-height:44px;box-sizing:border-box;background:#1F7A45;color:#FFFFFF;font-weight:800;font-size:16px;padding:10px 22px;border-radius:999px;text-decoration:none">Попробовать бесплатно</a>
+</nav>
+</div>
+
+<!-- Первый экран -->
+<div style="position:relative;overflow:hidden">
+<div style="max-width:1120px;margin:0 auto;padding:40px 24px 56px;box-sizing:border-box;display:flex;flex-wrap:wrap;align-items:center;gap:56px">
+<div style="flex:1 1 440px;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:24px">
+<div style="background:#E6F2E8;color:#14532D;font-weight:800;font-size:15px;padding:8px 16px;border-radius:999px">ИИ-репетитор для школьников</div>
+<h1 style="margin:0;font-size:52px;line-height:1.1;font-weight:800;letter-spacing:-0.01em">Репетитор, который объясняет так, чтобы ребенок понял сам</h1>
+<p style="margin:0;font-size:22px;color:#4B5A50;max-width:620px">Листик сам проведёт ребёнка к ответу: шаг за шагом, простыми словами и только по нашему материалу.</p>
+<a class="lk-cta" href="/start.html" style="display:inline-flex;align-items:center;justify-content:center;min-height:56px;box-sizing:border-box;background:#1F7A45;color:#FFFFFF;font-weight:800;font-size:20px;padding:14px 36px;border-radius:999px;text-decoration:none">Попробовать бесплатно</a>
+<p style="margin:0;font-size:15px;color:#55645A">Ничего настраивать не нужно. [Условия отмены подписки]</p>
+</div>
+<div style="flex:1 1 340px;min-width:0;max-width:400px;margin:0 auto;position:relative">
+<div style="position:relative;width:100%;aspect-ratio:1/1">
+<div aria-hidden="true" style="position:absolute;left:-3%;right:-3%;bottom:0;height:64%;background:#F2C14E;border-radius:999px 999px 0 0"></div>
+<img src="/img/hero-boy.webp" alt="Радостный мальчик с рюкзаком" fetchpriority="high" width="900" height="900" style="position:absolute;left:0;bottom:0;display:block;width:100%;height:100%;object-fit:contain;object-position:50% 100%">
+</div>
+<div class="lk-float2" aria-hidden="true" style="position:absolute;top:-26px;right:-14px;width:120px;height:130px">
+<div style="transform:rotate(-12deg)">
+<svg width="120" height="130" viewBox="0 0 120 130" aria-hidden="true">
+<defs>
+<clipPath id="lkgc"><circle cx="60" cy="60" r="52"></circle></clipPath>
+<radialGradient id="lkgs" cx="38%" cy="35%" r="75%"><stop offset="55%" stop-color="#0B3D5C" stop-opacity="0"></stop><stop offset="100%" stop-color="#0B3D5C" stop-opacity="0.3"></stop></radialGradient>
+</defs>
+<path d="M44 124 H76 M60 112 V124" stroke="#1E2A22" stroke-width="4" stroke-linecap="round" fill="none"></path>
+<circle cx="60" cy="60" r="52" fill="#BFE3F5"></circle>
+<g clip-path="url(#lkgc)">
+<g class="lk-globe-land">
+<g fill="#4FA66B">
+<path d="M10 40 C20 25 45 28 52 40 C58 52 48 70 35 74 C22 70 8 56 10 40Z"></path>
+<path d="M75 30 C90 22 112 30 118 44 C122 58 105 66 96 62 C86 70 74 58 78 46Z"></path>
+<path d="M140 50 C150 38 172 40 180 52 C186 66 170 82 156 80 C142 76 134 62 140 50Z"></path>
+<path d="M120 84 C128 80 138 86 134 94 C128 98 118 92 120 84Z"></path>
+</g>
+<g fill="#4FA66B" transform="translate(200 0)">
+<path d="M10 40 C20 25 45 28 52 40 C58 52 48 70 35 74 C22 70 8 56 10 40Z"></path>
+<path d="M75 30 C90 22 112 30 118 44 C122 58 105 66 96 62 C86 70 74 58 78 46Z"></path>
+<path d="M140 50 C150 38 172 40 180 52 C186 66 170 82 156 80 C142 76 134 62 140 50Z"></path>
+<path d="M120 84 C128 80 138 86 134 94 C128 98 118 92 120 84Z"></path>
+</g>
+</g>
+</g>
+<circle cx="60" cy="60" r="52" fill="url(#lkgs)"></circle>
+<ellipse cx="42" cy="38" rx="16" ry="9" fill="#FFFFFF" opacity="0.28" transform="rotate(-30 42 38)"></ellipse>
+<circle cx="60" cy="60" r="52" fill="none" stroke="#1F7A45" stroke-width="3"></circle>
+</svg>
+</div>
+</div>
+<div class="lk-float" aria-hidden="true" style="position:absolute;left:-18px;top:84px;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:16px;padding:8px 14px;font-weight:800;font-size:20px;color:#14532D;box-shadow:0 6px 16px rgba(30,42,34,0.12)">2 + 3</div>
+<div class="lk-float3" aria-hidden="true" style="position:absolute;left:-14px;bottom:70px;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:16px;padding:8px 16px;font-weight:800;font-size:22px;color:#14532D;box-shadow:0 6px 16px rgba(30,42,34,0.12)">А Б В</div>
+<div class="lk-float2" aria-hidden="true" style="position:absolute;right:-12px;bottom:36px;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:16px;padding:8px 14px;font-weight:800;font-size:20px;color:#14532D;box-shadow:0 6px 16px rgba(30,42,34,0.12)">H₂O</div>
+</div>
+</div>
+</div>
+
+<!-- Знакомая ситуация -->
+<div style="background:#F3EFE0;padding:64px 24px;box-sizing:border-box">
+<div style="max-width:1040px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:56px">
+<div style="flex:1 1 300px;min-width:0;max-width:330px;margin:0 auto">
+<div style="position:relative;width:100%;aspect-ratio:1/1">
+<div aria-hidden="true" style="position:absolute;left:-3%;right:-3%;bottom:0;height:62%;background:#A9CBEA;border-radius:170px 40px 0 0"></div>
+<img src="/img/tired-girl.webp" alt="Расстроенная девочка с учебниками в руках" loading="lazy" width="900" height="900" style="position:absolute;left:0;bottom:0;display:block;width:100%;height:100%;object-fit:contain;object-position:50% 100%">
+</div>
+</div>
+<div style="flex:1 1 420px;min-width:0;display:flex;flex-direction:column;gap:20px">
+<h2 style="margin:0;font-size:38px;line-height:1.2;font-weight:800">Вы это уже проходили?</h2>
+<p style="margin:0">Вечер. Ребёнок смотрит в учебник и говорит: «Я не понимаю». Вы объясняете, он злится и плачет. Вы тоже злитесь. В итоге тему вроде разобрали, но понятнее не стало.</p>
+<p style="margin:0">А если просто назвать ответ, завтра будет та же история.</p>
+<p style="margin:0;font-weight:800;font-size:20px;color:#14532D">Листик решает именно это: у ребёнка всегда есть терпеливый помощник, который не устаёт и не торопит.</p>
+</div>
+</div>
+</div>
+
+<!-- Как это работает -->
+<div style="max-width:1120px;margin:0 auto;padding:64px 24px;box-sizing:border-box;display:flex;flex-direction:column;gap:40px">
+<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:32px">
+<div style="flex:1 1 420px;min-width:0;max-width:760px;display:flex;flex-direction:column;gap:14px">
+<h2 style="margin:0;font-size:38px;line-height:1.2;font-weight:800">Три шага, и занятие началось</h2>
+<p style="margin:0;color:#4B5A50">Вам не нужно разбираться в теме, чтобы помочь ребёнку. Достаточно выбрать, над чем сегодня работаем.</p>
+</div>
+<div aria-hidden="true" style="position:relative;width:200px;height:132px;perspective:900px;margin:12px 20px 12px 8px">
+<div style="position:absolute;left:-8px;top:-6px;right:-8px;bottom:-8px;background:#1F7A45;border-radius:10px"></div>
+<div style="position:absolute;left:0;top:0;width:100px;height:132px;background:#FFFDF5;border-radius:6px 0 0 6px;box-shadow:inset -8px 0 10px -8px rgba(0,0,0,0.25);overflow:hidden">
+<div style="font-size:46px;font-weight:800;color:#1F7A45;text-align:center;line-height:1;margin-top:20px">А</div>
+<div style="margin:14px 16px 0;height:5px;border-radius:3px;background:#D9D5BF"></div>
+<div style="margin:8px 28px 0 16px;height:5px;border-radius:3px;background:#D9D5BF"></div>
+<div style="margin:8px 16px 0;height:5px;border-radius:3px;background:#D9D5BF"></div>
+</div>
+<div style="position:absolute;left:100px;top:0;width:100px;height:132px;background:#FFFDF5;border-radius:0 6px 6px 0;box-shadow:inset 8px 0 10px -8px rgba(0,0,0,0.25);overflow:hidden">
+<div style="font-size:46px;font-weight:800;color:#1F7A45;text-align:center;line-height:1;margin-top:20px">Г</div>
+<div style="margin:14px 16px 0;height:5px;border-radius:3px;background:#D9D5BF"></div>
+<div style="margin:8px 28px 0 16px;height:5px;border-radius:3px;background:#D9D5BF"></div>
+<div style="margin:8px 16px 0;height:5px;border-radius:3px;background:#D9D5BF"></div>
+</div>
+<div class="lk-flip" style="position:absolute;left:100px;top:0;width:100px;height:132px">
+<div class="lk-face" style="background:#FFFDF5;border-radius:0 6px 6px 0;box-shadow:inset 8px 0 10px -8px rgba(0,0,0,0.25);overflow:hidden">
+<div style="font-size:46px;font-weight:800;color:#1F7A45;text-align:center;line-height:1;margin-top:20px">Б</div>
+<div style="margin:14px 16px 0;height:5px;border-radius:3px;background:#D9D5BF"></div>
+<div style="margin:8px 28px 0 16px;height:5px;border-radius:3px;background:#D9D5BF"></div>
+<div style="margin:8px 16px 0;height:5px;border-radius:3px;background:#D9D5BF"></div>
+</div>
+<div class="lk-face lk-back" style="background:#FFFDF5;border-radius:6px 0 0 6px;box-shadow:inset -8px 0 10px -8px rgba(0,0,0,0.25);overflow:hidden">
+<div style="font-size:46px;font-weight:800;color:#1F7A45;text-align:center;line-height:1;margin-top:20px">В</div>
+<div style="margin:14px 16px 0;height:5px;border-radius:3px;background:#D9D5BF"></div>
+<div style="margin:8px 28px 0 16px;height:5px;border-radius:3px;background:#D9D5BF"></div>
+<div style="margin:8px 16px 0;height:5px;border-radius:3px;background:#D9D5BF"></div>
+</div>
+</div>
+</div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:20px">
+<div style="flex:1 1 280px;min-width:0;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:20px;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px">
+<div style="width:40px;height:40px;border-radius:50%;background:#E6F2E8;color:#14532D;font-weight:800;display:flex;align-items:center;justify-content:center">1</div>
+<h3 style="margin:0;font-size:22px;line-height:1.25;font-weight:800">Выберите язык обучения</h3>
+<p style="margin:0;font-size:16px;color:#4B5A50">Язык, на котором ребёнку удобнее заниматься.</p>
+</div>
+<div style="flex:1 1 280px;min-width:0;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:20px;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px">
+<div style="width:40px;height:40px;border-radius:50%;background:#E6F2E8;color:#14532D;font-weight:800;display:flex;align-items:center;justify-content:center">2</div>
+<h3 style="margin:0;font-size:22px;line-height:1.25;font-weight:800">Выберите класс, в котором учится ваш ребёнок</h3>
+<p style="margin:0;font-size:16px;color:#4B5A50">От класса зависит, какой материал возьмёт Листик.</p>
+</div>
+<div style="flex:1 1 280px;min-width:0;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:20px;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px">
+<div style="width:40px;height:40px;border-radius:50%;background:#E6F2E8;color:#14532D;font-weight:800;display:flex;align-items:center;justify-content:center">3</div>
+<h3 style="margin:0;font-size:22px;line-height:1.25;font-weight:800">Выберите раздел предмета, по которому нужно обучение</h3>
+<p style="margin:0;font-size:16px;color:#4B5A50">Дальше Листик сам ведёт занятие и разбирает тему вместе с ребёнком.</p>
+</div>
+</div>
+</div>
+
+<!-- Главное отличие -->
+<div style="background:#F3EFE0;padding:64px 24px;box-sizing:border-box">
+<div style="max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:40px">
+<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:40px">
+<div style="flex:1 1 420px;min-width:0;max-width:700px;display:flex;flex-direction:column;gap:14px">
+<h2 style="margin:0;font-size:38px;line-height:1.2;font-weight:800">Листик никогда не называет готовый ответ</h2>
+<p style="margin:0;color:#4B5A50">Ни когда просят. Ни когда злятся. Ни когда говорят «я не хочу думать». Вместо этого он делает то, что делает хороший репетитор.</p>
+</div>
+<div style="flex:0 1 300px;min-width:240px;margin:0 auto;position:relative">
+<div style="position:relative;width:100%;aspect-ratio:1/1">
+<div aria-hidden="true" style="position:absolute;left:-3%;right:-3%;bottom:0;height:62%;background:#BFD9C6;border-radius:40px 170px 0 0"></div>
+<img src="/img/think-boy.webp" alt="Задумавшийся мальчик, подперев подбородок рукой" loading="lazy" width="900" height="900" style="position:absolute;left:0;bottom:0;display:block;width:100%;height:100%;object-fit:contain;object-position:50% 100%">
+</div>
+<div class="lk-float2" aria-hidden="true" style="position:absolute;top:-14px;right:-10px;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:16px;padding:6px 18px;font-weight:800;font-size:26px;color:#14532D;box-shadow:0 6px 16px rgba(30,42,34,0.12)">?</div>
+<div aria-hidden="true" style="position:absolute;top:-22px;left:-18px;width:64px;height:64px;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(30,42,34,0.12)">
+<svg width="44" height="44" viewBox="0 0 64 64" aria-hidden="true">
+<g class="lk-glow" stroke="#F2C14E" stroke-width="3" stroke-linecap="round" fill="none"><path d="M32 3V9M9 13l4 4M55 13l-4 4M3 33h6M55 33h6"></path></g>
+<path d="M32 14c-9 0-16 7-16 16 0 6 3 10 7 14 2 2 3 4 3 7h12c0-3 1-5 3-7 4-4 7-8 7-14 0-9-7-16-16-16z" fill="#F2C14E"></path>
+<rect x="25" y="53" width="14" height="4" rx="2" fill="#8A6D1E"></rect>
+<rect x="27" y="58" width="10" height="3" rx="1.5" fill="#8A6D1E"></rect>
+</svg>
+</div>
+</div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:20px">
+<div style="flex:1 1 240px;min-width:0;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:20px;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px">
+<h3 style="margin:0;font-size:22px;line-height:1.25;font-weight:800">Просит пересказать задание</h3>
+<p style="margin:0;font-size:16px;color:#4B5A50">Своими словами: что нам известно и что нужно сделать.</p>
+</div>
+<div style="flex:1 1 240px;min-width:0;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:20px;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px">
+<h3 style="margin:0;font-size:22px;line-height:1.25;font-weight:800">Один короткий вопрос за раз</h3>
+<p style="margin:0;font-size:16px;color:#4B5A50">Ждёт ответа и только потом задаёт следующий. Без потока объяснений.</p>
+</div>
+<div style="flex:1 1 240px;min-width:0;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:20px;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px">
+<h3 style="margin:0;font-size:22px;line-height:1.25;font-weight:800">Подсказки по ступенькам</h3>
+<p style="margin:0;font-size:16px;color:#4B5A50">Напоминает уже знакомое, предлагает нарисовать схему, разбирает похожий пример с другими данными, делит задание на маленькие шаги.</p>
+</div>
+<div style="flex:1 1 240px;min-width:0;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:20px;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px">
+<h3 style="margin:0;font-size:22px;line-height:1.25;font-weight:800">Проверка и объяснение</h3>
+<p style="margin:0;font-size:16px;color:#4B5A50">Когда ответ найден, просит проверить его и рассказать, как думал. Так ребёнок запоминает способ, а не просто результат.</p>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Примеры разговора -->
+<div style="max-width:1120px;margin:0 auto;padding:64px 24px;box-sizing:border-box;display:flex;flex-direction:column;gap:40px">
+<div style="max-width:760px;display:flex;flex-direction:column;gap:14px">
+<h2 style="margin:0;font-size:38px;line-height:1.2;font-weight:800">Как проходит занятие</h2>
+<p style="margin:0;color:#4B5A50">Ребёнок сам приходит к ответу, а не получает его готовым. Предмет может быть любым, принцип один.</p>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:24px">
+<div style="flex:1 1 440px;min-width:0;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:24px;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px">
+<div style="font-size:14px;font-weight:800;color:#14532D;text-transform:uppercase;letter-spacing:0.06em">Математика, 3 класс</div>
+<div style="font-size:15px;color:#55645A;font-weight:700">Задача: «Айгерим купила 3 кг яблок по 300 тенге за килограмм и заплатила 1000 тенге. Сколько сдачи ей дали?»</div>
+<div style="align-self:flex-start;max-width:85%;background:#E6F2E8;color:#14532D;padding:12px 16px;border-radius:18px 18px 18px 4px;font-size:17px"><b>Листик:</b> Расскажи своими словами, что тут происходит.</div>
+<div style="align-self:flex-end;max-width:85%;background:#1F7A45;color:#FFFFFF;padding:12px 16px;border-radius:18px 18px 4px 18px;font-size:17px">Айгерим купила яблоки, дала 1000 и получила сдачу.</div>
+<div style="align-self:flex-start;max-width:85%;background:#E6F2E8;color:#14532D;padding:12px 16px;border-radius:18px 18px 18px 4px;font-size:17px"><b>Листик:</b> Отлично. Число 300 — это цена чего: одного килограмма или всех трёх?</div>
+<div style="align-self:flex-end;max-width:85%;background:#1F7A45;color:#FFFFFF;padding:12px 16px;border-radius:18px 18px 4px 18px;font-size:17px">Одного килограмма.</div>
+<div style="align-self:flex-start;max-width:85%;background:#E6F2E8;color:#14532D;padding:12px 16px;border-radius:18px 18px 18px 4px;font-size:17px"><b>Листик:</b> Верно. Можем ли мы уже ответить на вопрос про сдачу, или чего-то не хватает?</div>
+</div>
+<div style="flex:1 1 440px;min-width:0;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:24px;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px">
+<div style="font-size:14px;font-weight:800;color:#14532D;text-transform:uppercase;letter-spacing:0.06em">Математика, 3 класс</div>
+<div style="font-size:15px;color:#55645A;font-weight:700">Задача: «У Дамира 6 наклеек. У Али в 4 раза больше. Сколько наклеек у Али?»</div>
+<div style="align-self:flex-start;max-width:85%;background:#E6F2E8;color:#14532D;padding:12px 16px;border-radius:18px 18px 18px 4px;font-size:17px"><b>Листик:</b> Давай нарисуем отрезок для наклеек Дамира. Сколько там наклеек?</div>
+<div style="align-self:flex-end;max-width:85%;background:#1F7A45;color:#FFFFFF;padding:12px 16px;border-radius:18px 18px 4px 18px;font-size:17px">6.</div>
+<div style="align-self:flex-start;max-width:85%;background:#E6F2E8;color:#14532D;padding:12px 16px;border-radius:18px 18px 18px 4px;font-size:17px"><b>Листик:</b> У Али «в 4 раза больше». Сколько таких же отрезков нужно нарисовать для него?</div>
+<div style="align-self:flex-end;max-width:85%;background:#1F7A45;color:#FFFFFF;padding:12px 16px;border-radius:18px 18px 4px 18px;font-size:17px">4.</div>
+<div style="align-self:flex-start;max-width:85%;background:#E6F2E8;color:#14532D;padding:12px 16px;border-radius:18px 18px 18px 4px;font-size:17px"><b>Листик:</b> Рисуй их рядом. Как теперь можно посчитать все наклейки?</div>
+<div aria-hidden="true" style="align-self:flex-end;background:#1F7A45;padding:14px 18px;border-radius:18px 18px 4px 18px;display:flex;gap:6px;align-items:center"><span class="lk-dot" style="background:#FFFFFF"></span><span class="lk-dot" style="background:#FFFFFF"></span><span class="lk-dot" style="background:#FFFFFF"></span></div>
+</div>
+</div>
+</div>
+
+<!-- Любой предмет, только по учебнику -->
+<div style="background:#F3EFE0;padding:64px 24px;box-sizing:border-box">
+<div style="max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:32px">
+<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:32px">
+<div style="flex:1 1 420px;min-width:0;max-width:760px;display:flex;flex-direction:column;gap:14px">
+<h2 style="margin:0;font-size:38px;line-height:1.2;font-weight:800">Любой предмет, любой учебник</h2>
+<p style="margin:0;color:#4B5A50">Листик не привязан к классу или предмету: он работает с нашей программой, которая была проверена и одобрена десятками и сотнями человек.</p>
+</div>
+<div aria-hidden="true" style="width:130px;height:130px;margin:0 24px">
+<svg width="130" height="130" viewBox="0 0 130 130" aria-hidden="true">
+<g class="lk-orbit">
+<g fill="none" stroke="#1F7A45" stroke-width="2.5">
+<ellipse cx="65" cy="65" rx="56" ry="20"></ellipse>
+<ellipse cx="65" cy="65" rx="56" ry="20" transform="rotate(60 65 65)"></ellipse>
+<ellipse cx="65" cy="65" rx="56" ry="20" transform="rotate(120 65 65)"></ellipse>
+</g>
+<circle cx="121" cy="65" r="6" fill="#E9A23B"></circle>
+<circle cx="93" cy="113.5" r="6" fill="#E9A23B"></circle>
+<circle cx="37" cy="113.5" r="6" fill="#E9A23B"></circle>
+</g>
+<circle cx="65" cy="65" r="10" fill="#1F7A45"></circle>
+</svg>
+</div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:12px">
+<span style="background:#FFFFFF;border:1px solid #E3E0CF;color:#14532D;padding:10px 18px;border-radius:999px;font-weight:700;font-size:16px">Математика</span>
+<span style="background:#FFFFFF;border:1px solid #E3E0CF;color:#14532D;padding:10px 18px;border-radius:999px;font-weight:700;font-size:16px">Русский язык</span>
+<span style="background:#FFFFFF;border:1px solid #E3E0CF;color:#14532D;padding:10px 18px;border-radius:999px;font-weight:700;font-size:16px">Литература</span>
+<span style="background:#FFFFFF;border:1px solid #E3E0CF;color:#14532D;padding:10px 18px;border-radius:999px;font-weight:700;font-size:16px">Иностранные языки</span>
+<span style="background:#FFFFFF;border:1px solid #E3E0CF;color:#14532D;padding:10px 18px;border-radius:999px;font-weight:700;font-size:16px">Окружающий мир</span>
+<span style="background:#FFFFFF;border:1px solid #E3E0CF;color:#14532D;padding:10px 18px;border-radius:999px;font-weight:700;font-size:16px">Физика</span>
+<span style="background:#FFFFFF;border:1px solid #E3E0CF;color:#14532D;padding:10px 18px;border-radius:999px;font-weight:700;font-size:16px">Химия</span>
+<span style="background:#FFFFFF;border:1px solid #E3E0CF;color:#14532D;padding:10px 18px;border-radius:999px;font-weight:700;font-size:16px">Биология</span>
+<span style="background:#FFFFFF;border:1px solid #E3E0CF;color:#14532D;padding:10px 18px;border-radius:999px;font-weight:700;font-size:16px">География</span>
+<span style="background:#FFFFFF;border:1px solid #E3E0CF;color:#14532D;padding:10px 18px;border-radius:999px;font-weight:700;font-size:16px">История</span>
+<span style="background:#E6F2E8;color:#14532D;padding:10px 18px;border-radius:999px;font-weight:800;font-size:16px">и другие</span>
+</div>
+<p style="margin:0;font-size:15px;color:#55645A">[Список предметов, классов и учебников, доступных на старте]</p>
+<div style="display:flex;flex-wrap:wrap;gap:20px">
+<div style="flex:1 1 320px;min-width:0;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:20px;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:10px">
+<h3 style="margin:0;font-size:22px;line-height:1.25;font-weight:800">Не придумывает, а опирается на методику</h3>
+<p style="margin:0;font-size:16px;color:#4B5A50">Листик использует только материал из нашей методологии. Правила, примеры и термины те же, что в школе, поэтому ребёнок не путается между уроком и занятием с Листиком.</p>
+</div>
+<div style="flex:1 1 320px;min-width:0;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:20px;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:10px">
+<h3 style="margin:0;font-size:22px;line-height:1.25;font-weight:800">Объясняет просто и доступно</h3>
+<p style="margin:0;font-size:16px;color:#4B5A50">Термины из книги не отменяются: Листик напоминает, что они значат, и объясняет на примерах, понятных ребёнку.</p>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Язык ребёнка и усталость -->
+<div style="max-width:1120px;margin:0 auto;padding:64px 24px;box-sizing:border-box;display:flex;flex-wrap:wrap;gap:24px">
+<div style="flex:1 1 440px;min-width:0;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:24px;padding:36px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+<h2 style="margin:0;font-size:30px;line-height:1.2;font-weight:800">Говорит с ребёнком на его языке</h2>
+<p style="margin:0">Короткие фразы. Простые слова. Как старший брат или сестра, а не как строгий учитель.</p>
+<p style="margin:0">Примеры из жизни, которую ребёнок видит каждый день: покупки на базаре, поездка на автобусе, футбол во дворе.</p>
+<p style="margin:0">Хвалит за конкретное действие: «Ты сам заметил, что это слово можно проверить другим словом, отлично!». Ошибку называет нормальной частью работы: «Интересно, давай посмотрим, где мы свернули».</p>
+<p style="margin:0;color:#4B5A50">Никакого сарказма, сравнений с другими детьми и спешки.</p>
+</div>
+<div style="flex:1 1 440px;min-width:0;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:24px;padding:36px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+<h2 style="margin:0;font-size:30px;line-height:1.2;font-weight:800">Замечает, когда пора выдохнуть</h2>
+<p style="margin:0">Если ребёнок пишет «я тупой» или отвечает наугад несколько раз подряд, Листик останавливается. Говорит, что так бывает у всех, и предлагает перерыв или задание полегче, чтобы вернуть ощущение «у меня получается».</p>
+<p style="margin:0;font-weight:800;color:#14532D">Уверенность в себе для учёбы не менее важна, чем знание правил.</p>
+<div aria-hidden="true" style="display:flex;align-items:center;gap:14px;margin-top:8px">
+<div style="width:64px;height:64px;display:flex;align-items:center;justify-content:center"><div class="lk-breathe" style="width:48px;height:48px;border-radius:50%;background:#BFDFC6"></div></div>
+<span style="font-weight:700;color:#14532D;font-size:16px">вдох … выдох</span>
+</div>
+</div>
+</div>
+
+<!-- Для родителей -->
+<div style="background:#F3EFE0;padding:64px 24px;box-sizing:border-box">
+<div style="max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:40px">
+<h2 style="margin:0;font-size:38px;line-height:1.2;font-weight:800">Будьте спокойны за ребёнка</h2>
+<div style="display:flex;flex-wrap:wrap;gap:20px">
+<div style="flex:1 1 240px;min-width:0;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:20px;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:10px">
+<h3 style="margin:0;font-size:20px;line-height:1.25;font-weight:800">Личные данные не нужны</h3>
+<p style="margin:0;font-size:16px;color:#4B5A50">Листик не спрашивает и не принимает фамилию, адрес, школу, телефон. Если ребёнок их напишет, мягко объяснит, что делиться этим не нужно.</p>
+</div>
+<div style="flex:1 1 240px;min-width:0;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:20px;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:10px">
+<h3 style="margin:0;font-size:20px;line-height:1.25;font-weight:800">Только про учёбу</h3>
+<p style="margin:0;font-size:16px;color:#4B5A50">Возвращает к заданию, если ребёнок отвлёкся. Если ребёнок говорит, что ему плохо, страшно или его обижают, советует рассказать об этом маме, папе или учителю.</p>
+</div>
+<div style="flex:1 1 240px;min-width:0;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:20px;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:10px">
+<h3 style="margin:0;font-size:20px;line-height:1.25;font-weight:800">Честно о том, кто он</h3>
+<p style="margin:0;font-size:16px;color:#4B5A50">Не выдаёт себя за человека и говорит, что он компьютерная программа-помощник.</p>
+</div>
+<div style="flex:1 1 240px;min-width:0;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:20px;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:10px">
+<h3 style="margin:0;font-size:20px;line-height:1.25;font-weight:800">Итог каждого занятия</h3>
+<p style="margin:0;font-size:16px;color:#4B5A50">Что получилось само, что было трудно, что стоит повторить. Вы всегда знаете, где ребёнку нужна поддержка.</p>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Подписка -->
+<div id="pricing" style="max-width:1120px;margin:0 auto;padding:64px 24px;box-sizing:border-box;display:flex;flex-direction:column;gap:40px">
+<div style="max-width:760px;display:flex;flex-direction:column;gap:14px">
+<h2 style="margin:0;font-size:38px;line-height:1.2;font-weight:800">Репетитор, который рядом, когда нужен</h2>
+<p style="margin:0;color:#4B5A50">Занятия в любое время: в 7 вечера, в выходные, за 10 минут до контрольной. Без записи, без переносов, без дороги. Ребёнок может возвращаться к одной теме столько раз, сколько нужно: Листик объяснит в сотый раз так же спокойно, как в первый.</p>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:24px">
+<div style="flex:1 1 320px;min-width:0;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:24px;padding:36px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+<h3 style="margin:0;font-size:24px;font-weight:800">Доступ на 1 месяц</h3>
+<div style="font-size:40px;font-weight:800;color:#14532D">4.900 тенге</div>
+<p style="margin:0;color:#4B5A50;font-size:16px">[Что входит в тариф]</p>
+<a href="/start.html" style="display:inline-flex;align-items:center;justify-content:center;min-height:52px;box-sizing:border-box;background:#1F7A45;color:#FFFFFF;font-weight:800;font-size:18px;padding:12px 28px;border-radius:999px;text-decoration:none">Попробовать бесплатно</a>
+</div>
+<div style="flex:1 1 320px;min-width:0;background:#FFFFFF;border:2px solid #1F7A45;border-radius:24px;padding:36px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+<h3 style="margin:0;font-size:24px;font-weight:800">Доступ на 12 месяцев</h3>
+<div style="font-size:40px;font-weight:800;color:#14532D">49.000</div>
+<p style="margin:0;color:#4B5A50;font-size:16px">[Что входит в тариф]</p>
+<a href="/start.html" style="display:inline-flex;align-items:center;justify-content:center;min-height:52px;box-sizing:border-box;background:#1F7A45;color:#FFFFFF;font-weight:800;font-size:18px;padding:12px 28px;border-radius:999px;text-decoration:none">Попробовать бесплатно</a>
+</div>
+</div>
+</div>
+
+<!-- Частые вопросы -->
+<div style="background:#F3EFE0;padding:64px 24px;box-sizing:border-box">
+<div style="max-width:820px;margin:0 auto;display:flex;flex-direction:column;gap:28px">
+<h2 style="margin:0;font-size:38px;line-height:1.2;font-weight:800">Частые вопросы</h2>
+<div style="display:flex;flex-direction:column;gap:16px">
+<div style="background:#FFFFFF;border:1px solid #E3E0CF;border-radius:20px;padding:24px 28px;display:flex;flex-direction:column;gap:6px">
+<h3 style="margin:0;font-size:20px;font-weight:800">Листик будет решать за ребёнка?</h3>
+<p style="margin:0;font-size:16px;color:#4B5A50">Нет. Это принцип, а не настройка. Он ведёт к ответу вопросами и подсказками, но сам ответ не называет.</p>
+</div>
+<div style="background:#FFFFFF;border:1px solid #E3E0CF;border-radius:20px;padding:24px 28px;display:flex;flex-direction:column;gap:6px">
+<h3 style="margin:0;font-size:20px;font-weight:800">Откуда Листик берёт объяснения?</h3>
+<p style="margin:0;font-size:16px;color:#4B5A50">Из учебника, который вы выбрали. Он не придумывает правила и задания, а опирается на материал книги и пересказывает его простыми словами.</p>
+</div>
+<div style="background:#FFFFFF;border:1px solid #E3E0CF;border-radius:20px;padding:24px 28px;display:flex;flex-direction:column;gap:6px">
+<h3 style="margin:0;font-size:20px;font-weight:800">Для каких классов и предметов?</h3>
+<p style="margin:0;font-size:16px;color:#4B5A50">Листик подстраивается под учебник, который вы выберете. [Уточните, какие классы, предметы и учебники доступны сейчас.]</p>
+</div>
+<div style="background:#FFFFFF;border:1px solid #E3E0CF;border-radius:20px;padding:24px 28px;display:flex;flex-direction:column;gap:6px">
+<h3 style="margin:0;font-size:20px;font-weight:800">Нужно ли сидеть рядом?</h3>
+<p style="margin:0;font-size:16px;color:#4B5A50">Не обязательно. Но первые занятия полезно провести вместе, чтобы увидеть, как всё устроено.</p>
+</div>
+<div style="background:#FFFFFF;border:1px solid #E3E0CF;border-radius:20px;padding:24px 28px;display:flex;flex-direction:column;gap:6px">
+<h3 style="margin:0;font-size:20px;font-weight:800">Это живой человек?</h3>
+<p style="margin:0;font-size:16px;color:#4B5A50">Нет. Листик ИИ-помощник, и он всегда честно это говорит.</p>
+</div>
+<div style="background:#FFFFFF;border:1px solid #E3E0CF;border-radius:20px;padding:24px 28px;display:flex;flex-direction:column;gap:6px">
+<h3 style="margin:0;font-size:20px;font-weight:800">Можно отказаться от подписки?</h3>
+<p style="margin:0;font-size:16px;color:#4B5A50">[Ваши условия отмены]</p>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Финальный призыв -->
+<div style="background:#1F7A45;padding:64px 24px;box-sizing:border-box">
+<div style="max-width:1040px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:56px">
+<div style="flex:1 1 420px;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:20px">
+<h2 style="margin:0;font-size:40px;line-height:1.2;font-weight:800;color:#FFFFFF">Дайте ребёнку почувствовать: «Я сам это придумал»</h2>
+<p style="margin:0;font-size:20px;color:#E6F2E8">Именно с этого ощущения начинается интерес к учёбе.</p>
+<a class="lk-cta2" href="/start.html" style="display:inline-flex;align-items:center;justify-content:center;min-height:56px;box-sizing:border-box;background:#FBFAF4;color:#14532D;font-weight:800;font-size:20px;padding:14px 36px;border-radius:999px;text-decoration:none">Начать бесплатно</a>
+</div>
+<div style="flex:1 1 280px;min-width:0;max-width:300px;margin:0 auto;position:relative">
+<div style="position:relative;width:100%;aspect-ratio:1/1">
+<div aria-hidden="true" style="position:absolute;left:-3%;right:-3%;bottom:0;height:60%;background:#F2C14E;border-radius:999px 999px 0 0"></div>
+<img src="/img/happy-girl.webp" alt="Радостная девочка в оранжевой футболке" loading="lazy" width="900" height="900" style="position:absolute;left:0;bottom:0;display:block;width:100%;height:100%;object-fit:contain;object-position:50% 100%">
+</div>
+<div class="lk-float3" aria-hidden="true" style="position:absolute;top:-24px;left:-20px;width:60px;height:60px">
+<svg width="60" height="60" viewBox="0 0 32 32" aria-hidden="true"><path d="M6 26C6 13 14 6 27 5c0 13-7 21-20 21z" fill="#BFE3C8"></path><path d="M6 26L18 14" stroke="#1F7A45" stroke-width="2" stroke-linecap="round" fill="none"></path></svg>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Футер -->
+<footer style="background:#1E2A22;color:#E6F2E8;padding:56px 24px 32px;box-sizing:border-box">
+<div style="max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:32px">
+<div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:32px">
+<div style="flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;align-items:center;gap:10px">
+<span style="display:inline-flex;background:#FBFAF4;border-radius:14px;padding:6px 8px"><img src="/img/logo.png" alt="" width="28" height="38" style="height:38px;width:auto;display:block"></span>
+<span style="font-size:26px;font-weight:800;color:#FFFFFF">Листик</span>
+</div>
+<p style="margin:0;font-size:16px;color:#BFDFC6">ИИ-репетитор для школьников</p>
+</div>
+<div style="flex:1 1 220px;min-width:0;display:flex;flex-direction:column;gap:8px">
+<div style="font-size:14px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:#BFDFC6">Связаться с нами</div>
+<a href="tel:+77759714163" style="display:inline-flex;align-items:center;min-height:44px;font-size:20px;font-weight:800;color:#FFFFFF;text-decoration:none">+7 (775) 971-41-63</a>
+<a href="https://wa.me/77759714163" style="display:inline-flex;align-items:center;min-height:44px;font-size:16px;color:#BFDFC6;text-decoration:none">Написать в WhatsApp</a>
+</div>
+<div style="flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:4px">
+<div style="font-size:14px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:#BFDFC6;margin-bottom:4px">Документы</div>
+<a href="#" style="display:inline-flex;align-items:center;min-height:32px;font-size:16px;color:#FFFFFF;text-decoration:none">Политика конфиденциальности</a>
+<a href="#" style="display:inline-flex;align-items:center;min-height:32px;font-size:16px;color:#FFFFFF;text-decoration:none">Пользовательское соглашение</a>
+<a href="#" style="display:inline-flex;align-items:center;min-height:32px;font-size:16px;color:#FFFFFF;text-decoration:none">Публичная оферта</a>
+</div>
+</div>
+<div style="border-top:1px solid #3A4A40;padding-top:20px;font-size:14px;color:#BFDFC6">© 2026 ТОО «Листик». Все права защищены.</div>
+</div>
+</footer>
+
+</div>
+</body>
+</html>
