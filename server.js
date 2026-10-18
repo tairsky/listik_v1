@@ -52,7 +52,7 @@ const TTS_VOICE = process.env.TTS_VOICE || process.env.VOICE || "marin";
 const TTS_STYLE = process.env.TTS_STYLE === undefined
   ? "Говори по-русски, с русским произношением и русскими ударениями, тепло, дружелюбно и спокойно, не торопясь, как добрая старшая сестра, которая объясняет ребёнку 8–9 лет. Чётко произноси числа."
   : process.env.TTS_STYLE;
-const VOICE_SERVER_MAX_MIN = Number(process.env.VOICE_MAX_MINUTES || 30);   // потолок одного занятия с голосом
+const VOICE_SERVER_MAX_MIN = Number(process.env.VOICE_MAX_MINUTES || 45);   // потолок одной голосовой сессии; дневной лимит голоса считается отдельно (VOICE_DAY_MIN)
 const VOICE_PROMPT = `Ты — Листик, добрый голосовой помощник-репетитор для ребёнка 8-9 лет (3 класс, Казахстан). Ты общаешься по-русски, голосом.
 
 КТО ЧТО ДЕЛАЕТ
@@ -182,6 +182,7 @@ async function voiceTurn(req, res, ip) {
   try { b = await bigBody(req, 3000000); } catch (e) { return send(res, 400, { error: "bad_request" }); }
   const vs = voiceSessions.get(String(b.sid || ""));
   if (!vs) return send(res, 404, { error: "no_session" });
+  if (!SETTINGS.voiceEnabled || (vs.ukey && voiceOver(vs.ukey))) { voiceSessions.delete(String(b.sid)); return send(res, 403, { error: "voice_limit" }); }
   if (Date.now() - vs.created > VOICE_SERVER_MAX_MIN * 60000 || vs.turns >= 400) { voiceSessions.delete(String(b.sid)); return send(res, 410, { error: "limit" }); }
   if (tooMany("vturn:" + ip, 600, 60 * MIN)) return send(res, 429, { error: "too_many" });
   hit("vturn:" + ip);
@@ -233,6 +234,17 @@ const publicTask = t => {
   return task;
 };
 const PUBLIC_TASKS = TASKS.map(publicTask);
+
+/* ---------- пробные и платные задачи ----------
+   В data/private/tasks.json у задачи может быть "access": "trial" (открыта всем без оплаты).
+   Без этого поля задача считается платной: её условие и шаги не уходят в браузер, пока нет подписки.
+   Подписку выдаёт владелец командой: node admin.js plan <почта> <дней> (см. admin.js). */
+const isPaidTask = t => t.access !== "trial";
+const hasPlan = a => !!(a && a.user.plan && a.user.plan.until && Date.parse(a.user.plan.until) > Date.now());
+const taskLocked = (t, a) => isPaidTask(t) && !hasPlan(a);
+const tasksFor = a => TASKS.map((t, i) => taskLocked(t, a)
+  ? { id: t.id, no: t.no, title: t.title, section: t.section, condition: "", steps: [], locked: true }
+  : Object.assign({}, PUBLIC_TASKS[i], { locked: false }));
 const taskById = id => TASKS.find(t => t.id === id);
 
 /* ---------- хранилище кабинетов ---------- */
@@ -249,8 +261,8 @@ function saveUsers() {
 let saveTimer = null;
 function scheduleSave() { if (!saveTimer) saveTimer = setTimeout(() => { saveTimer = null; saveUsers(); }, 1500); }
 function flushSave() { if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; saveUsers(); } }
-process.on("SIGINT", () => { flushSave(); process.exit(0); });
-process.on("SIGTERM", () => { flushSave(); process.exit(0); });
+process.on("SIGINT", () => { flushSave(); flushUsage(); process.exit(0); });
+process.on("SIGTERM", () => { flushSave(); flushUsage(); process.exit(0); });
 const maskEmail = e => e.replace(/^(.).*(@.*)$/, "$1***$2");
 
 /* «перец» для PIN: у 4 цифр всего 10 000 вариантов, поэтому без секрета, лежащего отдельно от
@@ -303,18 +315,19 @@ function currentAuth(req) {
   const s = token && auth.get(token);
   if (!s || s.exp < Date.now()) return null;
   const user = USERS.find(u => u.id === s.uid);
-  return user ? { token, s, user } : null;
+  return user && !user.blocked ? { token, s, user } : null;
 }
 function setLoginCookie(res, token, maxAgeSec) {
   res.setHeader("Set-Cookie", "lt=" + token + "; HttpOnly; SameSite=Lax; Path=/; Max-Age=" + maxAgeSec + (COOKIE_SECURE ? "; Secure" : ""));
 }
 function startLogin(res, user) {
+  user.lastLoginAt = new Date().toISOString(); scheduleSave();
   const token = crypto.randomBytes(32).toString("hex");
   auth.set(token, { uid: user.id, exp: Date.now() + AUTH_TTL, parentUntil: 0 });
   setLoginCookie(res, token, AUTH_TTL / 1000);
 }
 const isParent = a => a && a.s.parentUntil > Date.now();
-const publicUser = (a) => ({ email: a.user.email, child: a.user.child, parent: isParent(a) });
+const publicUser = (a) => ({ email: a.user.email, child: a.user.child, parent: isParent(a), plan: hasPlan(a) ? { until: a.user.plan.until } : null });
 
 function playState(key) {
   let s = play.get(key);
@@ -354,6 +367,49 @@ function recordSolved(user, task, ps, i, st) {
   scheduleSave();
 }
 const LEVEL_ORDER = { repeat: 0, train: 1, good: 2 };
+/* Дополнительные сведения для кабинета родителя: время, серия, недели, разделы, история занятий, подписка. */
+function cabinetExtra(user, tasksView) {
+  const P = progress(user), log = user.usageLog || {}, now = Date.now();
+  const dk = ms => new Date(ms + 5 * 3600 * 1000).toISOString().slice(0, 10);
+  const days = n => Array.from({ length: n }, (_, i) => dk(now - (n - 1 - i) * 86400000));
+  const st = d => (log[d] && log[d].study) || 0, vo = d => (log[d] && log[d].voice) || 0;
+  const sum = (arr, f) => arr.reduce((n, d) => n + f(d), 0);
+  const d90 = days(90), d30 = days(30), w1 = days(7), w0 = days(14).slice(0, 7);
+  const activity = d30.map(d => ({ day: d, study: Math.round(st(d) / 60), voice: Math.round(vo(d) / 60) }));
+  let streak = 0, i = d90.length - 1;
+  if (!(st(d90[i]) > 0)) i--;                       // сегодня ещё могли не заниматься: серия считается со вчера
+  for (; i >= 0 && st(d90[i]) > 0; i--) streak++;
+  const week = { minutes: Math.round(sum(w1, st) / 60), prev: Math.round(sum(w0, st) / 60), activeDays: w1.filter(d => st(d) > 0).length,
+    voice: Math.round(sum(w1, vo) / 60) };
+  const sections = (TASKS_FILE.sections || []).map(s => {
+    const ts = TASKS.filter(x => x.section === s.id);
+    const v = ts.map(x => tasksView.find(y => y.id === x.id));
+    return { id: s.id, title: s.title, tasksTotal: ts.length, tasksDone: v.filter(x => x && x.status === "done").length,
+      tasksStarted: v.filter(x => x && x.status !== "new").length,
+      minutes30: Math.round(sum(d30, d => (log[d] && log[d].sec && log[d].sec[s.id]) || 0) / 60) };
+  });
+  const history = P.lessons.map(l => {
+    const tk = taskById(l.task) || {};
+    return { at: l.at, no: tk.no || l.task, title: tk.title || "", firstTry: l.firstTry, total: l.total, pct: l.total ? Math.round(100 * l.firstTry / l.total) : 0, hard: l.hard || [] };
+  });
+  const monday = ms => { const wd = (new Date(ms + 5 * 3600 * 1000).getUTCDay() + 6) % 7; return dk(ms - wd * 86400000); };
+  const weeks = []; for (let k = 7; k >= 0; k--) weeks.push({ start: monday(now - k * 7 * 86400000), minutes: 0, lessons: 0, ft: 0, tot: 0 });
+  const wi = Object.fromEntries(weeks.map((w, k) => [w.start, k]));
+  Object.keys(log).forEach(d => { const k = wi[monday(Date.parse(d + "T12:00:00Z"))]; if (k !== undefined) weeks[k].minutes += st(d) / 60; });
+  P.lessons.forEach(l => { const k = wi[monday(Date.parse(l.at))]; if (k !== undefined) { weeks[k].lessons++; weeks[k].ft += l.firstTry; weeks[k].tot += l.total; } });
+  const weeksOut = weeks.map(w => ({ start: w.start, minutes: Math.round(w.minutes), lessons: w.lessons, pct: w.tot ? Math.round(100 * w.ft / w.tot) : null }));
+  const hardCount = {}; P.lessons.slice(-10).forEach(l => (l.hard || []).forEach(n => { hardCount[n] = (hardCount[n] || 0) + 1; }));
+  const hardTop = Object.entries(hardCount).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([name, n]) => ({ name, lessons: n }));
+  const active = hasPlan({ user }), key = "u:" + user.id, uv = usageView(key);
+  return {
+    plan: { active, until: user.plan && user.plan.until || null, daysLeft: active ? Math.ceil((Date.parse(user.plan.until) - now) / 86400000) : 0,
+      freeTasks: TASKS.filter(x => !isPaidTask(x)).length },
+    today: { studyUsed: Math.round(uv.studyMax - uv.studyLeft), studyMax: uv.studyMax, voiceUsed: Math.round(uv.voiceMax - uv.voiceLeft), voiceMax: uv.voiceMax },
+    createdAt: user.createdAt || null,
+    activity, streak, week, sections, history, weeks: weeksOut, hardTop,
+    totals: { minutes90: Math.round(sum(d90, st) / 60), activeDays90: d90.filter(d => st(d) > 0).length }
+  };
+}
 function cabinetView(user) {
   const P = progress(user);
   const tasks = TASKS.map(t => {
@@ -370,13 +426,13 @@ function cabinetView(user) {
   const totalSteps = skills.reduce((n, x) => n + x.steps, 0), first = skills.reduce((n, x) => n + x.firstTry, 0);
   const lessons = P.lessons.slice(-5).reverse().map(l => {
     const t = taskById(l.task) || {};
-    return { at: l.at, no: t.no || l.task, title: t.title || "", firstTry: l.firstTry, total: l.total };
+    return { at: l.at, no: t.no || l.task, title: t.title || "", firstTry: l.firstTry, total: l.total, hard: l.hard || [] };
   });
   return {
     email: user.email, child: user.child, subject: SUBJECT, startedAt: P.firstLessonAt, lastAt: P.lastLessonAt,
     summary: { tasksTotal: TASKS.length, tasksDone: tasks.filter(t => t.status === "done").length, lessons: P.lessons.length,
       firstTryPct: totalSteps ? Math.round(100 * first / totalSteps) : null },
-    tasks, skills, lessons
+    tasks, skills, lessons, ...cabinetExtra(user, tasks)
   };
 }
 
@@ -409,12 +465,15 @@ const STATIC = {
   "/listik.html": ["listik.html", "text/html; charset=utf-8"],
   "/start.html": ["start.html", "text/html; charset=utf-8"],
   "/pricing.html": ["pricing.html", "text/html; charset=utf-8"],
+  "/admin": ["admin.html", "text/html; charset=utf-8"],
+  "/admin.html": ["admin.html", "text/html; charset=utf-8"],
   "/site.css": ["site.css", "text/css; charset=utf-8"],
   "/img/hero-boy.jpg": ["img/hero-boy.jpg", "image/jpeg"],
   "/img/tired-girl.jpg": ["img/tired-girl.jpg", "image/jpeg"],
   "/img/happy-girl.jpg": ["img/happy-girl.jpg", "image/jpeg"],
   "/img/think-boy.webp": ["img/think-boy.webp", "image/webp"],
   "/img/logo.png": ["img/logo.png", "image/png"],
+  "/img/logo_footer.png": ["img/logo_footer.png", "image/png"],
   "/img/hero-boy.webp": ["img/hero-boy.webp", "image/webp"],
   "/img/tired-girl.webp": ["img/tired-girl.webp", "image/webp"],
   "/img/happy-girl.webp": ["img/happy-girl.webp", "image/webp"],
@@ -423,6 +482,10 @@ const STATIC = {
   "/fonts/Manrope-cyrillic.woff2": ["fonts/Manrope-cyrillic.woff2", "font/woff2"],
   "/fonts/Manrope-cyrillic-ext.woff2": ["fonts/Manrope-cyrillic-ext.woff2", "font/woff2"],
   "/fonts/Onest.woff2": ["fonts/Onest.woff2", "font/woff2"],
+  "/fonts/Nunito-800-cyrillic.woff2": ["fonts/Nunito-800-cyrillic.woff2", "font/woff2"],
+  "/fonts/Nunito-800-latin.woff2": ["fonts/Nunito-800-latin.woff2", "font/woff2"],
+  "/fonts/Nunito-var-cyrillic.woff2": ["fonts/Nunito-var-cyrillic.woff2", "font/woff2"],
+  "/fonts/Nunito-var-latin.woff2": ["fonts/Nunito-var-latin.woff2", "font/woff2"],
   "/fonts/Caveat.woff2": ["fonts/Caveat.woff2", "font/woff2"],
   "/data/public/phrases.json": ["data/public/phrases.json", "application/json; charset=utf-8"],
   "/data/public/prompts.json": ["data/public/prompts.json", "application/json; charset=utf-8"]
@@ -466,14 +529,63 @@ async function verifyPassword(res, a, password) {
   return true;
 }
 
+/* ---------- время занятий ----------
+   До 45 минут занятий в день (голос и программа вместе); голос может звучать все 45 минут; когда время вышло, «тихий режим».
+   Время считает сервер по сигналам страницы (раз в 15 секунд), а не браузер: перезагрузка страницы лимит не сбрасывает.
+   Ключ: вошедший кабинет, иначе IP. Сутки по Казахстану (UTC+5). Переменные: STUDY_DAY_MIN, VOICE_DAY_MIN. */
+/* Настройки, которые владелец меняет в админ-панели (storage/settings.json). Значения по умолчанию берутся из переменных окружения. */
+const SETTINGS_FILE = path.join(STORE_DIR, "settings.json");
+const SETTINGS = { studyDayMin: Number(process.env.STUDY_DAY_MIN || 45), voiceDayMin: Number(process.env.VOICE_DAY_MIN || 45), registrationOpen: true, voiceEnabled: true };
+try { Object.assign(SETTINGS, JSON.parse(fs.readFileSync(SETTINGS_FILE, "utf8"))); } catch (e) {}
+function saveSettings() { try { const tmp = SETTINGS_FILE + ".tmp"; fs.writeFileSync(tmp, JSON.stringify(SETTINGS, null, 2), { mode: 0o600 }); fs.renameSync(tmp, SETTINGS_FILE); } catch (e) { console.error(e); } }
+const USAGE_FILE = path.join(STORE_DIR, "usage.json");
+let USAGE = {};
+try { USAGE = JSON.parse(fs.readFileSync(USAGE_FILE, "utf8")); } catch (e) { USAGE = {}; }
+const dayStamp = () => new Date(Date.now() + 5 * 3600 * 1000).toISOString().slice(0, 10);
+let usageTimer = null;
+function flushUsage() {
+  if (usageTimer) { clearTimeout(usageTimer); usageTimer = null; }
+  const d = dayStamp();
+  for (const k of Object.keys(USAGE)) if (USAGE[k].day !== d) delete USAGE[k];
+  try { const tmp = USAGE_FILE + ".tmp"; fs.writeFileSync(tmp, JSON.stringify(USAGE), { mode: 0o600 }); fs.renameSync(tmp, USAGE_FILE); } catch (e) {}
+}
+function scheduleUsageSave() { if (!usageTimer) usageTimer = setTimeout(flushUsage, 5000); }
+const usageKey = (a, ip) => a ? "u:" + a.user.id : "ip:" + ip;
+function usageOf(key) {
+  const d = dayStamp();
+  let u = USAGE[key];
+  if (!u || u.day !== d) u = USAGE[key] = { day: d, study: 0, voice: 0, last: 0 };
+  return u;
+}
+/* Лимит в секундах на сегодня: общий (или личный, если владелец задал его ученику) плюс разовая добавка на сегодня. */
+function limitsFor(key) {
+  let study = SETTINGS.studyDayMin, voice = SETTINGS.voiceDayMin;
+  if (key.startsWith("u:")) {
+    const usr = USERS.find(x => x.id === key.slice(2));
+    if (usr && usr.limits) {
+      if (Number.isFinite(usr.limits.study)) study = usr.limits.study;
+      if (Number.isFinite(usr.limits.voice)) voice = usr.limits.voice;
+    }
+  }
+  const r = usageOf(key);
+  return { study: Math.max(0, study * 60 + (r.bonusStudy || 0)), voice: Math.max(0, voice * 60 + (r.bonusVoice || 0)) };
+}
+const usageView = key => {
+  const u = usageOf(key), L = limitsFor(key);
+  return { studyLeft: Math.max(0, Math.round(L.study - u.study)), studyMax: L.study, voiceLeft: Math.max(0, Math.round(L.voice - u.voice)), voiceMax: L.voice };
+};
+const studyOver = key => usageOf(key).study >= limitsFor(key).study;
+const voiceOver = key => usageOf(key).voice >= limitsFor(key).voice;
+
 async function api(req, res, url) {
   const ip = clientIp(req);
   const a = currentAuth(req);
 
   if (req.method === "GET") {
-    if (url === "/api/tasks") return send(res, 200, { tasks: PUBLIC_TASKS, sections: TASKS_FILE.sections || [] });
+    if (url === "/api/tasks") return send(res, 200, { tasks: tasksFor(a), sections: TASKS_FILE.sections || [] });
     if (url === "/api/me") return send(res, 200, { user: a ? publicUser(a) : null });
-    if (url === "/api/voice/available") return send(res, 200, { ok: !!OPENAI_KEY });
+    if (url === "/api/voice/available") return send(res, 200, { ok: !!OPENAI_KEY && SETTINGS.voiceEnabled });
+    if (url === "/api/usage") return send(res, 200, usageView(usageKey(a, ip)));
     if (url === "/api/cabinet") return isParent(a) ? send(res, 200, cabinetView(a.user)) : send(res, a ? 403 : 401, { error: "parent_required" });
     return send(res, 404, { error: "not_found" });
   }
@@ -483,8 +595,12 @@ async function api(req, res, url) {
   let b;
   try { b = await body(req); } catch (e) { return send(res, 400, { error: "bad_request" }); }
 
+  /* --- админ-панель владельца (вход по отдельному паролю ADMIN_PASSWORD из .env) --- */
+  if (url.startsWith("/api/admin/")) return ADMIN(req, res, url, ip, b);
+
   /* --- кабинет: регистрация и вход --- */
   if (url === "/api/register") {
+    if (!SETTINGS.registrationOpen) return send(res, 403, { error: "closed", message: "Регистрация новых кабинетов пока закрыта. Напишите нам в WhatsApp." });
     if (tooMany("reg:" + ip, 10, 60 * MIN)) return send(res, 429, { error: "too_many" });
     hit("reg:" + ip);
     const email = typeof b.email === "string" ? b.email.trim().toLowerCase() : "";
@@ -514,8 +630,9 @@ async function api(req, res, url) {
       console.log("[вход не удался] " + (user ? "почта найдена, пароль не подошёл" : "такой почты нет среди " + USERS.length + " кабинетов") + " (" + maskEmail(email) + ")");
       hit("login:" + ip); hit("login:" + email); return send(res, 401, { error: "login", message: "Неверный адрес или пароль." });
     }
+    if (user.blocked) return send(res, 403, { error: "blocked", message: "Доступ к этому кабинету закрыт. Напишите нам в WhatsApp, мы поможем." });
     startLogin(res, user);
-    return send(res, 200, { user: { email: user.email, child: user.child, parent: false } });
+    return send(res, 200, { user: { email: user.email, child: user.child, parent: false, plan: hasPlan({ user }) ? { until: user.plan.until } : null } });
   }
   if (url === "/api/logout") {
     if (a) auth.delete(a.token);
@@ -549,14 +666,41 @@ async function api(req, res, url) {
     return send(res, 200, { ok: true });
   }
 
+  /* --- время занятий: страница раз в 15 секунд сообщает, идёт ли занятие и звучит ли голос --- */
+  if (url === "/api/usage/ping") {
+    if (tooMany("uping:" + ip, 40, MIN)) return send(res, 429, { error: "too_many" });
+    hit("uping:" + ip);
+    const ukey0 = usageKey(a, ip), u = usageOf(ukey0), now = Date.now();
+    const dt = u.last && now - u.last < 60000 ? Math.min(now - u.last, 20000) / 1000 : 0;   // не больше реально прошедшего времени
+    u.last = now;
+    if (b.active === true) u.study += dt;
+    if (b.voice === true) u.voice += dt;
+    if (a && dt > 0 && (b.active === true || b.voice === true)) {     // история по дням для админ-панели
+      const L = a.user.usageLog || (a.user.usageLog = {}), d = dayStamp(), e = L[d] || (L[d] = { study: 0, voice: 0 });
+      if (b.active === true) {
+        e.study = Math.round((e.study + dt) * 10) / 10;
+        const tk = typeof b.task === "string" ? taskById(b.task) : null;      // время по разделам предмета
+        if (tk && tk.section) { const sec = e.sec || (e.sec = {}); sec[tk.section] = Math.round(((sec[tk.section] || 0) + dt) * 10) / 10; }
+      }
+      if (b.voice === true) e.voice = Math.round((e.voice + dt) * 10) / 10;
+      const days = Object.keys(L).sort(); while (days.length > 90) delete L[days.shift()];
+      scheduleSave();
+    }
+    scheduleUsageSave();
+    return send(res, 200, usageView(ukey0));
+  }
+
   /* --- голос: начало занятия с голосом --- */
   if (url === "/api/voice/session") {
-    if (!OPENAI_KEY) return send(res, 503, { error: "no_key" });
+    if (!OPENAI_KEY || !SETTINGS.voiceEnabled) return send(res, 503, { error: "no_key" });
     if (tooMany("voice:" + ip, 20, 60 * MIN)) return send(res, 429, { error: "too_many" });
     hit("voice:" + ip);
+    const ukey = usageKey(a, ip);
+    if (studyOver(ukey)) return send(res, 403, { error: "day_limit" });
+    if (voiceOver(ukey)) return send(res, 403, { error: "voice_limit" });
     const instructions = VOICE_PROMPT + (a && a.user.child && a.user.child.name ? "\n\nРебёнка зовут " + a.user.child.name + ". Можно изредка обращаться по имени." : "");
     const sid = crypto.randomBytes(16).toString("hex");
-    voiceSessions.set(sid, { instructions, created: Date.now(), last: null, pending: [], turns: 0 });
+    voiceSessions.set(sid, { instructions, created: Date.now(), last: null, pending: [], turns: 0, ukey });
     return send(res, 200, { sid });
   }
 
@@ -566,6 +710,8 @@ async function api(req, res, url) {
   if (!ps) return send(res, 400, { error: "bad_session" });
   const task = taskById(b.task);
   if (!task) return send(res, 400, { error: "bad_step" });
+  if ((url === "/api/start" || url === "/api/check") && taskLocked(task, a)) return send(res, 403, { error: "paid_only" });
+  if ((url === "/api/start" || url === "/api/check") && studyOver(usageKey(a, ip))) return send(res, 403, { error: "day_limit" });
   if (url === "/api/start") {
     /* новый заход в задачу: счётчики занятия обнуляются, блокировки шагов остаются */
     for (const [k, v] of ps.steps) if (k.startsWith(task.id + ":")) { v.errors = 0; v.helped = false; v.solved = false; }
@@ -599,6 +745,12 @@ async function api(req, res, url) {
   return send(res, 404, { error: "not_found" });
 }
 
+const ADMIN = require("./admin_panel.js")({
+  users: () => USERS, saveUsers, usage: () => USAGE, usageOf, flushUsage, dayStamp, limitsFor, SETTINGS, saveSettings,
+  cabinetView, hasPlan, hashSecret, TASKS, SECTIONS: () => TASKS_FILE.sections || [], SUBJECT, EMAIL_RE, auth, tooMany, hit, buckets, send, STORE_DIR, COOKIE_SECURE, parseCookies, voiceSessions,
+  envDefaults: { study: Number(process.env.STUDY_DAY_MIN || 45), voice: Number(process.env.VOICE_DAY_MIN || 45) }
+});
+
 http.createServer((req, res) => {
   const url = req.url.split("?")[0];
   if (url.startsWith("/api/")) return api(req, res, url).catch(e => { console.error(e); if (!res.headersSent) send(res, 500, { error: "server" }); });
@@ -608,7 +760,9 @@ http.createServer((req, res) => {
   if (!f || req.method !== "GET") { res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" }); return res.end("Не найдено"); }
   fs.readFile(path.join(ROOT, f[0]), (err, data) => {
     if (err) { res.writeHead(404); return res.end("Не найдено"); }
-    res.writeHead(200, { "Content-Type": f[1], "Cache-Control": "no-cache" });
+    const hdr = { "Content-Type": f[1], "Cache-Control": f[0] === "admin.html" ? "no-store" : "no-cache" };
+    if (f[0] === "admin.html") hdr["X-Robots-Tag"] = "noindex, nofollow";
+    res.writeHead(200, hdr);
     res.end(data);
   });
 }).listen(PORT, () => {

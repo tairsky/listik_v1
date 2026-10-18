@@ -1,6 +1,8 @@
+@font-face{font-family:"Nunito";src:url("/fonts/Nunito-var-cyrillic.woff2") format("woff2");font-weight:200 1000;font-display:swap;unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:"Nunito";src:url("/fonts/Nunito-var-latin.woff2") format("woff2");font-weight:200 1000;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
 /* Общая шапка и подвал сайта «Листик» (стиль «Тетрадь»). Единственное место, где они описаны.
    Подключается на всех страницах: <link rel="stylesheet" href="/site.css">. */
-.sh, .sf { font-family: "Manrope", "Onest", system-ui, sans-serif; line-height: 1.5; -webkit-text-size-adjust: 100%; color: #1B2440; }
+.sh, .sf { font-family: "Nunito", system-ui, sans-serif; line-height: 1.5; -webkit-text-size-adjust: 100%; color: #1B2440; }
 .sh *, .sf * { box-sizing: border-box; }
 
 /* бумага в клетку под шапкой на страницах без большого блока */
@@ -40,7 +42,7 @@ body { background:#FBFAF4 !important; color:#1E2A22; }
 .sh, .sf { color:#1E2A22; }
 .sh-in { max-width:1120px; }
 .sh-logo svg { width:34px; height:34px; }
-.sh-logo b { font-size:28px; font-weight:800; color:#1E2A22; }
+.sh-logo b { font-family:"Nunito",system-ui,sans-serif; font-size:30px; font-weight:800; color:#006429; }
 .sh-nav a { color:#1E2A22; font-weight:600; }
 .sh-nav a:hover { color:#1F7A45; }
 .sh-nav a.is-active { border-bottom-color:#F2C14E; font-weight:800; }
@@ -59,7 +61,7 @@ body { background:#FBFAF4 !important; color:#1E2A22; }
 .sf-col h4 { margin:0 0 6px; font-size:14px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:#BFDFC6; }
 .sf-col p { margin:0; color:#BFDFC6; }
 .sf .sf-logo { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
-.sf .sf-logo b { font-size:26px; font-weight:800; color:#fff; }
+.sf .sf-logo b { font-family:"Nunito",system-ui,sans-serif; font-size:28px; font-weight:800; color:#A7D568; }
 .sf a { color:#fff; text-decoration:none; display:inline-flex; align-items:center; min-height:32px; border:0; font-weight:500; }
 .sf a:hover { color:#BFE3C8; }
 .sf a.sf-tel { font-size:20px; font-weight:800; min-height:44px; }
@@ -67,3 +69,6 @@ body { background:#FBFAF4 !important; color:#1E2A22; }
 .sf-copy { border-top:1px solid #3A4A40; margin-top:32px; padding-top:20px; font-size:14px; color:#BFDFC6; }
 .sf a:focus-visible { outline-color:#fff; }
 @media (max-width:720px) { .sf-in { text-align:left; } }
+
+/* заголовки: Nunito */
+h1, h2, h3 { font-family:"Nunito",system-ui,sans-serif !important; font-weight:800 !important; }

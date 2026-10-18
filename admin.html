@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Листик: админ-панель</title>
+<link rel="stylesheet" href="/site.css">
+<style>
+:root{--ink:#1B2440;--muted:#5B6584;--line:#E4E1D6;--paper:#FBFAF6;--card:#fff;--green:#1A7F45;--green-d:#15683A;--green-bg:#E5F3E9;--yellow:#FFD84D;--yellow-bg:#FFF6D0;--red:#C03A2B;--red-bg:#FCE9E6;--blue:#2B4BC4}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"Nunito",system-ui,sans-serif;font-size:16px;line-height:1.5}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:var(--blue)}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px;border-radius:6px}
+.wrap{max-width:1180px;margin:0 auto;padding:0 16px}
+[hidden]{display:none!important}
+
+/* вход */
+.login{min-height:100vh;display:grid;place-items:center;padding:24px 16px}
+.login-card{width:100%;max-width:400px;background:var(--card);border:2px solid var(--ink);border-radius:20px;padding:28px 24px;box-shadow:6px 6px 0 var(--ink)}
+.login-card h1{margin:0 0 4px;font-size:26px;font-weight:800;letter-spacing:-.02em}
+.login-card p{margin:0 0 18px;color:var(--muted)}
+
+/* шапка */
+.top{background:var(--card);border-bottom:2px solid var(--ink);position:sticky;top:0;z-index:20}
+.top .wrap{display:flex;align-items:center;gap:12px 20px;flex-wrap:wrap;padding-top:10px;padding-bottom:10px}
+.brand{font-weight:800;font-size:20px;letter-spacing:-.02em;display:flex;align-items:center;gap:8px}
+.brand small{font-size:13px;font-weight:700;background:var(--yellow);padding:1px 8px;border-radius:999px}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;flex:1}
+.tab{border:0;background:none;padding:10px 14px;border-radius:10px;font-weight:700;color:var(--muted)}
+.tab:hover{background:var(--paper);color:var(--ink)}
+.tab[aria-selected=true]{background:var(--ink);color:#fff}
+
+/* элементы */
+main{padding:24px 0 64px}
+h2{font-size:24px;margin:0 0 4px;font-weight:800;letter-spacing:-.02em}
+h3{font-size:18px;margin:0 0 10px;font-weight:800}
+.sub{color:var(--muted);margin:0 0 20px}
+.btn{border:2px solid var(--ink);background:var(--card);border-radius:12px;padding:8px 14px;font-weight:700;min-height:44px}
+.btn:hover{background:var(--paper)}
+.btn.primary{background:var(--green);border-color:var(--green);color:#fff}
+.btn.primary:hover{background:var(--green-d);border-color:var(--green-d)}
+.btn.danger{border-color:var(--red);color:var(--red)}
+.btn.danger:hover{background:var(--red-bg)}
+.btn.sm{min-height:36px;padding:4px 10px;font-size:15px}
+.btn[disabled]{opacity:.5;cursor:default}
+input[type=text],input[type=password],input[type=number],input[type=search],input[type=date],select{border:2px solid var(--ink);border-radius:12px;padding:8px 12px;min-height:44px;background:#fff;width:100%}
+input.sm{min-height:36px;padding:4px 10px}
+label.f{display:block;font-weight:700;font-size:14px;margin-bottom:4px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.row>.grow{flex:1;min-width:140px}
+.err{color:var(--red);font-weight:700;margin:8px 0 0;min-height:1.4em}
+.card{background:var(--card);border:2px solid var(--line);border-radius:16px;padding:18px}
+.grid{display:grid;gap:14px}
+.kpis{grid-template-columns:repeat(auto-fill,minmax(170px,1fr));margin-bottom:20px}
+.kpi{background:var(--card);border:2px solid var(--line);border-radius:16px;padding:14px 16px}
+.kpi b{display:block;font-size:30px;line-height:1.1;font-weight:800;letter-spacing:-.02em}
+.kpi span{color:var(--muted);font-size:14px}
+.kpi.hl{border-color:var(--ink);background:var(--yellow-bg)}
+.two{grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr))}
+.list{list-style:none;margin:0;padding:0}
+.list li b{white-space:nowrap}
+.list li .badge{align-self:flex-start}
+.list li{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--line)}
+.list li:first-child{border-top:0}
+.muted{color:var(--muted)}
+.empty{color:var(--muted);padding:6px 0}
+.badge{display:inline-block;border-radius:999px;padding:1px 10px;font-size:13px;font-weight:800;white-space:nowrap}
+.b-green{background:var(--green-bg);color:var(--green-d)}
+.b-yellow{background:var(--yellow-bg);color:#7A5B00}
+.b-red{background:var(--red-bg);color:var(--red)}
+.b-gray{background:#EEEDE6;color:var(--muted)}
+.bar{height:10px;border-radius:999px;background:#EEEDE6;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--green);border-radius:999px}
+.bar.warn i{background:#E0A100}
+.bar.over i{background:var(--red)}
+svg.chart{width:100%;height:auto;display:block}
+
+/* список учеников */
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.filters input[type=search]{max-width:320px}
+.filters select{width:auto}
+.chip{border:2px solid var(--line);background:var(--card);border-radius:999px;padding:4px 12px;font-weight:700;font-size:14px;min-height:36px}
+.chip[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:#fff}
+.shead,.srow{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1.1fr) minmax(0,1.4fr) minmax(0,.9fr) minmax(0,1.3fr) minmax(0,1.5fr);gap:12px;align-items:center;padding:10px 14px}
+.shead{font-size:13px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+.srow{width:100%;text-align:left;background:var(--card);border:2px solid var(--line);border-radius:14px;margin-bottom:8px}
+.srow:hover{border-color:var(--ink)}
+.srow .nm b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.srow .nm span{display:block;color:var(--muted);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cell small{display:block;color:var(--muted);font-size:13px}
+@media(max-width:820px){
+  .shead{display:none}
+  .srow{grid-template-columns:1fr 1fr;gap:8px 12px}
+  .srow .nm{grid-column:1/-1}
+  .tabs{order:3;width:100%;flex:none;overflow-x:auto;flex-wrap:nowrap}
+  .tab{white-space:nowrap}
+  .srow .cell:last-child{grid-column:1/-1}
+  .cell::before{content:attr(data-l);display:block;color:var(--muted);font-size:12px;font-weight:800;text-transform:uppercase}
+}
+
+/* панель ученика */
+.shade{position:fixed;inset:0;background:rgba(27,36,64,.45);z-index:40}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(720px,100%);background:var(--paper);z-index:50;overflow-y:auto;border-left:2px solid var(--ink);padding:0 0 40px}
+.dh{position:sticky;top:0;background:var(--card);border-bottom:2px solid var(--ink);padding:14px 16px;display:flex;gap:12px;align-items:flex-start;z-index:2}
+.dh .t{flex:1;min-width:0}
+.dh .t b{font-size:22px;font-weight:800;display:block;overflow:hidden;text-overflow:ellipsis}
+.dh .t .em{color:var(--muted);overflow:hidden;text-overflow:ellipsis;display:block}
+.dbody{padding:16px;display:grid;gap:14px}
+.mini{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.mini div{background:var(--paper);border-radius:12px;padding:10px 12px}
+.mini b{display:block;font-size:22px;font-weight:800;line-height:1.2}
+.mini span{font-size:13px;color:var(--muted)}
+.lvl-repeat{color:var(--red)}.lvl-train{color:#7A5B00}.lvl-good{color:var(--green-d)}
+.act{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.hr{border:0;border-top:1px solid var(--line);margin:14px 0}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:12px;z-index:100;font-weight:700;max-width:90vw}
+.toast.bad{background:var(--red)}
+.sw{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--line)}
+.sw input{width:24px;height:24px;margin-top:2px;flex:none;accent-color:var(--green)}
+.sw b{display:block}
+table.log{width:100%;border-collapse:collapse}
+table.log td,table.log th{text-align:left;padding:8px 10px;border-top:1px solid var(--line);vertical-align:top;font-size:15px}
+table.log th{font-size:13px;color:var(--muted);text-transform:uppercase;border-top:0}
+.scroll{overflow-x:auto}
+.hb{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1.5fr) auto;gap:10px;align-items:center;padding:6px 0}
+.hb .hl{line-height:1.25}
+.hb .hbar{height:14px;background:#EEEDE6;border-radius:4px;overflow:hidden}
+.hb .hbar i{display:block;height:100%;background:var(--c1);border-radius:0 4px 4px 0}
+.hb .hv{font-weight:800;white-space:nowrap;font-size:15px;text-align:right}
+.hb .hv small{font-weight:600;color:var(--muted)}
+@media(max-width:560px){.hb{grid-template-columns:1fr auto}.hb .hbar{grid-column:1/-1;order:3}}
+:root{--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a;--c4:#eda100}
+.rng{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.cc{position:relative}
+.cc svg{width:100%;height:auto;display:block;overflow:visible}
+.cc .ax{font-size:12px;fill:#5B6584}
+.cc .gl{stroke:#E4E1D6;stroke-width:1}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:14px;margin:0 0 6px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+#tip{position:fixed;z-index:90;background:var(--ink);color:#fff;border-radius:10px;padding:8px 12px;font-size:14px;pointer-events:none;max-width:260px;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+#tip b{display:block;margin-bottom:2px}
+#tip i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
+details.dt{margin-top:10px;font-size:14px}
+details.dt summary{cursor:pointer;color:var(--muted);font-weight:700}
+details.dt table{width:100%;border-collapse:collapse;margin-top:6px}
+details.dt td,details.dt th{text-align:left;padding:4px 8px;border-top:1px solid var(--line)}
+.modal{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:16px;background:rgba(27,36,64,.5);overflow-y:auto}
+.modal .card{width:100%;max-width:520px;border:2px solid var(--ink)}
+.cred{background:var(--green-bg);border-radius:12px;padding:12px 14px;margin:10px 0;font-size:17px}
+.cred code{font-weight:800;font-size:18px;user-select:all}
+</style>
+</head>
+<body>
+
+<div id="loading" class="login"><p class="muted">Загрузка…</p></div>
+
+<div id="off" class="login" hidden>
+  <div class="login-card">
+    <h1>Админ-панель выключена</h1>
+    <p>Чтобы включить её, откройте файл <b>.env</b> в папке Листика и добавьте строку:</p>
+    <p><code>ADMIN_PASSWORD=ваш_пароль</code></p>
+    <p>Пароль не короче 8 символов. Затем перезапустите сервер и обновите эту страницу.</p>
+  </div>
+</div>
+
+<div id="login" class="login" hidden>
+  <form class="login-card" id="loginForm" autocomplete="off">
+    <h1>Листик · вход для владельца</h1>
+    <p>Введите пароль администратора.</p>
+    <label class="f" for="pw">Пароль</label>
+    <input id="pw" type="password" autocomplete="current-password" required>
+    <p class="err" id="loginErr" role="alert"></p>
+    <button class="btn primary" style="width:100%">Войти</button>
+  </form>
+</div>
+
+<div id="app" hidden>
+  <header class="top"><div class="wrap">
+    <div class="brand">Листик <small>админ</small></div>
+    <nav class="tabs" role="tablist" aria-label="Разделы">
+      <button class="tab" role="tab" data-tab="overview">Обзор</button>
+      <button class="tab" role="tab" data-tab="students">Ученики</button>
+      <button class="tab" role="tab" data-tab="charts">Графики</button>
+      <button class="tab" role="tab" data-tab="settings">Настройки</button>
+      <button class="tab" role="tab" data-tab="log">Журнал</button>
+    </nav>
+    <button class="btn sm" id="logout">Выйти</button>
+  </div></header>
+  <main><div class="wrap" id="view"></div></main>
+</div>
+
+<div id="shade" class="shade" hidden></div>
+<aside id="drawer" class="drawer" hidden role="dialog" aria-modal="true" aria-label="Карточка ученика"></aside>
+<div id="toast" class="toast" hidden role="status"></div>
+<div id="tip" hidden></div>
+<div id="modal" class="modal" hidden role="dialog" aria-modal="true" aria-label="Создать кабинет"></div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const TZ = "Asia/Almaty";
+const S = { tab: "overview", users: [], tasksTotal: 0, overview: null, filter: "all", q: "", sort: "recent", openId: null, detail: null };
+
+/* ---------- сеть ---------- */
+async function api(route, body) {
+  let r;
+  try { r = await fetch("/api/admin/" + route, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) }); }
+  catch (e) { toast("Нет связи с сервером.", true); throw e; }
+  let data = {}; try { data = await r.json(); } catch (e) {}
+  if (r.status === 401 && route !== "login") { show("login"); throw new Error("login"); }
+  return { status: r.status, data };
+}
+function toast(text, bad) {
+  const t = $("toast"); t.textContent = text; t.className = "toast" + (bad ? " bad" : ""); t.hidden = false;
+  clearTimeout(toast.t); toast.t = setTimeout(() => { t.hidden = true; }, 3500);
+}
+
+/* ---------- форматы ---------- */
+const mins = sec => Math.round((sec || 0) / 60);
+const fmtDate = iso => iso ? new Date(iso).toLocaleDateString("ru-RU", { day: "numeric", month: "short", year: "numeric", timeZone: TZ }) : "—";
+const fmtDT = iso => iso ? new Date(iso).toLocaleString("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: TZ }) : "—";
+function ago(iso) {
+  if (!iso) return "никогда";
+  const d = Math.floor((Date.now() - Date.parse(iso)) / 86400000);
+  return d <= 0 ? "сегодня" : d === 1 ? "вчера" : d + " дн. назад";
+}
+const lastSeen = u => [u.lastLessonAt, u.lastLoginAt].filter(Boolean).sort().pop() || null;
+function planBadge(u) {
+  if (u.blocked) return '<span class="badge b-red">Заблокирован</span>';
+  if (u.planActive) return '<span class="badge b-green">Платный до ' + esc(fmtDate(u.planUntil)) + '</span>';
+  if (u.planUntil) return '<span class="badge b-yellow">Подписка закончилась</span>';
+  return '<span class="badge b-gray">Пробный</span>';
+}
+function bar(used, max) {
+  const pct = max > 0 ? Math.min(100, Math.round(used / max * 100)) : 100;
+  return '<div class="bar' + (used >= max ? " over" : pct >= 80 ? " warn" : "") + '"><i style="width:' + pct + '%"></i></div>';
+}
+
+/* ---------- экраны ---------- */
+function show(which) {
+  ["loading", "off", "login", "app"].forEach(k => { $(k).hidden = k !== which; });
+  if (which === "login") { closeDrawer(); setTimeout(() => $("pw").focus(), 50); }
+}
+async function boot() {
+  const { data } = await api("status");
+  if (!data.configured) return show("off");
+  if (!data.loggedIn) return show("login");
+  enter();
+}
+async function enter() {
+  show("app");
+  try { S.tab = sessionStorage.getItem("adm_tab") || "overview"; } catch (e) {}
+  await go(S.tab);
+}
+$("loginForm").addEventListener("submit", async e => {
+  e.preventDefault(); $("loginErr").textContent = "";
+  const { status, data } = await api("login", { password: $("pw").value });
+  if (status === 200) { $("pw").value = ""; enter(); }
+  else $("loginErr").textContent = data.message || "Не получилось войти.";
+});
+$("logout").addEventListener("click", async () => { await api("logout"); show("login"); });
+document.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => go(b.dataset.tab)));
+
+async function go(tab) {
+  S.tab = tab; try { sessionStorage.setItem("adm_tab", tab); } catch (e) {}
+  document.querySelectorAll(".tab").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === tab ? "true" : "false"));
+  const v = $("view"); v.innerHTML = '<p class="muted">Загрузка…</p>';
+  try {
+    if (tab === "overview") { S.overview = (await api("overview")).data; renderOverview(); }
+    else if (tab === "students") { const d = (await api("users")).data; S.users = d.users; S.tasksTotal = d.tasksTotal; renderStudents(); }
+    else if (tab === "charts") { await loadCharts(); }
+    else if (tab === "settings") { S.overview = (await api("overview")).data; renderSettings(); }
+    else if (tab === "log") { renderLog((await api("log")).data.log); }
+  } catch (e) { if (e.message !== "login") v.innerHTML = '<p class="err">Не получилось загрузить данные.</p>'; }
+}
+
+/* ---------- обзор ---------- */
+function bars(values, labels, color) {
+  const W = 560, H = 130, n = values.length, gap = 6, bw = (W - gap * (n - 1)) / n, max = Math.max(1, ...values);
+  let g = "";
+  values.forEach((v, i) => {
+    const h = Math.round((H - 34) * v / max), x = i * (bw + gap), y = H - 18 - h;
+    g += '<rect x="' + x.toFixed(1) + '" y="' + y + '" width="' + bw.toFixed(1) + '" height="' + Math.max(h, v > 0 ? 2 : 0) + '" rx="3" fill="' + color + '"><title>' + esc(labels[i]) + ': ' + v + '</title></rect>';
+    if (v > 0) g += '<text x="' + (x + bw / 2).toFixed(1) + '" y="' + (y - 4) + '" text-anchor="middle" font-size="11" font-weight="700" fill="#1B2440">' + v + '</text>';
+    if (i % 2 === (n - 1) % 2) g += '<text x="' + (x + bw / 2).toFixed(1) + '" y="' + (H - 3) + '" text-anchor="middle" font-size="10" fill="#5B6584">' + esc(labels[i].slice(8) + "." + labels[i].slice(5, 7)) + '</text>';
+  });
+  return '<svg class="chart" viewBox="0 0 ' + W + ' ' + H + '" role="img">' + g + '</svg>';
+}
+function renderOverview() {
+  const o = S.overview, t = o.totals, s = o.series;
+  const kpi = (n, l, hl) => '<div class="kpi' + (hl ? " hl" : "") + '"><b>' + n + '</b><span>' + l + '</span></div>';
+  const ul = (arr, f, empty) => arr.length ? '<ul class="list">' + arr.map(f).join("") + '</ul>' : '<p class="empty">' + empty + '</p>';
+  $("view").innerHTML =
+    '<h2>Обзор</h2><p class="sub">Сводка по всему Листику на сегодня.</p>' +
+    '<div class="grid kpis">' +
+      kpi(t.users, "зарегистрировано", true) + kpi(t.new7, "новых за 7 дней") + kpi(t.new30, "новых за 30 дней") +
+      kpi(t.activeToday, "занимались сегодня") + kpi(t.active7, "занимались за 7 дней") + kpi(t.paid, "с платной подпиской") +
+      kpi(mins(t.studyToday), "мин занятий сегодня") + kpi(mins(t.voiceToday), "мин голоса сегодня") +
+      kpi(t.guestsToday, "гостей без кабинета сегодня") + kpi(t.lessons, "пройдено задач всего") + (t.blocked ? kpi(t.blocked, "заблокировано") : "") +
+    '</div>' +
+    '<div class="grid two">' +
+      '<div class="card"><h3>Регистрации по дням</h3>' + bars(s.map(x => x.regs), s.map(x => x.day), "#1A7F45") + '</div>' +
+      '<div class="card"><h3>Сколько учеников занималось</h3>' + bars(s.map(x => x.active), s.map(x => x.day), "#2B4BC4") + '</div>' +
+      '<div class="card"><h3>Минут занятий по дням</h3>' + bars(s.map(x => x.studyMin), s.map(x => x.day), "#E0A100") + '</div>' +
+      '<div class="card"><h3>Подписка заканчивается за 7 дней</h3>' + ul(o.expiring, x =>
+        '<li><span><a href="#" data-open="' + esc(x.id) + '">' + esc(x.child || x.email) + '</a> <span class="muted">' + esc(x.email) + '</span></span><b>до ' + esc(fmtDate(x.planUntil)) + '</b></li>', "Таких нет.") + '</div>' +
+      '<div class="card" style="grid-column:1/-1"><h3>Предмет и разделы</h3><p class="muted" style="margin:0 0 8px;font-size:14px">' + esc(subjectLine(o.subject)) + ' · что изучают чаще и больше, за последние 30 дней</p>' + sectionBars(o.sections) + '</div>' +
+      '<div class="card"><h3>Что решают чаще всего</h3>' + ul(o.topTasks, x => '<li><span>' + esc(x.title) + '</span><b>' + x.completions + '</b></li>', "Пока никто ничего не решил.") + '</div>' +
+      '<div class="card"><h3>Темы, где чаще ошибаются</h3><p class="muted" style="margin:0 0 6px;font-size:14px">Доля шагов, решённых с первой попытки (темы с 10+ шагами)</p>' +
+        ul(o.hardSkills, x => '<li><span>' + esc(x.name) + '</span><b>' + x.pct + '%</b></li>', "Данных пока мало.") + '</div>' +
+    '</div>';
+  $("view").querySelectorAll("[data-open]").forEach(a => a.addEventListener("click", e => { e.preventDefault(); openStudent(a.dataset.open); }));
+}
+
+/* ---------- предмет и разделы ---------- */
+const subjectLine = s => s ? (s.title + ", " + s.grade + " класс") : "";
+function hbars(items, opts) {      // горизонтальные столбики с подписями: {label, value, text}
+  const max = Math.max(1, ...items.map(i => i.value));
+  return items.length ? items.map(i => '<div class="hb"><span class="hl" title="' + esc(i.label) + '">' + esc(i.label) + '</span><span class="hbar"><i style="width:' + Math.round(100 * i.value / (opts && opts.max || max)) + '%"></i></span><span class="hv">' + i.text + '</span></div>').join("") : '<p class="empty">Данных пока нет.</p>';
+}
+function sectionBars(secs) {
+  const a = secs.slice().sort((x, y) => y.minutes - x.minutes || y.completions - x.completions);
+  if (!a.some(s => s.minutes || s.completions)) return '<p class="empty">Пока никто не занимался. Данные появятся, когда ученики начнут решать задачи.</p>';
+  return hbars(a.map(s => ({ label: s.title, value: s.minutes, text: s.minutes + ' мин <small>· решено ' + s.completions + ' раз · ' + s.students + ' уч.</small>' })));
+}
+function sectionRows(secs) {
+  return secs.map(s => '<li><span>' + esc(s.title) + ' <span class="muted">(решено ' + s.tasksDone + ' из ' + s.tasksTotal + ' задач)</span></span><b>' + s.minutes + ' мин' + (s.share != null ? ' · ' + s.share + '%' : '') + '</b></li>').join("");
+}
+
+/* ---------- графики ---------- */
+const CH = { days: 30, data: null };
+const fmtDM = d => d.slice(8) + "." + d.slice(5, 7);
+const niceMax = v => { if (v <= 4) return 4; if (v <= 8) return 8; const p = Math.pow(10, Math.floor(Math.log10(v))), m = v / p; return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * p; };
+function tip(e, html) { const t = $("tip"); if (!html) { t.hidden = true; return; } t.innerHTML = html; t.hidden = false; const w = t.offsetWidth; t.style.left = Math.min(innerWidth - w - 8, e.clientX + 14) + "px"; t.style.top = (e.clientY + 14) + "px"; }
+function tableOf(head, rows) { return '<details class="dt"><summary>Показать данные таблицей</summary><div class="scroll"><table><thead><tr>' + head.map(h => '<th>' + esc(h) + '</th>').join("") + '</tr></thead><tbody>' + rows.map(r => '<tr>' + r.map(c => '<td>' + esc(c) + '</td>').join("") + '</tr>').join("") + '</tbody></table></div></details>'; }
+let CID = 0;
+/* линии и столбики с подсказкой при наведении. kind: "line" | "bar"; series: [{name, values, color}] */
+function chart(kind, labels, series, unit, fmt) {
+  fmt = fmt || fmtDM;
+  const id = "ch" + (++CID), W = 480, H = 220, L = 34, R = 8, T = 12, B = 24, n = labels.length;
+  const max = niceMax(Math.max(1, ...series.flatMap(s => s.values))), pw = W - L - R, ph = H - T - B;
+  const X = i => L + (kind === "bar" ? (pw / n) * (i + .5) : n === 1 ? pw / 2 : pw * i / (n - 1)), Y = v => T + ph - ph * v / max;
+  let g = "";
+  for (let k = 0; k <= 4; k++) { const v = max * k / 4, y = Y(v); g += '<line class="gl" x1="' + L + '" x2="' + (W - R) + '" y1="' + y + '" y2="' + y + '"/><text class="ax" x="' + (L - 6) + '" y="' + (y + 4) + '" text-anchor="end">' + Math.round(v) + '</text>'; }
+  const step = Math.ceil(n / 8);
+  labels.forEach((d, i) => { if ((n - 1 - i) % step === 0) g += '<text class="ax" x="' + X(i) + '" y="' + (H - 6) + '" text-anchor="middle">' + fmt(d) + '</text>'; });
+  if (kind === "bar") {
+    const bw = Math.max(3, Math.min(28, pw / n - 3));
+    series[0].values.forEach((v, i) => { const h = Math.max(v > 0 ? 2 : 0, ph * v / max); g += '<path d="M' + (X(i) - bw / 2) + ' ' + (T + ph) + 'V' + (T + ph - h + Math.min(4, h)) + 'q0 -' + Math.min(4, h) + ' ' + Math.min(4, bw / 2) + ' -' + Math.min(4, h) + 'h' + (bw - 2 * Math.min(4, bw / 2)) + 'q' + Math.min(4, bw / 2) + ' 0 ' + Math.min(4, bw / 2) + ' ' + Math.min(4, h) + 'V' + (T + ph) + 'z" fill="' + series[0].color + '"/>'; });
+  } else {
+    series.forEach(s => {
+      g += '<polyline fill="none" stroke="' + s.color + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="' + s.values.map((v, i) => X(i).toFixed(1) + "," + Y(v).toFixed(1)).join(" ") + '"/>';
+      const last = s.values.length - 1; g += '<circle cx="' + X(last) + '" cy="' + Y(s.values[last]) + '" r="4" fill="' + s.color + '" stroke="#fff" stroke-width="2"/>';
+    });
+  }
+  g += '<line id="' + id + 'x" class="gl" style="stroke:#1B2440;opacity:0" x1="0" x2="0" y1="' + T + '" y2="' + (T + ph) + '"/><rect id="' + id + 'h" x="' + L + '" y="' + T + '" width="' + pw + '" height="' + ph + '" fill="transparent"/>';
+  const html = (series.length > 1 ? '<div class="legend">' + series.map(s => '<span><i style="background:' + s.color + '"></i>' + esc(s.name) + '</span>').join("") + '</div>' : "") +
+    '<div class="cc"><svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(series.map(s => s.name).join(", ")) + '">' + g + '</svg></div>' +
+    tableOf(["Дата"].concat(series.map(s => s.name)), labels.map((d, i) => [fmt(d)].concat(series.map(s => s.values[i]))));
+  setTimeout(() => {
+    const hit = $(id + "h"); if (!hit) return; const svg = hit.ownerSVGElement, cx = $(id + "x");
+    hit.addEventListener("mousemove", e => {
+      const r = svg.getBoundingClientRect(), px = (e.clientX - r.left) * W / r.width;
+      let i = kind === "bar" ? Math.floor((px - L) / (pw / n)) : Math.round((px - L) / pw * (n - 1)); i = Math.max(0, Math.min(n - 1, i));
+      cx.setAttribute("x1", X(i)); cx.setAttribute("x2", X(i)); cx.style.opacity = kind === "line" ? ".35" : "0";
+      tip(e, '<b>' + fmt(labels[i]) + '</b>' + series.map(s => (series.length > 1 || kind === "line" ? '<i style="background:' + s.color + '"></i>' : "") + esc(s.name) + ': ' + s.values[i] + (unit ? " " + unit : "")).join("<br>"));
+    });
+    hit.addEventListener("mouseleave", () => { tip(null); cx.style.opacity = 0; });
+  }, 0);
+  return html;
+}
+function stackBar(parts) {
+  const tot = parts.reduce((n, p) => n + p.value, 0);
+  if (!tot) return '<p class="empty">Пока нет учеников.</p>';
+  return '<div class="legend">' + parts.map(p => '<span><i style="background:' + p.color + '"></i>' + esc(p.name) + ': <b>' + p.value + '</b></span>').join("") + '</div>' +
+    '<div style="display:flex;gap:2px;height:22px">' + parts.filter(p => p.value).map(p => '<div title="' + esc(p.name) + ': ' + p.value + '" style="flex:' + p.value + ';background:' + p.color + ';border-radius:4px"></div>').join("") + '</div>';
+}
+async function loadCharts() { CH.data = (await api("charts", { days: CH.days })).data; renderCharts(); }
+function renderCharts() {
+  const d = CH.data, s = d.series, card = (title, sub, body) => '<div class="card"><h3>' + title + '</h3>' + (sub ? '<p class="muted" style="margin:-4px 0 8px;font-size:14px">' + sub + '</p>' : "") + body + '</div>';
+  const wd = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+  const secs = d.sections.slice().sort((a, b) => b.minutes - a.minutes), secsDone = d.sections.slice().sort((a, b) => b.completionsWin - a.completionsWin);
+  const skills = d.skills.slice(0, 10);
+  $("view").innerHTML =
+    '<h2>Графики</h2><p class="sub">' + esc(subjectLine(d.subject)) + '. Наведите курсор на график, чтобы увидеть значения; под каждым есть таблица.</p>' +
+    '<div class="rng" role="group" aria-label="Период">' + [14, 30, 90].map(n => '<button class="chip" data-r="' + n + '" aria-pressed="' + (CH.days === n) + '">' + n + ' дней</button>').join("") + '</div>' +
+    '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr))">' +
+      card("Что изучают больше всего", "Минуты занятий по разделам за период", d.sections.some(x => x.minutes) ? hbars(secs.map(x => ({ label: x.title, value: x.minutes, text: x.minutes + ' мин' }))) + tableOf(["Раздел", "Минут", "Решено задач", "Учеников"], secs.map(x => [x.title, x.minutes, x.completionsWin, x.students])) : '<p class="empty">Минуты по разделам начнут копиться с новых занятий.</p>') +
+      card("Что решают чаще", "Решённые задачи по разделам за период", d.sections.some(x => x.completionsWin) ? hbars(secsDone.map(x => ({ label: x.title, value: x.completionsWin, text: String(x.completionsWin) }))) : '<p class="empty">За период ничего не решено.</p>') +
+      card("Сколько учеников всего", "Рост числа кабинетов", chart("line", d.days, [{ name: "Всего кабинетов", values: s.growth, color: "#2a78d6" }])) +
+      card("Новые регистрации", "По дням", chart("bar", d.days, [{ name: "Новых кабинетов", values: s.regs, color: "#2a78d6" }])) +
+      card("Минуты в день: занятия и голос", "Всего по всем ученикам", chart("line", d.days, [{ name: "Занятия", values: s.studyMin, color: "#2a78d6" }, { name: "Голос Листика", values: s.voiceMin, color: "#eb6834" }], "мин")) +
+      card("Сколько учеников занималось", "Уникальных учеников в день", chart("bar", d.days, [{ name: "Учеников", values: s.active, color: "#2a78d6" }])) +
+      card("Решённые задачи по дням", "Завершённые задачи (по последним 50 у каждого ученика)", chart("bar", d.days, [{ name: "Решено задач", values: s.done, color: "#2a78d6" }])) +
+      card("Когда занимаются", "Средние минуты по дням недели", chart("bar", wd, [{ name: "Средние минуты за день", values: d.weekday.map(x => x.avgMin), color: "#2a78d6" }], "мин", x => x)) +
+      card("Где чаще ошибаются", "Доля шагов с первой попытки, самые трудные темы сверху", skills.length ? hbars(skills.map(x => ({ label: x.name, value: x.pct, text: x.pct + '% <small>· ' + x.steps + ' шагов</small>' })), { max: 100 }) : '<p class="empty">Данных пока мало (нужно от 5 шагов по теме).</p>') +
+      card("Подписки", "Сейчас у учеников", stackBar([{ name: "Платные", value: d.plans.paid, color: "#1baf7a" }, { name: "Пробный", value: d.plans.trial, color: "#2a78d6" }, { name: "Подписка закончилась", value: d.plans.expired, color: "#eda100" }, { name: "Заблокированы", value: d.plans.blocked, color: "#8a8f9f" }])) +
+    '</div>';
+  $("view").querySelectorAll("[data-r]").forEach(b => b.addEventListener("click", async () => { CH.days = Number(b.dataset.r); await loadCharts(); }));
+}
+
+/* ---------- ученики ---------- */
+const FILTERS = [["all", "Все"], ["paid", "Платные"], ["trial", "Без подписки"], ["today", "Занимались сегодня"], ["idle", "Не заходили 7+ дней"], ["blocked", "Заблокированные"]];
+function filtered() {
+  const q = S.q.trim().toLowerCase(), now = Date.now();
+  let a = S.users.filter(u => {
+    if (q && !(u.email.toLowerCase().includes(q) || u.child.toLowerCase().includes(q))) return false;
+    if (S.filter === "paid") return u.planActive;
+    if (S.filter === "trial") return !u.planActive;
+    if (S.filter === "today") return u.today.study > 0;
+    if (S.filter === "idle") { const l = lastSeen(u); return !l || now - Date.parse(l) > 7 * 86400000; }
+    if (S.filter === "blocked") return u.blocked;
+    return true;
+  });
+  const by = {
+    recent: (x, y) => (lastSeen(y) || "").localeCompare(lastSeen(x) || ""),
+    new: (x, y) => (y.createdAt || "").localeCompare(x.createdAt || ""),
+    progress: (x, y) => y.tasksDone - x.tasksDone,
+    minutes: (x, y) => y.weekStudy - x.weekStudy,
+    name: (x, y) => (x.child || x.email).localeCompare(y.child || y.email, "ru")
+  };
+  return a.sort(by[S.sort]);
+}
+function renderStudents() {
+  $("view").innerHTML =
+    '<h2>Ученики <span class="muted" style="font-weight:600">(' + S.users.length + ')</span></h2><p class="sub">Нажмите на ученика, чтобы увидеть прогресс и управлять лимитами и подпиской.</p>' +
+    '<div class="filters">' +
+      '<input type="search" id="q" placeholder="Поиск по имени или почте" aria-label="Поиск" value="' + esc(S.q) + '">' +
+      '<select id="sort" aria-label="Сортировка">' + [["recent", "Сначала недавно заходившие"], ["new", "Сначала новые"], ["progress", "По решённым задачам"], ["minutes", "По минутам за неделю"], ["name", "По имени"]].map(o => '<option value="' + o[0] + '"' + (S.sort === o[0] ? " selected" : "") + '>' + o[1] + '</option>').join("") + '</select>' +
+      '<button class="btn sm" id="csv">Скачать CSV</button>' +
+      '<button class="btn sm primary" id="mk" style="margin-left:auto">+ Создать кабинет</button>' +
+    '</div>' +
+    '<div class="filters" id="chips">' + FILTERS.map(f => '<button class="chip" data-f="' + f[0] + '" aria-pressed="' + (S.filter === f[0]) + '">' + f[1] + '</button>').join("") + '</div>' +
+    '<div id="slist"></div>';
+  $("q").addEventListener("input", e => { S.q = e.target.value; drawList(); });
+  $("sort").addEventListener("change", e => { S.sort = e.target.value; drawList(); });
+  $("csv").addEventListener("click", exportCsv);
+  $("mk").addEventListener("click", openCreate);
+  $("chips").querySelectorAll(".chip").forEach(b => b.addEventListener("click", () => {
+    S.filter = b.dataset.f; $("chips").querySelectorAll(".chip").forEach(x => x.setAttribute("aria-pressed", String(x === b))); drawList();
+  }));
+  drawList();
+}
+function drawList() {
+  const a = filtered(), el = $("slist");
+  if (!a.length) { el.innerHTML = '<p class="empty">' + (S.users.length ? "Никого не найдено." : "Пока никто не зарегистрировался.") + '</p>'; return; }
+  el.innerHTML = '<div class="shead" aria-hidden="true"><span>Ученик</span><span>Регистрация</span><span>Прогресс</span><span>С 1-й попытки</span><span>Сегодня</span><span>Подписка</span></div>' +
+    a.map(u => {
+      const pct = u.tasksTotal ? Math.round(100 * u.tasksDone / u.tasksTotal) : 0;
+      return '<button class="srow" data-id="' + esc(u.id) + '">' +
+        '<span class="nm"><b>' + esc(u.child || "Без имени") + '</b><span>' + esc(u.email) + '</span></span>' +
+        '<span class="cell" data-l="Регистрация">' + esc(fmtDate(u.createdAt)) + '<small>был(а): ' + esc(ago(lastSeen(u))) + '</small></span>' +
+        '<span class="cell" data-l="Прогресс">' + u.tasksDone + ' из ' + u.tasksTotal + ' задач<div class="bar" style="margin-top:4px"><i style="width:' + pct + '%"></i></div></span>' +
+        '<span class="cell" data-l="С 1-й попытки">' + (u.firstTryPct == null ? "—" : u.firstTryPct + "%") + '</span>' +
+        '<span class="cell" data-l="Сегодня">' + mins(u.today.study) + ' из ' + mins(u.today.studyMax) + ' мин' + bar(u.today.study, u.today.studyMax) + '</span>' +
+        '<span class="cell" data-l="Подписка">' + planBadge(u) + '</span></button>';
+    }).join("");
+  el.querySelectorAll(".srow").forEach(b => b.addEventListener("click", () => openStudent(b.dataset.id)));
+}
+function exportCsv() {
+  const head = ["Почта", "Ребёнок", "Регистрация", "Последний вход", "Последнее занятие", "Задач решено", "Задач всего", "С 1-й попытки %", "Минут за 7 дней", "Подписка до", "Заблокирован"];
+  const q = v => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
+  const rows = filtered().map(u => [u.email, u.child, u.createdAt || "", u.lastLoginAt || "", u.lastLessonAt || "", u.tasksDone, u.tasksTotal, u.firstTryPct == null ? "" : u.firstTryPct, mins(u.weekStudy), u.planActive ? u.planUntil.slice(0, 10) : "", u.blocked ? "да" : ""]);
+  const csv = "﻿" + [head].concat(rows).map(r => r.map(q).join(";")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  a.download = "listik-ucheniki.csv"; document.body.appendChild(a); a.click(); a.remove();
+}
+
+/* ---------- карточка ученика ---------- */
+function closeDrawer() { $("drawer").hidden = true; $("shade").hidden = true; S.openId = null; document.body.style.overflow = ""; }
+$("shade").addEventListener("click", closeDrawer);
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("drawer").hidden) closeDrawer(); });
+async function openStudent(id) {
+  S.openId = id; $("drawer").hidden = false; $("shade").hidden = false; document.body.style.overflow = "hidden";
+  $("drawer").innerHTML = '<div class="dbody"><p class="muted">Загрузка…</p></div>';
+  if (!S.overview) S.overview = (await api("overview")).data;
+  const { status, data } = await api("user", { id });
+  if (status !== 200) { closeDrawer(); return toast("Кабинет не найден.", true); }
+  S.detail = data; renderDrawer();
+}
+function renderDrawer() {
+  const u = S.detail, T = u.today, scroll = $("drawer").scrollTop;
+  const started = u.tasks.filter(t => t.status !== "new"), fresh = u.tasks.length - started.length;
+  const statusT = t => t.status === "done" ? '<span class="badge b-green">Решена' + (t.completions > 1 ? " ×" + t.completions : "") + '</span>' : '<span class="badge b-yellow">В процессе ' + t.solved + '/' + t.total + '</span>';
+  const lvl = { repeat: ["Повторить", "lvl-repeat"], train: ["Тренировать", "lvl-train"], good: ["Хорошо", "lvl-good"] };
+  const maxDay = Math.max(1, ...u.days.map(d => d.study));
+  $("drawer").innerHTML =
+    '<div class="dh"><div class="t"><b>' + esc(u.child || "Без имени") + '</b><span class="em">' + esc(u.email) + '</span><div style="margin-top:6px">' + planBadge(u) + '</div></div>' +
+      '<button class="btn sm" id="dclose" aria-label="Закрыть">Закрыть ✕</button></div>' +
+    '<div class="dbody">' +
+
+    '<section class="card"><h3>Прогресс</h3><div class="mini">' +
+      '<div><b>' + u.tasksDone + ' из ' + u.tasksTotal + '</b><span>задач решено</span></div>' +
+      '<div><b>' + (u.firstTryPct == null ? "—" : u.firstTryPct + "%") + '</b><span>шагов с 1-й попытки</span></div>' +
+      '<div><b>' + u.lessons + '</b><span>завершённых занятий</span></div>' +
+      '<div><b>' + mins(u.weekStudy) + ' мин</b><span>за 7 дней (' + u.weekDays + ' дн.)</span></div>' +
+    '</div>' +
+    '<p class="muted" style="margin:10px 0 0;font-size:14px">Регистрация: ' + esc(fmtDate(u.createdAt)) + ' · последний вход: ' + esc(fmtDT(u.lastLoginAt)) + ' · последнее занятие: ' + esc(fmtDT(u.lastLessonAt)) + '</p>' +
+    '<hr class="hr"><h3 style="font-size:16px">Минуты занятий за 14 дней</h3>' + bars(u.days.map(d => mins(d.study)), u.days.map(d => d.day), "#E0A100") +
+    '<hr class="hr"><h3 style="font-size:16px">Предмет и разделы</h3><p class="muted" style="margin:0 0 4px;font-size:14px">' + esc(subjectLine(u.subject)) + ' · минуты за 90 дней и доля времени ученика</p>' +
+    '<ul class="list">' + sectionRows(u.sections) + '</ul>' +
+    '<hr class="hr"><h3 style="font-size:16px">Задачи</h3>' +
+    (started.length ? '<ul class="list">' + started.map(t => '<li><span>№' + esc(t.no) + ' ' + esc(t.title) + '</span>' + statusT(t) + '</li>').join("") + '</ul>' : '<p class="empty">Ещё ничего не начато.</p>') +
+    (fresh ? '<p class="muted" style="margin:8px 0 0;font-size:14px">Не начато: ' + fresh + '</p>' : "") +
+    '<hr class="hr"><h3 style="font-size:16px">Темы</h3>' +
+    (u.skills.length ? '<ul class="list">' + u.skills.map(s => '<li><span>' + esc(s.name) + ' <span class="muted">(' + s.firstTry + ' из ' + s.steps + ' с 1-й попытки)</span></span><b class="' + lvl[s.level][1] + '">' + lvl[s.level][0] + '</b></li>').join("") + '</ul>' : '<p class="empty">Данных пока нет.</p>') +
+    '<hr class="hr"><h3 style="font-size:16px">Последние занятия</h3>' +
+    (u.recentLessons.length ? '<ul class="list">' + u.recentLessons.map(l => '<li><span>№' + esc(l.no) + ' ' + esc(l.title) + ' <span class="muted">' + esc(fmtDT(l.at)) + '</span></span><b>' + l.firstTry + ' из ' + l.total + '</b></li>').join("") + '</ul>' : '<p class="empty">Занятий ещё не было.</p>') +
+    '</section>' +
+
+    '<section class="card"><h3>Время и лимиты</h3>' +
+      '<p style="margin:0 0 4px">Сегодня занятия: <b>' + mins(T.study) + ' из ' + mins(T.studyMax) + ' мин</b></p>' + bar(T.study, T.studyMax) +
+      '<p style="margin:10px 0 4px">Сегодня голос: <b>' + mins(T.voice) + ' из ' + mins(T.voiceMax) + ' мин</b></p>' + bar(T.voice, T.voiceMax) +
+      ((T.bonusStudy || T.bonusVoice) ? '<p class="muted" style="margin:8px 0 0;font-size:14px">Разовая добавка на сегодня: занятия ' + (T.bonusStudy >= 0 ? "+" : "") + mins(T.bonusStudy) + ' мин, голос ' + (T.bonusVoice >= 0 ? "+" : "") + mins(T.bonusVoice) + ' мин</p>' : "") +
+      '<hr class="hr"><h3 style="font-size:16px">Добавить или убавить время на сегодня</h3>' +
+      '<div class="act">' + [[15, 15], [30, 30], [60, 60], [-15, -15]].map(p => '<button class="btn sm" data-bonus="' + p[0] + '">' + (p[0] > 0 ? "+" : "−") + Math.abs(p[0]) + ' мин (занятия и голос)</button>').join("") + '</div>' +
+      '<div class="row"><div class="grow"><label class="f" for="bs">Занятия, мин (можно минус)</label><input id="bs" type="number" class="sm" value="0" min="-300" max="300"></div>' +
+        '<div class="grow"><label class="f" for="bv">Голос, мин</label><input id="bv" type="number" class="sm" value="0" min="-300" max="300"></div>' +
+        '<button class="btn sm" id="bonusGo">Применить</button></div>' +
+      '<div class="act"><button class="btn sm" id="resetToday">Обнулить использованное время за сегодня</button></div>' +
+      '<hr class="hr"><h3 style="font-size:16px">Личный дневной лимит</h3>' +
+      '<p class="muted" style="margin:0 0 8px;font-size:14px">Действует каждый день, пока вы его не уберёте. Пустое поле: ученик живёт по общему лимиту (занятия ' + S.overview.settings.studyDayMin + ' мин, голос ' + S.overview.settings.voiceDayMin + ' мин).</p>' +
+      '<div class="row"><div class="grow"><label class="f" for="ls">Занятия, мин в день</label><input id="ls" type="number" class="sm" min="0" max="600" placeholder="общий" value="' + (u.limits.study == null ? "" : u.limits.study) + '"></div>' +
+        '<div class="grow"><label class="f" for="lv">Голос, мин в день</label><input id="lv" type="number" class="sm" min="0" max="600" placeholder="общий" value="' + (u.limits.voice == null ? "" : u.limits.voice) + '"></div>' +
+        '<button class="btn sm primary" id="limGo">Сохранить</button></div>' +
+    '</section>' +
+
+    '<section class="card"><h3>Подписка</h3>' +
+      '<p style="margin:0 0 8px">' + (u.planActive ? 'Платный тариф действует до <b>' + esc(fmtDate(u.planUntil)) + '</b>.' : u.planUntil ? 'Подписка закончилась ' + esc(fmtDate(u.planUntil)) + '.' : 'Сейчас только пробный доступ.') + '</p>' +
+      '<div class="act">' + [[30, "+30 дней"], [90, "+3 месяца"], [365, "+12 месяцев"]].map(p => '<button class="btn sm primary" data-ext="' + p[0] + '">' + p[1] + '</button>').join("") + '</div>' +
+      '<div class="row"><div class="grow"><label class="f" for="pd">Другой срок, дней</label><input id="pd" type="number" class="sm" min="1" max="3650" placeholder="например, 14"></div><button class="btn sm" id="extGo">Продлить</button></div>' +
+      '<div class="row" style="margin-top:10px"><div class="grow"><label class="f" for="pdate">Или задать точную дату окончания</label><input id="pdate" type="date" class="sm" value="' + (u.planActive ? esc(u.planUntil.slice(0, 10)) : "") + '"></div><button class="btn sm" id="dateGo">Установить дату</button></div>' +
+      (u.planUntil ? '<div class="act" style="margin-top:10px"><button class="btn sm danger" id="planOff">Отключить подписку</button></div>' : "") +
+    '</section>' +
+
+    '<section class="card"><h3>Доступ и данные</h3>' +
+      '<div class="row"><div class="grow"><label class="f" for="nm">Имя ребёнка</label><input id="nm" type="text" class="sm" maxlength="30" value="' + esc(u.child) + '"></div><button class="btn sm" id="nmGo">Сохранить имя</button></div>' +
+      '<div class="row" style="margin-top:10px"><div class="grow"><label class="f" for="np">Новый пароль кабинета (от 8 символов)</label><input id="np" type="text" class="sm" autocomplete="off"></div><button class="btn sm" id="npGo">Задать пароль</button></div>' +
+      '<p class="muted" style="margin:6px 0 0;font-size:14px">После смены пароля все текущие входы этого кабинета закрываются. Сообщите новый пароль родителю.</p>' +
+      '<div class="row" style="margin-top:10px"><div class="grow"><label class="f" for="npin">Новый PIN родителя (4 цифры)</label><input id="npin" type="text" inputmode="numeric" maxlength="4" class="sm" autocomplete="off"></div><button class="btn sm" id="npinGo">Задать PIN</button></div>' +
+      '<hr class="hr"><div class="act"><button class="btn sm ' + (u.blocked ? "primary" : "danger") + '" id="blockGo">' + (u.blocked ? "Разблокировать кабинет" : "Заблокировать кабинет") + '</button></div>' +
+    '</section>' +
+
+    '<section class="card" style="border-color:var(--red)"><h3 style="color:var(--red)">Опасная зона</h3>' +
+      '<p class="muted" style="margin:0 0 8px">Чтобы подтвердить, введите почту кабинета: <b>' + esc(u.email) + '</b></p>' +
+      '<input id="cf" type="text" class="sm" autocomplete="off" aria-label="Почта для подтверждения" placeholder="почта кабинета">' +
+      '<div class="act" style="margin-top:10px"><button class="btn sm danger" id="rpGo">Сбросить весь прогресс</button><button class="btn sm danger" id="delGo">Удалить кабинет навсегда</button></div>' +
+    '</section>' +
+    '</div>';
+  $("drawer").scrollTop = scroll;
+  const on = (id, f) => { const el = $(id); if (el) el.addEventListener("click", f); };
+  on("dclose", closeDrawer);
+  const num = id => { const v = $(id).value.trim(); return v === "" ? null : Number(v); };
+  document.querySelectorAll("[data-bonus]").forEach(b => b.addEventListener("click", () => { const n = Number(b.dataset.bonus); doAct({ type: "bonus", study: n, voice: n }, "Время на сегодня изменено."); }));
+  on("bonusGo", () => doAct({ type: "bonus", study: num("bs") || 0, voice: num("bv") || 0 }, "Время на сегодня изменено."));
+  on("resetToday", () => { if (confirm("Обнулить использованное время за сегодня?")) doAct({ type: "resetToday" }, "Время за сегодня обнулено."); });
+  on("limGo", () => doAct({ type: "limits", study: num("ls"), voice: num("lv") }, "Личные лимиты сохранены."));
+  document.querySelectorAll("[data-ext]").forEach(b => b.addEventListener("click", () => doAct({ type: "planExtend", days: Number(b.dataset.ext) }, "Подписка продлена.")));
+  on("extGo", () => doAct({ type: "planExtend", days: num("pd") }, "Подписка продлена."));
+  on("dateGo", () => doAct({ type: "planSet", date: $("pdate").value }, "Дата подписки установлена."));
+  on("planOff", () => { if (confirm("Отключить платную подписку?")) doAct({ type: "planCancel" }, "Подписка отключена."); });
+  on("nmGo", () => doAct({ type: "rename", name: $("nm").value }, "Имя сохранено."));
+  on("npGo", () => doAct({ type: "password", password: $("np").value }, "Пароль изменён."));
+  on("npinGo", () => doAct({ type: "pin", pin: $("npin").value }, "PIN изменён."));
+  on("blockGo", () => { if (u.blocked || confirm("Заблокировать кабинет? Вход будет закрыт сразу.")) doAct({ type: "block", blocked: !u.blocked }, u.blocked ? "Кабинет разблокирован." : "Кабинет заблокирован."); });
+  on("rpGo", () => doAct({ type: "resetProgress", confirm: $("cf").value.trim() }, "Прогресс сброшен."));
+  on("delGo", () => doAct({ type: "delete", confirm: $("cf").value.trim() }, "Кабинет удалён."));
+}
+async function doAct(body, okText) {
+  const id = S.openId; if (!id) return;
+  const { status, data } = await api("action", Object.assign({ id }, body));
+  if (status !== 200) return toast(data.message || "Не получилось.", true);
+  toast(okText);
+  if (!data.user) { S.users = S.users.filter(x => x.id !== id); closeDrawer(); if (S.tab === "students") drawList(); return; }
+  S.detail = data.user; const i = S.users.findIndex(x => x.id === id);
+  if (i >= 0) S.users[i] = Object.assign({}, S.users[i], data.user);
+  renderDrawer(); if (S.tab === "students") drawList();
+  if (S.overview) api("overview").then(r => { S.overview = r.data; });
+}
+
+/* ---------- создать кабинет вручную ---------- */
+function closeModal() { $("modal").hidden = true; $("modal").innerHTML = ""; }
+function openCreate() {
+  const m = $("modal"); m.hidden = false;
+  m.innerHTML = '<form class="card" id="mkForm" autocomplete="off"><h3>Создать кабинет для родителя</h3>' +
+    '<p class="muted" style="margin:-4px 0 12px;font-size:14px">Пригодится, если у родителя не получается зарегистрироваться сам. Пароль и PIN можно не вводить: они создадутся автоматически, и вы передадите их родителю.</p>' +
+    '<label class="f" for="mke">Почта родителя</label><input id="mke" type="text" inputmode="email" required>' +
+    '<label class="f" for="mkn" style="margin-top:10px">Имя ребёнка (без фамилии)</label><input id="mkn" type="text" maxlength="30" required>' +
+    '<div class="row" style="margin-top:10px"><div class="grow"><label class="f" for="mkp">Пароль (от 8 символов)</label><input id="mkp" type="text" placeholder="создать автоматически"></div>' +
+    '<div class="grow"><label class="f" for="mkpin">PIN родителя (4 цифры)</label><input id="mkpin" type="text" inputmode="numeric" maxlength="4" placeholder="автоматически"></div></div>' +
+    '<label class="f" for="mkd" style="margin-top:10px">Тариф</label><select id="mkd"><option value="0">Пробный (без подписки)</option><option value="30">Платный на 30 дней</option><option value="90">Платный на 3 месяца</option><option value="365">Платный на 12 месяцев</option></select>' +
+    '<p class="err" id="mkErr" role="alert"></p>' +
+    '<div class="act"><button class="btn primary" type="submit">Создать кабинет</button><button class="btn" type="button" id="mkCancel">Отмена</button></div></form>';
+  $("mkCancel").addEventListener("click", closeModal);
+  $("mke").focus();
+  $("mkForm").addEventListener("submit", async e => {
+    e.preventDefault(); $("mkErr").textContent = "";
+    const body = { email: $("mke").value, childName: $("mkn").value, password: $("mkp").value || null, pin: $("mkpin").value || null, planDays: Number($("mkd").value) };
+    const { status, data } = await api("create", body);
+    if (status !== 200) { $("mkErr").textContent = data.message || "Не получилось создать кабинет."; return; }
+    const link = location.origin + "/listik.html";
+    const text = "Кабинет Листика создан.\nВход: " + link + "\nПочта: " + data.email + "\nПароль: " + data.password + "\nPIN родителя: " + data.pin + "\nПароль и PIN можно сменить в кабинете.";
+    m.innerHTML = '<div class="card"><h3>Кабинет создан</h3><p style="margin:0">Передайте эти данные родителю. Пароль и PIN показаны только сейчас, потом их не посмотреть (но можно задать новые в карточке ученика).</p>' +
+      '<div class="cred">Почта: <code>' + esc(data.email) + '</code><br>Пароль: <code>' + esc(data.password) + '</code><br>PIN родителя: <code>' + esc(data.pin) + '</code></div>' +
+      '<div class="act"><button class="btn primary" id="mkCopy">Скопировать для родителя</button><button class="btn" id="mkOpen">Открыть карточку</button><button class="btn" id="mkDone">Готово</button></div></div>';
+    $("mkCopy").addEventListener("click", async () => { try { await navigator.clipboard.writeText(text); toast("Скопировано."); } catch (e) { toast("Не получилось скопировать, выделите данные вручную.", true); } });
+    $("mkDone").addEventListener("click", closeModal);
+    $("mkOpen").addEventListener("click", () => { closeModal(); openStudent(data.id); });
+    const d = (await api("users")).data; S.users = d.users; if (S.tab === "students") drawList();
+    if (S.overview) api("overview").then(r => { S.overview = r.data; });
+  });
+}
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("modal").hidden) closeModal(); });
+
+/* ---------- настройки ---------- */
+function renderSettings() {
+  const s = S.overview.settings, d = S.overview.envDefaults;
+  $("view").innerHTML =
+    '<h2>Общие настройки</h2><p class="sub">Действуют для всего Листика. Личные лимиты ученика (в его карточке) важнее общих.</p>' +
+    '<div class="card" style="max-width:640px"><h3>Дневное время</h3>' +
+      '<div class="row"><div class="grow"><label class="f" for="gs">Занятия, мин в день</label><input id="gs" type="number" min="1" max="600" value="' + s.studyDayMin + '"></div>' +
+      '<div class="grow"><label class="f" for="gv">Голос Листика, мин в день</label><input id="gv" type="number" min="0" max="600" value="' + s.voiceDayMin + '"></div></div>' +
+      '<p class="muted" style="font-size:14px;margin:8px 0 0">Это же время получают гости без кабинета. Сейчас на сайте написано «до 45 минут»: если измените, поправьте текст на страницах тарифов.</p>' +
+      '<h3 style="margin-top:20px">Переключатели</h3>' +
+      '<label class="sw"><input type="checkbox" id="gr"' + (s.registrationOpen ? " checked" : "") + '><span><b>Регистрация новых кабинетов открыта</b><span class="muted">Если выключить, новые родители не смогут создать кабинет. Уже зарегистрированные заходят как обычно.</span></span></label>' +
+      '<label class="sw"><input type="checkbox" id="gvo"' + (s.voiceEnabled ? " checked" : "") + '><span><b>Голос Листика включён</b><span class="muted">Выключатель на случай, если нужно срочно остановить голос (расходы или сбой). Занятия без голоса продолжаются.</span></span></label>' +
+      '<div class="act" style="margin-top:14px"><button class="btn primary" id="setGo">Сохранить настройки</button></div>' +
+      '<p class="muted" style="font-size:14px;margin:12px 0 0">Значения по умолчанию из файла .env: занятия ' + d.study + ' мин, голос ' + d.voice + ' мин. Пароль админа меняется там же (ADMIN_PASSWORD) с перезапуском сервера.</p>' +
+    '</div>';
+  $("setGo").addEventListener("click", async () => {
+    const { status, data } = await api("settings", { studyDayMin: Number($("gs").value), voiceDayMin: Number($("gv").value), registrationOpen: $("gr").checked, voiceEnabled: $("gvo").checked });
+    if (status === 200) { toast("Настройки сохранены."); S.overview = (await api("overview")).data; } else toast(data.message || "Не получилось.", true);
+  });
+}
+
+/* ---------- журнал ---------- */
+function renderLog(log) {
+  $("view").innerHTML = '<h2>Журнал действий</h2><p class="sub">Последние 150 действий владельца в панели.</p>' +
+    (log.length ? '<div class="card scroll"><table class="log"><thead><tr><th>Когда</th><th>Действие</th><th>Кабинет</th><th>Подробности</th></tr></thead><tbody>' +
+      log.map(l => '<tr><td>' + esc(fmtDT(l.at)) + '</td><td>' + esc(l.action) + '</td><td>' + esc(l.target) + '</td><td>' + esc(l.detail) + '</td></tr>').join("") + '</tbody></table></div>'
+      : '<p class="empty">Пока пусто.</p>');
+}
+
+boot();
+</script>
+</body>
+</html>

@@ -15,3 +15,7 @@ server.realtime.js
 listik.realtime.html
 start.bat
 _server.js.before_deploy.bak
+
+# резервные копии и черновики правок
+*.before_*
+data/private/tasks.u*.json
