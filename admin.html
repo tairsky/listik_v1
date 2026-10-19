@@ -152,6 +152,14 @@ details.dt td,details.dt th{text-align:left;padding:4px 8px;border-top:1px solid
 .modal .card{width:100%;max-width:520px;border:2px solid var(--ink)}
 .cred{background:var(--green-bg);border-radius:12px;padding:12px 14px;margin:10px 0;font-size:17px}
 .cred code{font-weight:800;font-size:18px;user-select:all}
+
+/* вкладка «Нагрузка» */
+.kpi.st-ok{border-color:#9AD2AF}.kpi.st-warn{border-color:var(--yellow);background:var(--yellow-bg)}.kpi.st-bad{border-color:var(--red);background:var(--red-bg)}
+.kpi em{display:block;font-style:normal;color:var(--muted);font-size:13px;line-height:1.35;margin-top:6px}
+.kpi .badge{margin-top:8px}
+.verdict{border:2px solid var(--line);border-radius:16px;padding:14px 18px;margin:0 0 18px;font-weight:700}
+.verdict.v-ok{background:var(--green-bg);border-color:#9AD2AF}.verdict.v-warn{background:var(--yellow-bg);border-color:var(--yellow)}.verdict.v-bad{background:var(--red-bg);border-color:var(--red)}
+.advice li{padding:8px 0;border-top:1px solid var(--line)}.advice li:first-child{border-top:0}
 </style>
 </head>
 <body>
@@ -185,6 +193,7 @@ details.dt td,details.dt th{text-align:left;padding:4px 8px;border-top:1px solid
       <button class="tab" role="tab" data-tab="overview">Обзор</button>
       <button class="tab" role="tab" data-tab="students">Ученики</button>
       <button class="tab" role="tab" data-tab="charts">Графики</button>
+      <button class="tab" role="tab" data-tab="load">Нагрузка</button>
       <button class="tab" role="tab" data-tab="settings">Настройки</button>
       <button class="tab" role="tab" data-tab="log">Журнал</button>
     </nav>
@@ -267,6 +276,7 @@ $("logout").addEventListener("click", async () => { await api("logout"); show("l
 document.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => go(b.dataset.tab)));
 
 async function go(tab) {
+  clearInterval(LOAD.timer);
   S.tab = tab; try { sessionStorage.setItem("adm_tab", tab); } catch (e) {}
   document.querySelectorAll(".tab").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === tab ? "true" : "false"));
   const v = $("view"); v.innerHTML = '<p class="muted">Загрузка…</p>';
@@ -274,6 +284,7 @@ async function go(tab) {
     if (tab === "overview") { S.overview = (await api("overview")).data; renderOverview(); }
     else if (tab === "students") { const d = (await api("users")).data; S.users = d.users; S.tasksTotal = d.tasksTotal; renderStudents(); }
     else if (tab === "charts") { await loadCharts(); }
+    else if (tab === "load") { await loadLoad(); LOAD.timer = setInterval(() => { if (S.tab === "load") loadLoad(true); }, 10000); }
     else if (tab === "settings") { S.overview = (await api("overview")).data; renderSettings(); }
     else if (tab === "log") { renderLog((await api("log")).data.log); }
   } catch (e) { if (e.message !== "login") v.innerHTML = '<p class="err">Не получилось загрузить данные.</p>'; }
@@ -330,6 +341,46 @@ function sectionBars(secs) {
 }
 function sectionRows(secs) {
   return secs.map(s => '<li><span>' + esc(s.title) + ' <span class="muted">(решено ' + s.tasksDone + ' из ' + s.tasksTotal + ' задач)</span></span><b>' + s.minutes + ' мин' + (s.share != null ? ' · ' + s.share + '%' : '') + '</b></li>').join("");
+}
+
+/* ---------- нагрузка ---------- */
+const LOAD = { timer: null, data: null };
+async function loadLoad(silent) {
+  try { const r = await api("load"); if (S.tab !== "load") return; LOAD.data = r.data; renderLoad(); }
+  catch (e) { if (!silent && e.message !== "login") $("view").innerHTML = '<p class="err">Не получилось загрузить данные.</p>'; }
+}
+function spark(vals, color, unit) {
+  const W = 560, H = 90, n = vals.length, max = Math.max(1, ...vals), step = n > 1 ? W / (n - 1) : W;
+  const pts = vals.map((v, i) => (i * step).toFixed(1) + "," + (H - 8 - (H - 40) * v / max).toFixed(1)).join(" ");
+  return '<svg class="chart" viewBox="0 0 ' + W + ' ' + H + '" role="img"><polyline fill="none" stroke="' + color + '" stroke-width="2.5" stroke-linejoin="round" points="' + pts + '"/>' +
+    '<text x="4" y="20" font-size="20" font-weight="700" fill="#1B2440">максимум ' + max + esc(unit) + '</text></svg>';
+}
+function renderLoad() {
+  const d = LOAD.data, h = d.hist || [];
+  const lab = { ok: "норма", warn: "наблюдать", bad: "пора действовать" }, col = { ok: "green", warn: "yellow", bad: "red" };
+  const cards = d.cards.map(c => '<div class="kpi st-' + (c.state === "info" ? "none" : c.state) + '"><b>' + esc(c.value) + '</b><span>' + esc(c.title) + '</span><em>' + esc(c.sub) + '</em>' +
+    (c.state === "info" ? "" : '<span class="badge b-' + col[c.state] + '">' + lab[c.state] + '</span>') + '</div>').join("");
+  const tips = d.cards.filter(c => c.advice && (c.state === "warn" || c.state === "bad"));
+  const chart = (title, key, color, unit) => '<div class="card"><h3>' + title + '</h3>' + (h.length > 1 ? spark(h.map(x => x[key]), color, unit) : '<p class="empty">Данные накапливаются: график появится через пару минут.</p>') + '</div>';
+  $("view").innerHTML =
+    '<h2>Нагрузка</h2><p class="sub">Как чувствует себя сервер прямо сейчас и за последний час. Страница обновляется сама каждые 10 секунд.</p>' +
+    '<div class="verdict v-' + d.verdict.state + '">' + esc(d.verdict.text) + '</div>' +
+    '<div class="grid kpis">' + cards + '</div>' +
+    (tips.length ? '<div class="card" style="margin-bottom:20px"><h3>Что делать</h3><ul class="list advice">' + tips.map(c => '<li><b>' + esc(c.title) + ':</b> ' + esc(c.advice) + '</li>').join("") + '</ul></div>' : '') +
+    '<div class="grid two">' +
+      chart("Сколько детей занимается (по минутам)", "kids", "#2B4BC4", "") +
+      chart("Голосовых ходов одновременно (пик за минуту)", "peak", "#1A7F45", "") +
+      chart("Самый долгий простой сервера за минуту, мс", "lag", "#C03A2B", " мс") +
+      chart("Память сервера, МБ", "rss", "#E0A100", " МБ") +
+    '</div>' +
+    '<p class="muted" style="font-size:14px;margin:10px 0 0">' + (h.length ? "Графики за последние " + h.length + " мин. " : "") + 'Показатели хранятся только в памяти сервера: после перезапуска график начинается заново.</p>' +
+    '<details class="dt" style="margin-top:14px"><summary>Как читать: когда это норма, а когда пора действовать</summary><div class="scroll"><table><thead><tr><th>Показатель</th><th>Норма</th><th>Наблюдать</th><th>Пора действовать</th></tr></thead><tbody>' +
+      [["Память (максимум за час)", "до 60%", "60–80%", "от 80%"], ["Процессор (среднее за 10 минут)", "до 60%", "60–85%", "от 85%"],
+       ["Задержка сервера (99% случаев, максимум за час)", "до 50 мс", "50–200 мс", "от 200 мс"], ["Сохранение кабинетов (самое долгое за час)", "до 150 мс", "150–400 мс", "от 400 мс"],
+       ["Голос: пик ходов к потолку", "до 50%", "50–80%", "от 80% или были отказы «занято»"], ["Ошибки голоса за час", "0–4", "5 и больше", "любой отказ OpenAI по лимиту"],
+       ["Отказы по частоте за час", "до 20", "20–100", "от 100"], ["Сессии занятий в памяти", "до 50%", "50–80%", "от 80%"]]
+        .map(r => '<tr>' + r.map(c => '<td>' + esc(c) + '</td>').join("") + '</tr>').join("") +
+    '</tbody></table></div></details>';
 }
 
 /* ---------- графики ---------- */

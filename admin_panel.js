@@ -298,6 +298,7 @@ module.exports = function (C) {
     if (!isAdmin(req)) return send(res, 401, { error: "login" });
     if (route === "logout") { const t = C.parseCookies(req).la; if (t) sessions.delete(t); setCookie(res, "", 0); return send(res, 200, { ok: true }); }
     if (route === "overview") return send(res, 200, overview());
+    if (route === "load") return send(res, 200, C.metrics());
     if (route === "users") return send(res, 200, { users: C.users().map(row), tasksTotal: C.TASKS.length });
     if (route === "charts") return send(res, 200, charts(b.days));
     if (route === "create") {

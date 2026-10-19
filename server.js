@@ -23,6 +23,8 @@ const ROOT = __dirname;
 const PORT = Number(process.env.PORT) || 3000;
 const TRUST_PROXY = process.env.TRUST_PROXY === "1";
 const COOKIE_SECURE = process.env.COOKIE_SECURE === "1";
+/* счётчики нагрузки для вкладки «Нагрузка» в админ-панели (подробнее ниже, у loadSnapshot) */
+const M = { started: Date.now(), turns: 0, busy: 0, fail: 0, o429: 0, r429: 0, err: 0, peak: 0, saveMs: 0, saveBytes: 0, saveAt: 0, saveMax: 0, saveCount: 0, hist: [] };
 
 const readJSON = f => JSON.parse(fs.readFileSync(path.join(ROOT, f), "utf8"));
 const TASKS_FILE = readJSON("data/private/tasks.json");
@@ -110,8 +112,9 @@ function wavFromPcm(pcm) {            // сырой звук 16 кГц, 16 би�
   h.write("data", 36); h.writeUInt32LE(pcm.length, 40);
   return Buffer.concat([h, pcm]);
 }
+const UPSTREAM_TIMEOUT_MS = Number(process.env.UPSTREAM_TIMEOUT_MS || 25000);   // без таймаута зависший OpenAI держал бы запросы (и память) до 5 минут
 async function upstream(stage, url, init) {
-  try { return await fetch(url, init); } catch (e) { throw new Upstream(stage, "нет связи: " + e.message); }
+  try { return await fetch(url, { ...init, signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS) }); } catch (e) { throw new Upstream(stage, "нет связи: " + e.message); }
 }
 const GHOST = /субтитр|продолжение следует|спасибо за просмотр|редактор|корректор|подписывайтесь/i;  // «слова из тишины»
 async function sttText(pcm) {
@@ -177,15 +180,34 @@ function bigBody(req, limit) {
 /* Один шаг голоса. Браузер присылает то, что случилось: звук ребёнка (audio), сообщения программы (tell),
    результаты вызова проверки (outputs). Сервер отвечает: услышанным текстом, вызовами проверки (calls)
    или готовой репликой с озвучкой (reply + audio). */
-async function voiceTurn(req, res, ip) {
+const AUDIO_MAX_BYTES = Number(process.env.AUDIO_MAX_BYTES || 520000);           // ~16 секунд речи; браузер режет куски по 15 секунд
+const VOICE_MAX_INFLIGHT = Number(process.env.VOICE_MAX_INFLIGHT || 40);          // одновременно обрабатываемых голосовых ходов (защита памяти)
+const VOICE_USER_TURNS_DAY = Number(process.env.VOICE_USER_TURNS_DAY || 800);     // обращений к голосу на кабинет в сутки (считает сервер, а не браузер)
+const VOICE_GLOBAL_DAY = Number(process.env.VOICE_GLOBAL_DAY || 30000);           // потолок голосовых обращений на весь сайт в сутки (защита бюджета OpenAI)
+const VOICE_GUESTS = process.env.VOICE_GUESTS !== "0";                            // пускать ли в голос без входа в кабинет (по умолчанию да; VOICE_GUESTS=0 закрывает)
+let voiceBusy = 0;
+const voiceGlobal = { day: "", n: 0 };
+async function voiceTurn(req, res, ip, a) {
+  if (voiceBusy >= VOICE_MAX_INFLIGHT) { M.busy++; req.resume(); return send(res, 503, { error: "busy" }); }
+  voiceBusy++; if (voiceBusy > M.peak) M.peak = voiceBusy;
+  try { return await voiceTurnInner(req, res, ip, a); } finally { voiceBusy--; }
+}
+async function voiceTurnInner(req, res, ip, a) {
   let b;
-  try { b = await bigBody(req, 3000000); } catch (e) { return send(res, 400, { error: "bad_request" }); }
+  try { b = await bigBody(req, 900000); } catch (e) { return send(res, 400, { error: "bad_request" }); }
   const vs = voiceSessions.get(String(b.sid || ""));
   if (!vs) return send(res, 404, { error: "no_session" });
+  vs.seen = Date.now();
   if (!SETTINGS.voiceEnabled || (vs.ukey && voiceOver(vs.ukey))) { voiceSessions.delete(String(b.sid)); return send(res, 403, { error: "voice_limit" }); }
   if (Date.now() - vs.created > VOICE_SERVER_MAX_MIN * 60000 || vs.turns >= 400) { voiceSessions.delete(String(b.sid)); return send(res, 410, { error: "limit" }); }
-  if (tooMany("vturn:" + ip, 600, 60 * MIN)) return send(res, 429, { error: "too_many" });
-  hit("vturn:" + ip);
+  const who = a ? "u" + a.user.id : ip;
+  if (tooMany("vturn:" + who, 600, 60 * MIN)) return send(res, 429, { error: "too_many" });
+  const dn = dayStamp(); if (voiceGlobal.day !== dn) { voiceGlobal.day = dn; voiceGlobal.n = 0; }
+  if (voiceGlobal.n >= VOICE_GLOBAL_DAY) return send(res, 503, { error: "busy" });
+  const du = usageOf(vs.ukey || "ip:" + ip);
+  if ((du.vt || 0) >= VOICE_USER_TURNS_DAY) return send(res, 403, { error: "voice_limit" });
+  hit("vturn:" + who);
+  voiceGlobal.n++; M.turns++; du.vt = (du.vt || 0) + 1; scheduleUsageSave();
   vs.turns++;
   const prevPending = vs.pending;
   try {
@@ -199,7 +221,7 @@ async function voiceTurn(req, res, ip) {
     let heard = "";
     if (typeof b.audio === "string" && b.audio.length > 4000) {
       const pcm = Buffer.from(b.audio, "base64");
-      if (pcm.length > 1000000) return send(res, 413, { error: "too_big" });
+      if (pcm.length > AUDIO_MAX_BYTES) return send(res, 413, { error: "too_big" });
       heard = await sttText(pcm);
       if (heard) input.push({ role: "user", content: heard });
     }
@@ -221,7 +243,7 @@ async function voiceTurn(req, res, ip) {
     return send(res, 200, { heard, reply, audio: sp.audio, mime: sp.mime });
   } catch (e) {
     vs.pending = prevPending;
-    if (e instanceof Upstream) { console.error("[голос:" + e.stage + "]", e.detail); return send(res, 502, { error: "voice_failed", stage: e.stage }); }
+    if (e instanceof Upstream) { M.fail++; if (/^429/.test(String(e.detail))) M.o429++; console.error("[голос:" + e.stage + "]", e.detail); return send(res, 502, { error: "voice_failed", stage: e.stage }); }
     throw e;
   }
 }
@@ -242,9 +264,19 @@ const PUBLIC_TASKS = TASKS.map(publicTask);
 const isPaidTask = t => t.access !== "trial";
 const hasPlan = a => !!(a && a.user.plan && a.user.plan.until && Date.parse(a.user.plan.until) > Date.now());
 const taskLocked = (t, a) => isPaidTask(t) && !hasPlan(a);
-const tasksFor = a => TASKS.map((t, i) => taskLocked(t, a)
-  ? { id: t.id, no: t.no, title: t.title, section: t.section, condition: "", steps: [], locked: true }
-  : Object.assign({}, PUBLIC_TASKS[i], { locked: false }));
+/* Список задач для страницы: только то, что нужно для каталога (номер, название, раздел, короткое условие, статус).
+   При сотнях задач целиком каждую отдавать нельзя: шаги и урок приходят по запросу /api/task/<id> при открытии задачи. */
+const shortCond = t => String(t.condition || "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim().slice(0, 110);
+const tasksFor = a => {
+  const P = a && progress(a.user).tasks;
+  return TASKS.map(t => {
+    const locked = taskLocked(t, a);
+    const o = { id: t.id, no: t.no, title: t.title, section: t.section, cond: locked ? "" : shortCond(t), locked };
+    if (P) { const x = P[t.id]; o.st = x && x.completions ? "done" : x && x.inProgress ? "progress" : "new"; }
+    return o;
+  });
+};
+const publicById = new Map(TASKS.map((t, i) => [t.id, PUBLIC_TASKS[i]]));
 const taskById = id => TASKS.find(t => t.id === id);
 
 /* ---------- хранилище кабинетов ---------- */
@@ -254,9 +286,12 @@ const KEY_FILE = path.join(STORE_DIR, "secret.key");
 fs.mkdirSync(STORE_DIR, { recursive: true });
 let USERS = fs.existsSync(USERS_FILE) ? JSON.parse(fs.readFileSync(USERS_FILE, "utf8")) : [];
 function saveUsers() {
-  const tmp = USERS_FILE + ".tmp";
-  fs.writeFileSync(tmp, JSON.stringify(USERS, null, 2), { mode: 0o600 });
+  const t0 = process.hrtime.bigint(), tmp = USERS_FILE + ".tmp", txt = JSON.stringify(USERS, null, 2);
+  fs.writeFileSync(tmp, txt, { mode: 0o600 });
   fs.renameSync(tmp, USERS_FILE);
+  const ms = Number(process.hrtime.bigint() - t0) / 1e6;       // пока идёт сохранение, сервер никого не обслуживает: меряем это время
+  M.saveMs = Math.round(ms); M.saveBytes = Buffer.byteLength(txt); M.saveAt = Date.now(); M.saveCount++;
+  if (ms > M.saveMax) M.saveMax = Math.round(ms);
 }
 let saveTimer = null;
 function scheduleSave() { if (!saveTimer) saveTimer = setTimeout(() => { saveTimer = null; saveUsers(); }, 1500); }
@@ -329,9 +364,15 @@ function startLogin(res, user) {
 const isParent = a => a && a.s.parentUntil > Date.now();
 const publicUser = (a) => ({ email: a.user.email, child: a.user.child, parent: isParent(a), plan: hasPlan(a) ? { until: a.user.plan.until } : null });
 
-function playState(key) {
+const PLAY_MAX = 20000;
+function playState(key, ip) {
   let s = play.get(key);
-  if (!s) { if (play.size > 20000) return null; s = { steps: new Map() }; play.set(key, s); }
+  if (!s) {
+    /* новые гостевые сессии: не чаще 60 в час с одного адреса, иначе таблицу можно забить и никого не пускать */
+    if (key.startsWith("s:")) { if (tooMany("newplay:" + ip, 60, 60 * MIN)) return null; hit("newplay:" + ip); }
+    if (play.size >= PLAY_MAX) { let n = 0; for (const k of play.keys()) { play.delete(k); if (++n >= 500) break; } }   // вытесняем самые давние, а не отказываем новым
+    s = { steps: new Map() }; play.set(key, s);
+  } else { play.delete(key); play.set(key, s); }   // свежие уходят в конец
   s.seen = Date.now();
   return s;
 }
@@ -491,6 +532,7 @@ const STATIC = {
   "/data/public/prompts.json": ["data/public/prompts.json", "application/json; charset=utf-8"]
 };
 const send = (res, code, obj) => {
+  if (code === 429) M.r429++; else if (code === 500) M.err++;
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.setHeader("Cache-Control", "no-store");
   res.writeHead(code); res.end(JSON.stringify(obj));
@@ -503,7 +545,19 @@ function body(req) {
     req.on("error", reject);
   });
 }
-const clientIp = req => TRUST_PROXY && req.headers["x-forwarded-for"] ? String(req.headers["x-forwarded-for"]).split(",")[0].trim() : req.socket.remoteAddress;
+/* За прокси (Render, Cloudflare) настоящий адрес — не первый, а TRUST_HOPS+1-й с конца в X-Forwarded-For: левые записи клиент
+   подделывает сам, а прокси дописывают свои справа. TRUST_HOPS = сколько прокси дописали адрес после клиента (по умолчанию 1).
+   Проверить на Render: DEBUG_IP=1 печатает в лог первые заголовки и выбранный адрес. */
+const TRUST_HOPS = process.env.TRUST_HOPS === undefined ? 1 : Math.max(0, Number(process.env.TRUST_HOPS) || 0);
+let ipDebug = process.env.DEBUG_IP === "1" ? 6 : 0;
+const clientIp = req => {
+  const h = req.headers["x-forwarded-for"];
+  if (!TRUST_PROXY || !h) return req.socket.remoteAddress;
+  const parts = String(h).split(",").map(x => x.trim()).filter(Boolean);
+  const ip = parts.length ? (parts[parts.length - 1 - TRUST_HOPS] || parts[0]) : req.socket.remoteAddress;
+  if (ipDebug > 0) { ipDebug--; console.log("[ip] X-Forwarded-For=" + h + " | сокет=" + req.socket.remoteAddress + " -> " + ip); }
+  return ip;
+};
 function sameOrigin(req) {
   const o = req.headers.origin;
   if (!o) return true;
@@ -580,18 +634,26 @@ const voiceOver = key => usageOf(key).voice >= limitsFor(key).voice;
 async function api(req, res, url) {
   const ip = clientIp(req);
   const a = currentAuth(req);
+  const who = a ? "u" + a.user.id : ip;   // лимиты частоты: по кабинету, если вошли (школа и мобильный интернет дают одному адресу много детей)
 
   if (req.method === "GET") {
     if (url === "/api/tasks") return send(res, 200, { tasks: tasksFor(a), sections: TASKS_FILE.sections || [] });
+    if (url.startsWith("/api/task/")) {
+      let id = ""; try { id = decodeURIComponent(url.slice(10)); } catch (e) {}
+      const t = taskById(id);
+      if (!t) return send(res, 404, { error: "not_found" });
+      if (taskLocked(t, a)) return send(res, 403, { error: "paid_only" });
+      return send(res, 200, { task: Object.assign({}, publicById.get(id), { locked: false }) });
+    }
     if (url === "/api/me") return send(res, 200, { user: a ? publicUser(a) : null });
-    if (url === "/api/voice/available") return send(res, 200, { ok: !!OPENAI_KEY && SETTINGS.voiceEnabled });
+    if (url === "/api/voice/available") return send(res, 200, { ok: !!OPENAI_KEY && SETTINGS.voiceEnabled && (!!a || VOICE_GUESTS) });
     if (url === "/api/usage") return send(res, 200, usageView(usageKey(a, ip)));
     if (url === "/api/cabinet") return isParent(a) ? send(res, 200, cabinetView(a.user)) : send(res, a ? 403 : 401, { error: "parent_required" });
     return send(res, 404, { error: "not_found" });
   }
   if (req.method !== "POST" || !sameOrigin(req) || !String(req.headers["content-type"] || "").includes("application/json"))
     return send(res, 403, { error: "forbidden" });
-  if (url === "/api/voice/turn") return voiceTurn(req, res, ip);
+  if (url === "/api/voice/turn") return voiceTurn(req, res, ip, a);
   let b;
   try { b = await body(req); } catch (e) { return send(res, 400, { error: "bad_request" }); }
 
@@ -668,8 +730,8 @@ async function api(req, res, url) {
 
   /* --- время занятий: страница раз в 15 секунд сообщает, идёт ли занятие и звучит ли голос --- */
   if (url === "/api/usage/ping") {
-    if (tooMany("uping:" + ip, 40, MIN)) return send(res, 429, { error: "too_many" });
-    hit("uping:" + ip);
+    if (tooMany("uping:" + who, 40, MIN)) return send(res, 429, { error: "too_many" });
+    hit("uping:" + who);
     const ukey0 = usageKey(a, ip), u = usageOf(ukey0), now = Date.now();
     const dt = u.last && now - u.last < 60000 ? Math.min(now - u.last, 20000) / 1000 : 0;   // не больше реально прошедшего времени
     u.last = now;
@@ -693,8 +755,9 @@ async function api(req, res, url) {
   /* --- голос: начало занятия с голосом --- */
   if (url === "/api/voice/session") {
     if (!OPENAI_KEY || !SETTINGS.voiceEnabled) return send(res, 503, { error: "no_key" });
-    if (tooMany("voice:" + ip, 20, 60 * MIN)) return send(res, 429, { error: "too_many" });
-    hit("voice:" + ip);
+    if (!a && !VOICE_GUESTS) return send(res, 401, { error: "login" });
+    if (tooMany("voice:" + who, 20, 60 * MIN)) return send(res, 429, { error: "too_many" });
+    hit("voice:" + who);
     const ukey = usageKey(a, ip);
     if (studyOver(ukey)) return send(res, 403, { error: "day_limit" });
     if (voiceOver(ukey)) return send(res, 403, { error: "voice_limit" });
@@ -706,7 +769,7 @@ async function api(req, res, url) {
 
   /* --- занятие --- */
   const stateKey = a ? "u:" + a.user.id : (typeof b.session === "string" && /^[a-f0-9]{32}$/.test(b.session) ? "s:" + b.session : null);
-  const ps = stateKey && playState(stateKey);
+  const ps = stateKey && playState(stateKey, ip);
   if (!ps) return send(res, 400, { error: "bad_session" });
   const task = taskById(b.task);
   if (!task) return send(res, 400, { error: "bad_step" });
@@ -723,8 +786,8 @@ async function api(req, res, url) {
   const st = stepState(ps, task.id, b.step);
 
   if (url === "/api/check") {
-    if (tooMany("chk:" + ip, 120, MIN)) return send(res, 429, { error: "too_many" });
-    hit("chk:" + ip);
+    if (tooMany("chk:" + who, 120, MIN)) return send(res, 429, { error: "too_many" });
+    hit("chk:" + who);
     if (st.locked) return send(res, 423, { locked: true, rule: step.rule });
     if (isCorrect(step, b.answer)) {
       st.attempts = 0;
@@ -745,8 +808,97 @@ async function api(req, res, url) {
   return send(res, 404, { error: "not_found" });
 }
 
+/* ---------- нагрузка: раз в минуту снимок показателей, на вкладке «Нагрузка» в админ-панели видно последний час ----------
+   Данные хранятся только в памяти: после перезапуска сервера график начинается заново. */
+const { monitorEventLoopDelay } = require("perf_hooks");
+const os = require("os");
+const EL_RES = 20;
+const elDelay = monitorEventLoopDelay({ resolution: EL_RES }); elDelay.enable();
+const lagMs = ns => Math.max(0, Math.round(ns / 1e6 - EL_RES));          // таймер и без нагрузки приходит с опозданием в EL_RES мс
+const MEM_LIMIT_MB = (() => {                                              // лимит памяти контейнера (на Render задан тарифом), иначе вся память машины
+  for (const f of ["/sys/fs/cgroup/memory.max", "/sys/fs/cgroup/memory/memory.limit_in_bytes"]) {
+    try { const n = Number(fs.readFileSync(f, "utf8").trim()); if (n > 0 && n < 2 ** 45) return Math.round(n / 1048576); } catch (e) {}
+  }
+  return Math.round(os.totalmem() / 1048576);
+})();
+function activeNow() {                                                     // страницы отправляли «пинг времени» за последние 45 с
+  const now = Date.now(), day = dayStamp(); let users = 0, guests = 0;
+  for (const [k, r] of Object.entries(USAGE)) if (r.day === day && r.last && now - r.last < 45000) (k.startsWith("u:") ? users++ : guests++);
+  return { users, guests, total: users + guests };
+}
+function voiceActiveNow() { const now = Date.now(); let n = 0; for (const v of voiceSessions.values()) if (now - (v.seen || v.created) < 60000) n++; return n; }
+let prevM = { turns: 0, busy: 0, fail: 0, o429: 0, r429: 0, err: 0 }, lastCpu = process.cpuUsage(), lastCpuAt = Date.now();
+setInterval(() => {
+  const now = Date.now(), c = process.cpuUsage(lastCpu), el = Math.max(1, now - lastCpuAt);
+  lastCpu = process.cpuUsage(); lastCpuAt = now;
+  const s = { t: now, kids: activeNow().total, voice: voiceActiveNow(), peak: M.peak, saveMax: M.saveMax,
+    rss: Math.round(process.memoryUsage().rss / 1048576), cpu: Math.round(100 * (c.user + c.system) / 1000 / el),
+    lagP99: lagMs(elDelay.percentile(99)), lagMax: lagMs(elDelay.max) };
+  for (const k of Object.keys(prevM)) { s[k] = M[k] - prevM[k]; prevM[k] = M[k]; }
+  elDelay.reset(); M.peak = voiceBusy; M.saveMax = 0;
+  M.hist.push(s); if (M.hist.length > 180) M.hist.shift();
+}, Number(process.env.METRICS_SAMPLE_MS || 60000)).unref();
+const fmtDur = ms => { const m = Math.floor(ms / 60000); return m < 60 ? m + " мин" : m < 1440 ? Math.floor(m / 60) + " ч " + (m % 60) + " мин" : Math.floor(m / 1440) + " дн. " + Math.floor((m % 1440) / 60) + " ч"; };
+/* Пороги (те же в таблице «Как читать» на странице): норма / наблюдать / пора действовать */
+function loadSnapshot() {
+  const h = M.hist.slice(-60), sum = k => h.reduce((n, s) => n + (s[k] || 0), 0), mx = k => h.reduce((m, s) => Math.max(m, s[k] || 0), 0);
+  const act = activeNow(), vNow = voiceActiveNow(), rss = Math.round(process.memoryUsage().rss / 1048576);
+  const st = (v, warn, bad) => v >= bad ? "bad" : v >= warn ? "warn" : "ok";
+  const last = M.hist[M.hist.length - 1], cards = [];
+  const add = (id, title, value, sub, state, advice) => cards.push({ id, title, value: String(value), sub, state, advice: advice || "" });
+
+  add("kids", "Занимаются сейчас", act.total, "вошли в кабинет: " + act.users + " · гостей: " + act.guests + " (гости с одного адреса считаются за одного)", "info");
+
+  const peakH = Math.max(mx("peak"), voiceBusy), busyH = sum("busy");
+  const vState = busyH > 0 ? "bad" : st(100 * peakH / VOICE_MAX_INFLIGHT, 50, 80);
+  add("voice", "Голос: ходов в обработке", voiceBusy + " из " + VOICE_MAX_INFLIGHT,
+    "говорят сейчас: " + vNow + " · пик за час: " + peakH + " · отказов «занято»: " + busyH + " · ходов за час: " + sum("turns"), vState,
+    busyH > 0 ? "Были отказы «занято»: дети слышали «скажи ещё раз». Если память в норме (см. карточку «Память»), поднимите VOICE_MAX_INFLIGHT в переменных Render (сейчас " + VOICE_MAX_INFLIGHT + "). Если память близка к пределу, нужен тариф выше или второй экземпляр."
+    : "Пик голосовых ходов близок к потолку. Если память позволяет, заранее поднимите VOICE_MAX_INFLIGHT в переменных Render.");
+
+  const rssH = Math.max(mx("rss"), rss), memPct = Math.round(100 * rss / MEM_LIMIT_MB);
+  add("mem", "Память", memPct + "%", rss + " МБ из " + MEM_LIMIT_MB + " МБ · максимум за час: " + rssH + " МБ", st(100 * rssH / MEM_LIMIT_MB, 60, 80),
+    "Память почти исчерпана: при превышении Render перезапустит сервер, и все выйдут из кабинетов. Поднимите тариф или уменьшите VOICE_MAX_INFLIGHT.");
+
+  const c10 = M.hist.slice(-10), cpuAvg = c10.length ? Math.round(c10.reduce((n, s) => n + s.cpu, 0) / c10.length) : 0;
+  add("cpu", "Процессор", last ? last.cpu + "%" : "—", "доля одного ядра · среднее за 10 минут: " + cpuAvg + "% · максимум за час: " + mx("cpu") + "%", st(cpuAvg, 60, 85),
+    "Сервер на Node использует одно ядро, поэтому тариф с большим числом ядер не поможет. Нужны несколько экземпляров: сначала перенос кабинетов в Postgres и вынос сессий из памяти.");
+
+  const lagH = mx("lagP99");
+  add("lag", "Задержка сервера", last ? last.lagP99 + " мс" : "—", "в 99% случаев за последнюю минуту · наибольшая за час: " + lagH + " мс (самый длинный простой: " + mx("lagMax") + " мс)", st(lagH, 50, 200),
+    "Сервер «замирает» и все запросы ждут. Чаще всего причина — сохранение кабинетов (см. карточку «Сохранение кабинетов») или перегруженный процессор.");
+
+  const saveH = Math.max(mx("saveMax"), M.saveMax);
+  add("save", "Сохранение кабинетов", M.saveCount ? M.saveMs + " мс" : "—", "семей: " + USERS.length + " · файл ≈ " + (M.saveBytes / 1048576).toFixed(1) + " МБ · самое долгое за час: " + saveH + " мс", st(saveH, 150, 400),
+    saveH >= 400 ? "Каждое сохранение останавливает весь сервер. Пора переносить кабинеты из users.json в базу данных (Postgres)."
+    : "Сохранение заметно тормозит сервер. Приготовьтесь к переносу кабинетов в Postgres (ориентир — 1000–2000 семей).");
+
+  const failH = sum("fail"), o429H = sum("o429");
+  add("openai", "Ошибки голоса за час", failH, "из них отказы OpenAI по лимиту (429): " + o429H, o429H > 0 ? "bad" : failH >= 5 ? "warn" : "ok",
+    o429H > 0 ? "OpenAI отклоняет запросы из-за лимита. Проверьте лимиты в своём кабинете OpenAI (запросов в минуту) и повысьте тариф: один говорящий ребёнок делает около 12 запросов в минуту."
+    : "Есть ошибки связи с OpenAI (распознавание, модель или озвучка). Если повторяются, проверьте статус OpenAI и ключ, смотрите строки «[голос:…]» в логах Render.");
+
+  const r429H = sum("r429"), errH = sum("err");
+  let lState = st(r429H, 20, 100); if (lState === "ok" && errH > 0) lState = "warn";
+  add("limits", "Отказы по частоте за час", r429H, "ошибок сервера (500) за час: " + errH, lState,
+    errH > 0 && r429H < 20 ? "Были внутренние ошибки сервера (500). Посмотрите логи Render."
+    : "Много отказов «слишком часто». Если дети из одной школы заходят без кабинета, у них общий лимит на адрес: заведите кабинеты. Иначе возможна атака: проверьте журнал и что TRUST_PROXY=1.");
+
+  add("play", "Сессии занятий в памяти", play.size, "из " + PLAY_MAX + " · вошедших в кабинет: " + auth.size, st(100 * play.size / PLAY_MAX, 50, 80),
+    "Таблица почти заполнена, старые записи вытесняются. Это признак большого наплыва гостей или атаки.");
+
+  add("uptime", "Работает без перезапуска", fmtDur(Date.now() - M.started), "после каждого деплоя и перезапуска все выходят из кабинетов, а график ниже начинается заново", "info");
+
+  const rank = { ok: 0, info: 0, warn: 1, bad: 2 }, worst = cards.reduce((m, c) => Math.max(m, rank[c.state]), 0);
+  const verdict = [
+    { state: "ok", text: "Всё в порядке: нагрузка далека от пределов." },
+    { state: "warn", text: "Есть за чем следить: часть показателей приближается к пределу. Подсказки ниже." },
+    { state: "bad", text: "Пора действовать: хотя бы один показатель в красной зоне. Подсказки ниже." }][worst];
+  return { verdict, cards, hist: h.map(s => ({ t: s.t, kids: s.kids, peak: s.peak, turns: s.turns, lag: s.lagMax, rss: s.rss })), samples: M.hist.length };
+}
+
 const ADMIN = require("./admin_panel.js")({
-  users: () => USERS, saveUsers, usage: () => USAGE, usageOf, flushUsage, dayStamp, limitsFor, SETTINGS, saveSettings,
+  users: () => USERS, metrics: loadSnapshot, saveUsers, usage: () => USAGE, usageOf, flushUsage, dayStamp, limitsFor, SETTINGS, saveSettings,
   cabinetView, hasPlan, hashSecret, TASKS, SECTIONS: () => TASKS_FILE.sections || [], SUBJECT, EMAIL_RE, auth, tooMany, hit, buckets, send, STORE_DIR, COOKIE_SECURE, parseCookies, voiceSessions,
   envDefaults: { study: Number(process.env.STUDY_DAY_MIN || 45), voice: Number(process.env.VOICE_DAY_MIN || 45) }
 });
@@ -769,4 +921,8 @@ http.createServer((req, res) => {
   console.log("Листик: http://localhost:" + PORT);
   console.log(OPENAI_KEY ? "Голос: включён (дешёвая схема: " + STT_MODEL + " + " + LLM_MODEL + " + " + TTS_MODEL + ")" : "Голос: выключен (нет OPENAI_API_KEY в файле .env)");
   console.log("Кабинетов в базе: " + USERS.length + " (файл: " + USERS_FILE + ")");
+  console.log(TRUST_PROXY ? "Прокси: TRUST_PROXY=1, TRUST_HOPS=" + TRUST_HOPS + " (DEBUG_IP=1 покажет, какой адрес выбирается)"
+    : "Прокси: TRUST_PROXY не задан. Если сервер стоит за прокси (Render), все посетители будут выглядеть как один адрес!");
+  console.log("Голос: " + (VOICE_GUESTS ? "доступен и без входа" : "только после входа в кабинет") + "; одновременных ходов не больше " + VOICE_MAX_INFLIGHT + ", на кабинет до " + VOICE_USER_TURNS_DAY + " в сутки, на сайт до " + VOICE_GLOBAL_DAY);
+  if (STORE_DIR === path.join(ROOT, "storage") && process.env.RENDER) console.log("ВНИМАНИЕ: STORE_DIR не задан. На Render без Persistent Disk кабинеты и подписки пропадут при деплое.");
 });

@@ -69,6 +69,45 @@
   h1, h2 { margin: 0; line-height: 1.2; }
   .lead { font-size: 20px; margin: 0 0 22px; max-width: 34ch; }
 
+  /* каталог задач: сотни номеров на одной странице */
+  .cat-title { display: flex; align-items: center; gap: 12px; margin: 0 0 14px; }
+  .cat-title .lf { width: 40px; height: 40px; flex: none; }
+  .cat-title h1 { font-size: clamp(22px, 3vw, 30px); font-weight: 800; }
+  .cat-tools { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 0 0 14px; }
+  .cat-search { flex: 1 1 240px; min-width: 0; }
+  .cat-search input { width: 100%; box-sizing: border-box; min-height: 46px; padding: 0 16px; font: inherit; font-size: 17px; color: var(--ink); background: #fff; border: 2px solid var(--line); border-radius: 14px; }
+  .cat-search input:focus { outline: none; border-color: var(--green); }
+  .seg { display: inline-flex; border: 2px solid var(--line); border-radius: 14px; overflow: hidden; background: #fff; }
+  .seg button { font: inherit; font-size: 15px; font-weight: 700; min-height: 42px; padding: 0 14px; border: 0; background: none; color: var(--muted); cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--green); color: #fff; }
+  .cat-meta { font-size: 15px; font-weight: 600; color: var(--muted); margin: 0 0 10px; }
+  .cat-meta a { color: var(--green); }
+  .grp { border: 2px solid var(--line); border-radius: 18px; background: #fff; margin: 0 0 10px; overflow: hidden; }
+  .grp-h { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 56px; padding: 8px 16px; font: inherit; font-size: 17px; font-weight: 800; color: var(--ink); background: none; border: 0; cursor: pointer; text-align: left; }
+  .grp-h .gt { flex: 1 1 auto; min-width: 0; }
+  .grp-h .gc { flex: none; font-size: 14px; font-weight: 700; color: var(--muted); }
+  .grp-h .gc b { color: var(--green); }
+  .grp-h .chev { flex: none; transition: transform .18s ease; }
+  .grp-h[aria-expanded="true"] .chev { transform: rotate(180deg); }
+  .grp-b { padding: 4px 14px 16px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(66px, 1fr)); gap: 8px; list-style: none; margin: 0; padding: 0; }
+  .tile { position: relative; width: 100%; min-height: 54px; padding: 0 4px; font: inherit; font-size: 20px; font-weight: 800; color: var(--ink); background: #fff; border: 2px solid var(--line); border-radius: 14px; cursor: pointer; }
+  .tile:hover { border-color: var(--green); }
+  .tile.done { background: var(--tint); color: var(--green); border-color: #BFE3C8; }
+  .tile.progress { border-color: var(--sun); box-shadow: inset 0 0 0 2px var(--sun); }
+  .tile.lock { color: var(--muted); background: #F6F4EA; }
+  .tile .mk { position: absolute; top: 2px; right: 5px; font-size: 11px; line-height: 1; }
+  .rows { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .rows li, .tiles li { min-width: 0; }
+  .row-btn { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px; padding: 6px 12px; font: inherit; color: var(--ink); background: #fff; border: 2px solid var(--line); border-radius: 14px; cursor: pointer; text-align: left; }
+  .row-btn:hover { border-color: var(--green); }
+  .row-btn .rno { flex: none; min-width: 44px; text-align: center; padding: 4px 8px; font-size: 17px; font-weight: 800; color: var(--green); background: var(--tint); border-radius: 10px; }
+  .row-btn.word .rno { background: #FFF1C2; color: var(--ink); }
+  .row-btn .rtx { flex: 1 1 auto; min-width: 0; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--muted); }
+  .row-btn .rtx b { color: var(--ink); font-weight: 700; margin-right: 6px; }
+  .row-btn .rst { flex: none; font-size: 15px; color: var(--green); font-weight: 800; }
+  .row-btn.lock { background: #F6F4EA; }
+  .cat-empty { padding: 18px 4px; font-size: 17px; color: var(--muted); }
   .tasks { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
   .task-btn {
     width: 100%; text-align: left; font: inherit; color: var(--text);
@@ -630,7 +669,7 @@ function ttsNote() {
   return "<p>Листик читает свои слова вслух голосом устройства. Он звучит как робот, зато работает без интернета. Кнопка 🔊 у вопроса читает вопрос.</p>";
 }
 
-function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
 
 function voiceHTML() {
   const v = S.voice;
@@ -673,9 +712,21 @@ function buildQueue() {
 
 function freshEntry(st) { return st.type === "pair" ? st.fields.map(() => "") : [""]; }
 
-function startTask(i) {
+/* список задач лёгкий; шаги и урок приходят по запросу, когда задачу открывают */
+async function ensureTask(i) {
+  const t = TASKS[i];
+  if (t.steps && t.steps.length) return true;
+  let r;
+  try { r = await api("/api/task/" + encodeURIComponent(t.id)); } catch (e) { r = { status: 0 }; }
+  if (r.status === 200 && r.data && r.data.task) { TASKS[i] = Object.assign({}, t, r.data.task); return true; }
+  if (r.status === 403) { TASKS[i].locked = true; S = { view: "paywall", t: i }; render(); return false; }
+  S = { view: "home", flash: "Не получилось открыть задачу. Проверьте интернет и попробуйте ещё раз." }; render();
+  return false;
+}
+async function startTask(i) {
   if (TASKS[i].locked) { S = { view: "paywall", t: i }; return render(); }
   if (USAGE.studyLeft === 0) { S = { view: "rest" }; return render(); }
+  if (!(await ensureTask(i))) return;
   QPOS = QUEUE ? QUEUE.indexOf(i) : -1;
   const st0 = TASKS[i].steps[0];
   S = {
@@ -1074,18 +1125,67 @@ async function doChild() {
   render();
 }
 
+/* ---------- каталог задач ---------- */
+const HOME = { q: "", view: "tiles", open: {}, inited: false };
+try { const v = localStorage.getItem("lk_view"); if (v === "tiles" || v === "list") HOME.view = v; } catch (e) {}
+let SECTIONS = [];
+const ST_MARK = { done: "✓", progress: "…" };
+function catItem(t, i) {
+  const lock = !!t.locked, cls = (lock ? " lock" : "") + (t.st === "done" ? " done" : t.st === "progress" ? " progress" : "");
+  const mk = lock ? "🔒" : (ST_MARK[t.st] || "");
+  const label = "Номер " + t.no + (lock ? ", по подписке" : t.st === "done" ? ", решено" : t.st === "progress" ? ", начато" : "");
+  if (HOME.view === "list") {
+    return '<li><button class="row-btn' + cls + (t.title === "Задача" ? " word" : "") + '" data-action="start" data-i="' + i + '" aria-label="' + label + '">' +
+      '<span class="rno">' + esc(t.no) + '</span><span class="rtx">' + (t.title !== "Задача" ? '<b>' + esc(t.title) + '</b>' : '') +
+      (lock ? 'по подписке' : esc(t.cond || "")) + '</span><span class="rst">' + mk + '</span></button></li>';
+  }
+  return '<li><button class="tile' + cls + '" data-action="start" data-i="' + i + '" aria-label="' + label + '" title="' + esc(lock ? t.title : (t.cond || t.title)) + '">' +
+    esc(t.no) + (mk ? '<span class="mk" aria-hidden="true">' + mk + '</span>' : '') + '</button></li>';
+}
+function catItems(idx) {
+  return '<ul class="' + (HOME.view === "list" ? "rows" : "tiles") + '">' + idx.map(i => catItem(TASKS[i], i)).join("") + '</ul>';
+}
+function catGroups() {
+  const by = {}, order = [];
+  TASKS.forEach((t, i) => { const k = t.section || "_other"; if (!by[k]) { by[k] = []; order.push(k); } by[k].push(i); });
+  const list = SECTIONS.filter(x => by[x.id]).map(x => ({ id: x.id, title: x.title }));
+  order.forEach(k => { if (!list.some(x => x.id === k)) list.push({ id: k, title: "Другие задачи" }); });
+  return list.map(x => ({ id: x.id, title: x.title, idx: by[x.id] }));
+}
+function catListHTML() {
+  const q = HOME.q.trim().toLowerCase();
+  const scope = QUEUE || TASKS.map((_, i) => i);
+  if (q) {
+    const hit = scope.filter(i => { const t = TASKS[i]; return String(t.no).toLowerCase() === q || String(t.no).toLowerCase().startsWith(q) || (t.cond || "").toLowerCase().includes(q) || (t.title || "").toLowerCase().includes(q); });
+    if (!hit.length) return '<p class="cat-empty">Ничего не нашлось. Проверьте номер или попробуйте другое слово.</p>';
+    return '<p class="cat-meta">Найдено: ' + hit.length + (hit.length > 100 ? ' (показаны первые 100, уточните запрос)' : '') + '</p>' + catItems(hit.slice(0, 100));
+  }
+  const groups = catGroups().filter(g => !QUEUE || g.idx.some(i => QUEUE.indexOf(i) >= 0));
+  if (QUEUE) {
+    const g = groups[0];
+    const done = QUEUE.filter(i => TASKS[i].st === "done").length;
+    return '<p class="cat-meta">' + esc(g ? g.title : "Раздел") + ' · ' + QUEUE.length + ' задач' + (USER ? ', решено ' + done : '') + ' · <a href="start.html">Выбрать другой раздел</a></p>' + catItems(QUEUE);
+  }
+  if (!HOME.inited && groups.length) { HOME.inited = true; HOME.open[groups[0].id] = true; }
+  return groups.map(g => {
+    const done = g.idx.filter(i => TASKS[i].st === "done").length, open = !!HOME.open[g.id];
+    return '<section class="grp"><button class="grp-h" data-action="sec" data-s="' + esc(g.id) + '" aria-expanded="' + open + '">' +
+      '<span class="gt">' + esc(g.title) + '</span><span class="gc">' + (USER ? '<b>' + done + '</b> из ' : '') + g.idx.length + (USER ? '' : ' задач') + '</span>' +
+      '<svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1E2A22" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>' +
+      (open ? '<div class="grp-b">' + catItems(g.idx) + '</div>' : '') + '</section>';
+  }).join("");
+}
+function paintCat() {
+  const el = document.getElementById("catlist"); if (el) el.innerHTML = catListHTML();
+  document.querySelectorAll(".seg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === HOME.view)));
+}
 function renderHome() {
   let h = header(false);
-  h += '<div class="say"><div class="bb"><p>Привет! Я Листик, компьютерная программа-помощник по математике. <strong class="hl">Выбери номер из учебника.</strong></p></div></div>';
-  if (QUEUE) h += '<p class="qline">Раздел выбран. <a href="start.html">Выбрать другой</a></p>';
-  h += '<ul class="tasks">';
-  TASKS.forEach((t, i) => {
-    if (QUEUE && QUEUE.indexOf(i) < 0) return;
-    h += '<li><button class="task-btn' + (t.title === "Задача" ? ' word' : '') + '" data-action="start" data-i="' + i + '">' +
-      '<span class="tb-top"><span class="tb-left"><span class="task-no hand">№ ' + t.no + '</span><span class="task-title">' + t.title + '</span></span>' + ARROW_R + '</span>' +
-      '<span class="task-cond">' + (t.locked ? '🔒 Доступно по подписке' : t.condition) + '</span></button></li>';
-  });
-  h += '</ul>';
+  h += '<div class="cat-title"><h1>Выбери номер из учебника</h1></div>';
+  h += '<div class="cat-tools"><label class="cat-search"><input id="catq" type="search" inputmode="search" autocomplete="off" placeholder="Номер или слово, например 245" aria-label="Найти задачу" value="' + esc(HOME.q) + '"></label>' +
+    '<div class="seg" role="group" aria-label="Вид списка"><button data-action="view" data-v="tiles" aria-pressed="' + (HOME.view === "tiles") + '">▦ Плитки</button>' +
+    '<button data-action="view" data-v="list" aria-pressed="' + (HOME.view === "list") + '">☰ Список</button></div></div>';
+  h += '<div id="catlist">' + catListHTML() + '</div>';
   if (S.flash) { h += '<div class="fb ok">' + esc(S.flash) + '</div>'; S.flash = ""; }
   if (USER) {
     h += '<div class="mark"><b>Занимается:</b> ' + esc(USER.child.name) + '<div>' + (USER.plan ? 'Подписка до ' + new Date(USER.plan.until).toLocaleDateString("ru-RU") : 'Пробный доступ. <a href="/pricing.html">Тарифы</a>') + '</div><div class="row"><button class="btn ghost small" data-action="cab-open">Кабинет родителя</button></div></div>';
@@ -1356,6 +1456,8 @@ app.addEventListener("click", e => {
   if (!b) return;
   const a = b.dataset.action;
   if (a === "start") return startTask(+b.dataset.i);
+  if (a === "sec") { HOME.open[b.dataset.s] = !HOME.open[b.dataset.s]; return paintCat(); }
+  if (a === "view") { HOME.view = b.dataset.v; try { localStorage.setItem("lk_view", HOME.view); } catch (e) {} return paintCat(); }
   if (a === "home") { stopSpeech(); VOICE.stop(null, true); if (S.view === "cabinet" && USER) call("/api/parent/leave", {}); S = { view: "home" }; return render(); }
   if (a === "auth") { S = { view: "auth", mode: b.dataset.mode || "login", err: "", form: S.form }; return render(); }
   if (a === "showpw") { ["fPass", "fPass2"].forEach(id => { const el = document.getElementById(id); if (el) el.type = b.checked ? "text" : "password"; }); return; }
@@ -1403,6 +1505,12 @@ app.addEventListener("click", e => {
 });
 
 /* цифры с обычной клавиатуры (на компьютере) */
+app.addEventListener("input", e => { if (e.target && e.target.id === "catq") { HOME.q = e.target.value; paintCat(); } });
+app.addEventListener("keydown", e => {
+  if (e.key === "Enter" && e.target && e.target.id === "catq") {
+    const first = document.querySelector("#catlist [data-action=start]"); if (first) startTask(+first.dataset.i);
+  }
+});
 document.addEventListener("keydown", e => {
   if (e.key === "Enter" && e.target && e.target.dataset && (e.target.dataset.enter || e.target.id === "adultIn")) {
     const btn = app.querySelector('[data-action="' + (e.target.dataset.enter || "adultcheck") + '"]'); if (btn) btn.click(); return;
@@ -1497,6 +1605,7 @@ Object.assign(VOICE, {
       const r = await api("/api/voice/session", {});
       if (r.status === 403 && r.data && r.data.error === "voice_limit") { this.teardown(); enterQuiet(); return; }
       if (r.status === 403 && r.data && r.data.error === "day_limit") { this.teardown(); USAGE.studyLeft = 0; endOfDay(); return; }
+      if (r.status === 401) throw new Error("Чтобы говорить с Листиком голосом, войдите в кабинет родителя.");
       if (r.status === 429) throw new Error("Слишком много запусков голоса. Подожди немного.");
       if (r.status !== 200 || !r.data.sid) throw new Error("Голос сейчас недоступен. Можно отвечать кнопками.");
       this.sid = r.data.sid;
@@ -1554,7 +1663,7 @@ Object.assign(VOICE, {
       v.buf.push(f32); v.totalMs += ms;
       if (rms > v.thr) v.silenceMs = 0; else v.silenceMs += ms;
       // договорил: пауза больше 1,1 секунды или набралось 27 секунд (предел распознавания)
-      if (v.silenceMs >= 1100 || v.totalMs >= 27000) {
+      if (v.silenceMs >= 1100 || v.totalMs >= 15000) {
         const speechMs = v.totalMs - v.silenceMs, chunks = v.buf;
         this.listening = false; this.resetVad();
         if (speechMs < 300) this.armMic(); else this.utterance(chunks);
@@ -1841,6 +1950,7 @@ async function loadData() {
   const [tasks, phrases, prompts] = await Promise.all([api("/api/tasks"), loadJSON("phrases.json"), loadJSON("prompts.json")]);
   if (tasks.status !== 200) throw new Error("tasks");
   TASKS = tasks.data.tasks;
+  SECTIONS = tasks.data.sections || [];
   CANNED = phrases.canned;
   SITUATION = phrases.situation;
   PROMPT_TEMPLATE = prompts.ai_voice.template;
