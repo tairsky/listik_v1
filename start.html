@@ -105,6 +105,17 @@ main { padding-top:48px; padding-bottom:72px; display:flex; flex-direction:colum
 .err { background:#FFF0DB; border:2px solid #C2620A; border-radius:18px; padding:14px 18px; font-size:17px; }
 .err a { font-weight:700; color:var(--pen); }
 .hint { font-size:15px; color:var(--muted); }
+.toc { display:flex; flex-direction:column; gap:30px; }
+.toc-sec h2 { font-size:22px; font-weight:800; line-height:1.3; margin:0 0 10px; display:flex; align-items:baseline; justify-content:space-between; gap:12px; letter-spacing:0; }
+.toc-sec h2 small { flex:none; font-size:14px; font-weight:700; color:var(--muted); }
+.toc ul { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:minmax(0,1fr); gap:6px; }
+.toc li { min-width:0; }
+.toc a { display:flex; align-items:center; gap:12px; min-height:52px; padding:6px 12px; background:#fff; border:2px solid var(--line); border-radius:14px; text-decoration:none; color:var(--ink); }
+.toc a:hover { border-color:var(--green); }
+.toc .no { flex:none; min-width:44px; text-align:center; padding:4px 8px; font-size:17px; font-weight:800; color:var(--green); background:var(--tint); border-radius:10px; }
+.toc .tx { flex:1 1 auto; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:15px; color:var(--muted); }
+.toc .tx b { color:var(--ink); font-weight:700; margin-right:6px; }
+.toc .empty { margin:0; padding:6px 2px; font-size:16px; color:var(--muted); }
 @media (prefers-reduced-motion:reduce) { .opt { transition:none; } }
 
 </style>
@@ -171,7 +182,7 @@ const STEPS = [
       { id: "2", title: "2 класс", soon: true },
       { id: "3", title: "3 класс" },
       { id: "4", title: "4 класс", soon: true } ] },
-  { key: "section", title: "Какой раздел будем разбирать?", short: "Раздел", options: [] }
+  { key: "section", title: "Какое упражнение будем разбирать?", short: "Упражнение", options: [], groups: [] }
 ];
 const ARROW = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1F7A45" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>';
 const pick = {};
@@ -186,6 +197,31 @@ function paint() {
     STEPS.map((_, i) => '<i class="' + (i < at ? "done" : i === at ? "cur" : "") + '"></i>').join("") +
     '</div><span>Шаг ' + (at + 1) + ' из ' + STEPS.length + '</span>';
   const o = $("opts"); o.innerHTML = "";
+  o.className = st.groups ? "toc" : "opts";
+  if (st.groups) {
+    st.groups.forEach(g => {
+      const sec = document.createElement("section"); sec.className = "toc-sec";
+      const hd = document.createElement("h2"); hd.textContent = g.title;
+      const sm = document.createElement("small"); sm.textContent = "Задач: " + g.tasks.length; hd.appendChild(sm);
+      sec.appendChild(hd);
+      if (!g.tasks.length) { const p = document.createElement("p"); p.className = "empty"; p.textContent = "Задач пока нет"; sec.appendChild(p); }
+      else {
+        const ul = document.createElement("ul");
+        g.tasks.forEach(t => {
+          const li = document.createElement("li"), a = document.createElement("a");
+          a.href = "listik.html?" + new URLSearchParams(Object.assign({}, pick, { section: g.id, task: t.id })).toString();
+          const no = document.createElement("span"); no.className = "no"; no.textContent = t.no;
+          const tx = document.createElement("span"); tx.className = "tx";
+          const b = document.createElement("b"); b.textContent = t.title; tx.appendChild(b);
+          tx.appendChild(document.createTextNode(t.locked ? "по подписке" : (t.cond || "")));
+          a.appendChild(no); a.appendChild(tx); li.appendChild(a); ul.appendChild(li);
+        });
+        sec.appendChild(ul);
+      }
+      o.appendChild(sec);
+    });
+    return;
+  }
   st.options.forEach(op => {
     const b = document.createElement("button");
     b.className = "opt"; b.type = "button";
@@ -208,12 +244,8 @@ function choose(key, id) {
 $("back").addEventListener("click", () => { if (at > 0) { at--; paint(); } });
 
 fetch("/api/tasks", { cache: "no-cache" }).then(r => r.json()).then(d => {
-  const count = {}, paid = {};
-  d.tasks.forEach(t => { count[t.section] = (count[t.section] || 0) + 1; if (t.locked) paid[t.section] = (paid[t.section] || 0) + 1; });
-  STEPS[3].options = (d.sections || []).filter(s => count[s.id]).map(s => ({
-    id: s.id, title: s.title,
-    hint: (s.hint ? s.hint + ". " : "") + "Задач: " + count[s.id] + (paid[s.id] ? ", из них по подписке: " + paid[s.id] : "")
-  }));
+  STEPS[3].title = "Какое упражнение будем разбирать? (всего упражнений: " + d.tasks.length + ")";
+  STEPS[3].groups = (d.sections || []).map(s => ({ id: s.id, title: s.title, tasks: d.tasks.filter(t => t.section === s.id) }));
   paint();
 }).catch(() => {
   $("q").textContent = "Не получилось загрузить разделы";

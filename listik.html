@@ -90,6 +90,11 @@
   .grp-h .chev { flex: none; transition: transform .18s ease; }
   .grp-h[aria-expanded="true"] .chev { transform: rotate(180deg); }
   .grp-b { padding: 4px 14px 16px; }
+  .grp2 { margin: 0 0 26px; }
+  .grp2-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 10px; font-size: 20px; font-weight: 800; line-height: 1.3; color: var(--ink); }
+  .grp2-h .gc { flex: none; font-size: 14px; font-weight: 700; color: var(--muted); }
+  .grp2-h .gc b { color: var(--green); }
+  .grp2-empty { margin: 0; padding: 6px 2px; font-size: 16px; color: var(--muted); }
   .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(66px, 1fr)); gap: 8px; list-style: none; margin: 0; padding: 0; }
   .tile { position: relative; width: 100%; min-height: 54px; padding: 0 4px; font: inherit; font-size: 20px; font-weight: 800; color: var(--ink); background: #fff; border: 2px solid var(--line); border-radius: 14px; cursor: pointer; }
   .tile:hover { border-color: var(--green); }
@@ -354,6 +359,24 @@
   .lbody { flex: 1; min-width: 0; }
   .limg { display: block; width: 100%; max-width: 560px; height: auto; border-radius: 16px; margin: 6px 0 0; }
   .lgo { margin: 22px 0 40px; }
+  /* доска с корзинами в мини-уроке: закреплена сверху, карточки идут под ней */
+  .lboard { position: sticky; top: 0; z-index: 5; background: var(--paper); border: 2px solid var(--ink); border-radius: 16px; padding: 6px 10px 10px; margin: 10px 0; }
+  .lboard svg { display: block; width: 100%; height: auto; max-height: 32vh; }
+  .lb-eq { font-weight: 800; font-size: 28px; text-align: center; min-height: 36px; font-variant-numeric: tabular-nums; }
+  .lb-leg { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; min-height: 4px; }
+  .lb-chip { font-size: 14px; font-weight: 700; padding: 4px 12px; border-radius: 999px; background: var(--tint); }
+  .lb-chip b { color: var(--red); font-size: 17px; margin-right: 4px; }
+  .lb-chip.g b { color: var(--green); }
+  .lb-tag { font-weight: 800; font-size: 15px; fill: #fff; text-anchor: middle; font-family: inherit; }
+  .lb-badge-bg { fill: var(--green); }
+  .lb-badge-tx { fill: #fff; font-weight: 800; font-size: 17px; text-anchor: middle; font-family: inherit; }
+  .lb-apple-in { animation: lbdrop .45s cubic-bezier(.3,1.4,.5,1) both; transform-box: fill-box; transform-origin: center; }
+  .lb-badge { animation: lbpop .45s ease-out both; transform-box: fill-box; transform-origin: center; }
+  @keyframes lbdrop { from { transform: translateY(-46px) scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
+  @keyframes lbpop { from { transform: scale(.3); opacity: 0; } to { transform: none; opacity: 1; } }
+  .lscene.cur { border-color: var(--green); box-shadow: 0 0 0 3px var(--tint), 0 6px 20px rgba(30,60,40,.06); }
+  .lcbtns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  @media (prefers-reduced-motion: reduce) { .lb-apple-in, .lb-badge { animation: none; } }
   .q.lq { font-weight: 600; font-size: 22px; line-height: 1.5; }
   .lesson { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(460px, 100%), 1fr)); gap: 40px; align-items: start; }
   .lcol { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
@@ -401,6 +424,7 @@
   .nb .ln { min-height: 40px; line-height: 40px; font-family: "Caveat", cursive; font-weight: 600; font-size: clamp(26px, 3.4vw, 34px); color: var(--pen); white-space: pre-wrap; overflow-wrap: anywhere; }
   .nb.long .ln { font-size: 28px; }
   .nb .ln.cond { color: var(--ink); }
+  .nb .ln.cur { color: var(--ink); }
   .nbcap { margin: 0; font-size: 15px; color: var(--muted); }
 
   .sum { background: #fff; border: 1px solid var(--line); border-radius: 28px; padding: 28px; box-shadow: 0 28px 56px -28px rgba(27,36,64,.25); }
@@ -606,6 +630,7 @@ async function askVoice(ev, skill) {
 }
 
 function say(ev, skill) {
+  if (ev === "start") return;   // приветственную фразу в начале задачи не показываем
   if (VOICE.active) return;   // в режиме живого голоса говорит Листик из голосовой связи
   const id = ++voiceSeq;
   const canned = pickCanned(ev);
@@ -642,7 +667,7 @@ function spokenMath(s) {
     .replace(/<[^>]*>/g, " ")
     .replace(/\(/g, " в скобках ").replace(/\)/g, " ")
     .replace(/\s:\s/g, " разделить на ")
-    .replace(/·/g, " умножить на ")
+    .replace(/[·×]/g, " умножить на ")
     .replace(/−/g, " минус ")
     .replace(/\+/g, " плюс ")
     .replace(/=/g, " равно ")
@@ -650,7 +675,8 @@ function spokenMath(s) {
     .replace(/ост\./g, "остаток")
     .replace(/\s+/g, " ").trim();
 }
-function stopSpeech() { if (TTS.ok) { try { speechSynthesis.cancel(); } catch (e) {} } }
+const LB = { token: 0, st: null, counts: [], cur: -1 };   // доска мини-урока
+function stopSpeech() { LB.token++; if (TTS.ok) { try { speechSynthesis.cancel(); } catch (e) {} } }
 function speak(text, force) {
   if (VOICE.quiet || VOICE.active || (VOICE.available && !VOICE.err)) return;   // говорит живой Листик, а не голос браузера; в тихом режиме молчим
   if (!TTS.ok || (!TTS.on && !force) || !text) return;
@@ -767,12 +793,14 @@ function notebookAside(T, done) {
   const grid = (PARAMS.get("subject") || "math") === "math";   // математика — в клетку, остальное — в линейку
   const acts = T.steps.filter(x => x.type !== "choice" && x.skill !== "проверка ответа").length;
   h += '<div class="nb' + (grid ? ' grid' : '') + (T.long ? ' long' : '') + '"><div class="ln cond">' + T.condition + '</div>';
+  const cur = (!done && S.stage !== "right" && T.steps[S.s]) ? T.steps[S.s].cond : "";   // пример текущего шага: тот же, что в вопросе слева
   if (S.notes.length) h += '<div class="ln">Решение.</div>';
   let k = 0;
   S.notes.forEach(x => {
     const solution = !/^(Ответ|Проверка)/.test(x);
     h += '<div class="ln">' + (solution && acts > 1 ? (++k) + ') ' : '') + x + '</div>';
   });
+  if (cur) h += '<div class="ln cur">' + cur + '</div>';
   h += '</div><p class="nbcap">Решай сам и переписывай в свою тетрадь: запись появляется после каждого верного шага.</p></aside>';
   return h;
 }
@@ -1126,8 +1154,8 @@ async function doChild() {
 }
 
 /* ---------- каталог задач ---------- */
-const HOME = { q: "", view: "tiles", open: {}, inited: false };
-try { const v = localStorage.getItem("lk_view"); if (v === "tiles" || v === "list") HOME.view = v; } catch (e) {}
+const HOME = { q: "", view: "list", open: {}, inited: false };
+try { const v = localStorage.getItem("lk_view2"); if (v === "tiles" || v === "list") HOME.view = v; } catch (e) {}
 let SECTIONS = [];
 const ST_MARK = { done: "✓", progress: "…" };
 function catItem(t, i) {
@@ -1148,9 +1176,9 @@ function catItems(idx) {
 function catGroups() {
   const by = {}, order = [];
   TASKS.forEach((t, i) => { const k = t.section || "_other"; if (!by[k]) { by[k] = []; order.push(k); } by[k].push(i); });
-  const list = SECTIONS.filter(x => by[x.id]).map(x => ({ id: x.id, title: x.title }));
+  const list = SECTIONS.map(x => ({ id: x.id, title: x.title }));
   order.forEach(k => { if (!list.some(x => x.id === k)) list.push({ id: k, title: "Другие задачи" }); });
-  return list.map(x => ({ id: x.id, title: x.title, idx: by[x.id] }));
+  return list.map(x => ({ id: x.id, title: x.title, idx: by[x.id] || [] }));
 }
 function catListHTML() {
   const q = HOME.q.trim().toLowerCase();
@@ -1166,13 +1194,10 @@ function catListHTML() {
     const done = QUEUE.filter(i => TASKS[i].st === "done").length;
     return '<p class="cat-meta">' + esc(g ? g.title : "Раздел") + ' · ' + QUEUE.length + ' задач' + (USER ? ', решено ' + done : '') + ' · <a href="start.html">Выбрать другой раздел</a></p>' + catItems(QUEUE);
   }
-  if (!HOME.inited && groups.length) { HOME.inited = true; HOME.open[groups[0].id] = true; }
   return groups.map(g => {
-    const done = g.idx.filter(i => TASKS[i].st === "done").length, open = !!HOME.open[g.id];
-    return '<section class="grp"><button class="grp-h" data-action="sec" data-s="' + esc(g.id) + '" aria-expanded="' + open + '">' +
-      '<span class="gt">' + esc(g.title) + '</span><span class="gc">' + (USER ? '<b>' + done + '</b> из ' : '') + g.idx.length + (USER ? '' : ' задач') + '</span>' +
-      '<svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1E2A22" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>' +
-      (open ? '<div class="grp-b">' + catItems(g.idx) + '</div>' : '') + '</section>';
+    const done = g.idx.filter(i => TASKS[i].st === "done").length;
+    return '<section class="grp2"><h2 class="grp2-h"><span class="gt">' + esc(g.title) + '</span><span class="gc">' + (USER && g.idx.length ? '<b>' + done + '</b> из ' + g.idx.length : g.idx.length + ' ' + plural(g.idx.length, "задача", "задачи", "задач")) + '</span></h2>' +
+      (g.idx.length ? catItems(g.idx) : '<p class="grp2-empty">Задач пока нет</p>') + '</section>';
   }).join("");
 }
 function paintCat() {
@@ -1217,7 +1242,7 @@ function renderTask() {
   h += '<div id="voiceslot">' + voiceHTML() + '</div>';
 
   h += '<div class="step"><div class="meta-row"><div class="meta">Шаг ' + (S.s + 1) + ' из ' + n + '</div>' +
-    (TTS.ok && !VOICE.quiet ? '<button class="speak" data-action="readq" aria-label="Прочитать вопрос вслух">🔊 Прочитать</button>' : '') + '</div>';
+    (TTS.ok && !VOICE.quiet && !VOICE.available ? '<button class="speak" data-action="readq" aria-label="Прочитать вопрос вслух">🔊 Прочитать</button>' : '') + '</div>';
   h += '<p class="q">' + st.q + '</p>';
 
   if (S.stage === "ask") {
@@ -1310,15 +1335,152 @@ function renderLesson(T) {
     '<div class="lmeta"><div class="meters" id="limbox">' + limHTML() + '</div></div>';
   h += '<div class="lpage"><div id="voiceslot">' + voiceHTML() + '</div>';
   h += '<div class="lhd"><h2 class="ltitle">' + esc(L.title) + '</h2>' +
-    (TTS.ok && !VOICE.quiet ? '<button class="speak" data-action="readlesson" aria-label="Прочитать весь урок вслух">🔊 Прочитать весь урок</button>' : '') + '</div>';
+    (L.board ? '<button class="speak" data-action="lplay" aria-label="Показать и рассказать по шагам">▶ Показать по шагам</button>'
+      : (TTS.ok && !VOICE.quiet && !VOICE.available ? '<button class="speak" data-action="readlesson" aria-label="Прочитать весь урок вслух">🔊 Прочитать весь урок</button>' : '')) + '</div>';
+  if (L.board) h += '<div class="lboard" id="lboard"><svg id="lbsvg" viewBox="0 0 360 232" role="img" aria-label="Корзины с яблоками"></svg><div class="lb-eq" id="lbeq" aria-live="polite"></div><div class="lb-leg" id="lbleg"></div></div>';
   L.cards.forEach((c, i) => {
     const fb = lessonVisual(c.visual);
-    h += '<section class="lscene"><span class="lnum">' + (i + 1) + '</span><div class="lbody"><p class="q lq">' + c.text + '</p>' +
+    h += '<section class="lscene" data-i="' + i + '"><span class="lnum">' + (i + 1) + '</span><div class="lbody"><p class="q lq">' + c.text + '</p>' +
       (c.image ? '<img class="limg" src="' + esc(c.image) + '" alt="" onload="var f=this.nextElementSibling;if(f)f.style.display=\'none\'" onerror="this.remove()">' : '') +
-      (c.image ? '<div class="lfb">' + fb + '</div>' : fb) + '</div></section>';
+      (c.image ? '<div class="lfb">' + fb + '</div>' : fb) +
+      (L.board && c.board ? '<div class="lcbtns"><button class="speak" data-action="lshow" data-i="' + i + '">▶ Показать</button></div>' : '') +
+      '</div></section>';
   });
   h += '<div class="row lgo"><button class="btn" data-action="lstart">Решать задачу</button></div></div>';
   app.innerHTML = h;
+  if (L.board) lbInit(L);
+}
+
+/* ---------- доска с корзинами (мини-урок с полем board) ----------
+   В tasks.json: lesson.board = {nb, per}, у карточки cards[i].board = {fill:[4,4,0], sums:true, eq:"3×4=12", legend:true}.
+   Поля карточки дополняют то, что уже на доске. */
+const LB_NS = "http://www.w3.org/2000/svg";
+const LB_CENTERS = { 1: [180], 2: [110, 250], 3: [60, 180, 300] };
+const LB_SPOTS = {
+  1: [[0, 100]], 2: [[-19, 100], [19, 100]], 3: [[-19, 100], [19, 100], [0, 64]],
+  4: [[-19, 100], [19, 100], [-19, 64], [19, 64]], 5: [[-19, 100], [19, 100], [-19, 64], [19, 64], [0, 28]]
+};
+function lbEl(tag, attrs, parent) { const n = document.createElementNS(LB_NS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; }
+function lbBuild() {
+  const svg = document.getElementById("lbsvg"), B = LB.st; if (!svg) return;
+  svg.innerHTML = ""; LB.counts = [];
+  // верх рисунка зависит от того, сколько рядов яблок бывает в корзине; кружок с суммой стоит над самым высоким яблоком
+  const top = Math.min.apply(null, (LB_SPOTS[B.per] || LB_SPOTS[4]).map(p => p[1])), badgeY = top - 44, y0 = badgeY - 22;
+  svg.setAttribute("viewBox", "0 " + y0 + " 360 " + (232 - y0));
+  LB_CENTERS[B.nb].forEach((cx, i) => {
+    const g = lbEl("g", { transform: "translate(" + cx + ",0)" }, svg);
+    lbEl("g", { "class": "lb-apples" }, g);
+    const body = lbEl("g", {}, g);
+    lbEl("path", { d: "M-50 112 L50 112 L42 188 Q41 196 33 196 L-33 196 Q-41 196 -42 188Z", fill: "#B87A3E" }, body);
+    lbEl("path", { d: "M-46 134 H46 M-44 156 H44 M-42 176 H42", stroke: "#8F5A28", "stroke-width": 2.5, fill: "none", "stroke-linecap": "round" }, body);
+    lbEl("rect", { x: -54, y: 106, width: 108, height: 12, rx: 6, fill: "#8F5A28" }, body);
+    lbEl("text", { "class": "lb-tag", x: 0, y: 170 }, body).textContent = "по " + B.per;
+    lbEl("text", { x: 0, y: 220, "text-anchor": "middle", "font-size": 14, "font-weight": 700, fill: "#4B5575", "font-family": "inherit" }, g).textContent = "корзина " + (i + 1);
+    const badge = lbEl("g", { "class": "lb-badgeg", transform: "translate(0," + badgeY + ")", style: "display:none" }, g);
+    const inner = lbEl("g", { "class": "lb-badgein" }, badge);   // анимация на внутреннем элементе, чтобы не сбить положение кружка
+    lbEl("circle", { "class": "lb-badge-bg", r: 19 }, inner);
+    lbEl("text", { "class": "lb-badge-tx", y: 6 }, inner);
+    LB.counts.push(0);
+  });
+}
+function lbApple(i, k, animate) {
+  const svg = document.getElementById("lbsvg"), B = LB.st;
+  const s = (LB_SPOTS[B.per] || LB_SPOTS[4])[k];
+  const holder = svg.children[i].querySelector(".lb-apples");
+  const pos = lbEl("g", { transform: "translate(" + s[0] + "," + s[1] + ")" }, holder);
+  const a = lbEl("g", { "class": animate ? "lb-apple-in" : "" }, pos);
+  lbEl("circle", { r: 17, fill: "#D9413A" }, a);
+  lbEl("circle", { cx: -6, cy: -6, r: 4.5, fill: "#fff", opacity: .35 }, a);
+  lbEl("path", { d: "M0 -16 Q1 -22 5 -24", stroke: "#8F5A28", "stroke-width": 2.5, fill: "none", "stroke-linecap": "round" }, a);
+  lbEl("path", { d: "M2 -19 Q10 -28 17 -20 Q9 -14 2 -19Z", fill: "#1F7A45" }, a);
+}
+function lbDraw(animate) {
+  const svg = document.getElementById("lbsvg"), B = LB.st; if (!svg) return;
+  B.fill.forEach((n, i) => {
+    const holder = svg.children[i].querySelector(".lb-apples");
+    while (LB.counts[i] > n) { holder.removeChild(holder.lastChild); LB.counts[i]--; }
+    while (LB.counts[i] < n) { lbApple(i, LB.counts[i], animate); LB.counts[i]++; }
+  });
+  let run = 0;
+  B.fill.forEach((n, i) => {
+    run += n;
+    const g = svg.children[i].querySelector(".lb-badgeg");
+    if (B.sums && n > 0) {
+      const was = g.style.display !== "none";
+      g.style.display = ""; g.querySelector("text").textContent = run;
+      g.querySelector(".lb-badgein").setAttribute("class", "lb-badgein" + (was || !animate ? "" : " lb-badge"));
+    } else g.style.display = "none";
+  });
+  const eq = document.getElementById("lbeq");
+  if (eq) eq.textContent = (B.eq || "").replace(/([+×=])/g, " $1 ").replace(/\s+/g, " ").trim();
+  const lg = document.getElementById("lbleg");
+  if (lg) {
+    lg.innerHTML = "";
+    if (B.legend && B.nb > 1) [[B.nb, "сколько групп (корзин)", "g"], [B.per, "сколько в каждой группе", ""]].forEach(it => {
+      const c = document.createElement("span"); c.className = "lb-chip " + it[2];
+      const b = document.createElement("b"); b.textContent = it[0];
+      c.appendChild(b); c.appendChild(document.createTextNode(it[1])); lg.appendChild(c);
+    });
+  }
+}
+function lbApply(upd, animate) {
+  const B = LB.st; if (!upd) return;
+  const rebuild = (upd.nb && upd.nb !== B.nb) || (upd.per && upd.per !== B.per);
+  Object.assign(B, upd);
+  B.fill = Array.from({ length: B.nb }, (_, i) => Math.min(B.per, (B.fill && B.fill[i]) || 0));
+  if (rebuild) lbBuild();
+  lbDraw(animate);
+}
+function lbInit(L) {
+  LB.st = { nb: L.board.nb || 3, per: L.board.per || 4, fill: [], sums: false, legend: false, eq: "" };
+  lbBuild();
+  const first = L.cards.find(c => c.board);
+  lbApply(first ? first.board : {}, false);
+  LB.cur = first ? L.cards.indexOf(first) : -1;
+  lbMark(LB.cur);
+}
+function lbMark(i) {
+  document.querySelectorAll(".lscene").forEach(el => el.classList.toggle("cur", +el.dataset.i === i));
+}
+function lbShowCard(i, animate) {
+  const c = TASKS[S.t].lesson.cards[i]; if (!c) return;
+  if (c.board) lbApply(c.board, animate !== false);
+  LB.cur = i; lbMark(i);
+  const el = document.querySelector('.lscene[data-i="' + i + '"]');
+  if (el) { try { el.scrollIntoView({ behavior: "smooth", block: "nearest" }); } catch (e) {} }
+}
+/* Произносит карточку голосом браузера и вызывает done, когда договорил. Если голоса нет или говорит живой Листик, ждёт по времени чтения. */
+function lbSay(text, done) {
+  const t = spokenMath(plain(text));
+  if (!TTS.ok || !TTS.on || VOICE.quiet || VOICE.active) { setTimeout(done, 700 + t.length * 45); return; }
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(t);
+    u.lang = "ru-RU"; if (TTS.voice) u.voice = TTS.voice;
+    u.rate = 0.95; u.pitch = 1.1;
+    let fin = false; const f = () => { if (!fin) { fin = true; done(); } };
+    u.onend = f; u.onerror = f;
+    speechSynthesis.speak(u);
+    setTimeout(f, 5000 + t.length * 120);
+  } catch (e) { done(); }
+}
+function lbPlayAll() {
+  const cards = TASKS[S.t].lesson.cards;
+  stopSpeech();
+  const my = ++LB.token;
+  let i = 0;
+  const next = () => {
+    if (my !== LB.token || S.stage !== "lesson" || i >= cards.length) return;
+    const k = i++;
+    lbShowCard(k);
+    lbSay(cards[k].text, () => { if (my === LB.token) setTimeout(next, 500); });
+  };
+  next();
+}
+function lbPlayOne(i) {
+  stopSpeech();
+  lbShowCard(i);
+  lbSay(TASKS[S.t].lesson.cards[i].text, () => {});
 }
 
 async function submit(answer, pickedIndex) {
@@ -1457,7 +1619,7 @@ app.addEventListener("click", e => {
   const a = b.dataset.action;
   if (a === "start") return startTask(+b.dataset.i);
   if (a === "sec") { HOME.open[b.dataset.s] = !HOME.open[b.dataset.s]; return paintCat(); }
-  if (a === "view") { HOME.view = b.dataset.v; try { localStorage.setItem("lk_view", HOME.view); } catch (e) {} return paintCat(); }
+  if (a === "view") { HOME.view = b.dataset.v; try { localStorage.setItem("lk_view2", HOME.view); } catch (e) {} return paintCat(); }
   if (a === "home") { stopSpeech(); VOICE.stop(null, true); if (S.view === "cabinet" && USER) call("/api/parent/leave", {}); S = { view: "home" }; return render(); }
   if (a === "auth") { S = { view: "auth", mode: b.dataset.mode || "login", err: "", form: S.form }; return render(); }
   if (a === "showpw") { ["fPass", "fPass2"].forEach(id => { const el = document.getElementById(id); if (el) el.type = b.checked ? "text" : "password"; }); return; }
@@ -1482,6 +1644,8 @@ app.addEventListener("click", e => {
   if (a === "check") return checkTyped();
   if (a === "lnext" || a === "lprev") { stopSpeech(); S.lc += a === "lnext" ? 1 : -1; render(); VOICE.announce(true); return; }
   if (a === "lstart") { stopSpeech(); S.stage = "ask"; S.lc = 0; render(); VOICE.announce(); return; }
+  if (a === "lplay") return lbPlayAll();
+  if (a === "lshow") return lbPlayOne(+b.dataset.i);
   if (a === "readlesson") { if (VOICE.quiet) return;
     const cards = TASKS[S.t].lesson.cards;
     if (!VOICE.active && VOICE.available && !VOICE.err) { VOICE.start(); return; }
@@ -1888,10 +2052,7 @@ function meterHTML(icon, label, left, max, off) {
 }
 function limHTML() {
   if (USAGE.studyLeft == null) return "";
-  let h = meterHTML("⏱", "Время занятия сегодня, осталось", USAGE.studyLeft, USAGE.studyMax, false);
-  if (VOICE.available) h += VOICE.quiet ? meterHTML("🔇", "Голос Листика на сегодня закончился", 0, USAGE.voiceMax, true)
-                                        : meterHTML("🎤", "Голос Листика сегодня, осталось", USAGE.voiceLeft, USAGE.voiceMax, false);
-  return h;
+  return meterHTML("⏱", "Время занятия сегодня, осталось", USAGE.studyLeft, USAGE.studyMax, false);
 }
 function setUsage(d) {
   if (!d || typeof d.studyLeft !== "number") return;
@@ -1969,7 +2130,10 @@ async function boot() {
       return render();
     }
     buildQueue();
-    if (QUEUE) return startTask(QUEUE[0]);
+    if (QUEUE) {
+      const want = PARAMS.get("task"), k = want ? TASKS.findIndex(t => t.id === want) : -1;
+      return startTask(k >= 0 && QUEUE.indexOf(k) >= 0 ? k : QUEUE[0]);
+    }
     render();
   } catch (e) {
     app.innerHTML = '<div class="top"><div class="brand hand">' + LOGO + 'Листик</div></div>' +

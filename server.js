@@ -29,6 +29,14 @@ const M = { started: Date.now(), turns: 0, busy: 0, fail: 0, o429: 0, r429: 0, e
 const readJSON = f => JSON.parse(fs.readFileSync(path.join(ROOT, f), "utf8"));
 const TASKS_FILE = readJSON("data/private/tasks.json");
 const TASKS = TASKS_FILE.tasks;
+/* Сквозная нумерация: задачи идут по порядку разделов, номер не начинается заново в новом разделе.
+   Номер считается сам, поэтому при добавлении задач порядковые номера править руками не нужно. */
+{
+  const secOrder = new Map((TASKS_FILE.sections || []).map((x, i) => [x.id, i]));
+  const pos = x => (secOrder.has(x.section) ? secOrder.get(x.section) : 1e9);
+  TASKS.sort((a, b) => pos(a) - pos(b));
+  TASKS.forEach((t, i) => { t.no = String(i + 1); });
+}
 const SUBJECT = { title: TASKS_FILE.subject_title || "Математика", grade: TASKS_FILE.grade || 3 };
 const CONFIG = readJSON("data/private/config.json");
 const MAX_ATTEMPTS = 3;
@@ -63,6 +71,7 @@ const VOICE_PROMPT = `Ты — Листик, добрый голосовой п�
 - Кашель, шум, вздохи, шёпот, обрывки слов и разговоры на фоне — это не ответ. Если за ними нет понятного ответа, ничего не говори и жди тишины. Никогда не начинай читать вопрос заново из-за постороннего звука: повторяй только когда ребёнок явно просит словами («повтори»).
 - Сообщения с пометкой [Программа] приходят от программы: в них условие, вопрос текущего шага и события. Не зачитывай их дословно, говори своими словами.
 - Пока функция не вернула результат, не говори «верно» или «неверно» и не угадывай ответ.
+- Никогда не произноси и не пиши служебные пометки и комментарии в скобках, не упоминай слова «функция» и «инструмент». Ребёнок слышит только то, что ты говоришь ему лично.
 
 ПРАВИЛО ТОЧНОСТИ (самое важное)
 - Все тексты для ребёнка (вопросы, правила, примеры, фразы «верно») написаны и проверены учителями. Ты берёшь их только из сообщений программы и результатов функции и произносишь ДОСЛОВНО.
@@ -237,7 +246,7 @@ async function voiceTurnInner(req, res, ip, a) {
       vs.pending = calls.map(c => c.call_id);
       return send(res, 200, { heard, calls: calls.map(c => ({ call_id: c.call_id, name: c.name, arguments: c.arguments })) });
     }
-    const reply = outputText(r);
+    const reply = outputText(r).replace(/\s*\([^()]*(инструмент|функци|вызыва)[^()]*\)/gi, "").trim();   // служебные пометки в скобках ребёнку не озвучиваем
     if (!reply) return send(res, 200, { heard, reply: "" });
     const sp = await speak(reply);
     return send(res, 200, { heard, reply, audio: sp.audio, mime: sp.mime });
