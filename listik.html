@@ -813,6 +813,8 @@ function render() {
   document.body.classList.toggle("plain", lesson);
   if (S.view === "home") return renderHome();
   if (S.view === "auth") return renderAuth();
+  if (S.view === "forgot") return renderForgot();
+  if (S.view === "reset") return renderReset();
   if (S.view === "pin") return renderPin();
   if (S.view === "pinreset") return renderPinReset();
   if (S.view === "cabinet") return renderCabinet();
@@ -859,14 +861,14 @@ function renderAuth() {
   }
   h += errBox(S.err);
   h += '<div class="row"><button class="btn" data-action="' + en + '">' + (reg ? 'Создать кабинет' : 'Войти') + '</button></div>';
-  if (!reg) h += '<p class="hint" style="margin-top:16px">Забыли пароль? <a href="index.html#contact">Напишите нам</a>, мы поможем восстановить доступ.</p>';
+  if (!reg) h += '<p class="hint" style="margin-top:16px">Забыли пароль? <button class="btn ghost small" data-action="forgot">Получить ссылку на почту</button></p>';
   h += '</div></div>';
   h += '<aside class="auth-side">' +
        '<div class="auth-bubble">' + (reg ? 'Здравствуйте! Я Листик. Помогу ребёнку разобраться с математикой, а вы будете видеть, как идут дела.' : 'Здравствуйте! Здесь видно, как ребёнок занимается со мной.') + '</div>' +
        '<ul class="auth-points">' +
          '<li>' + CHECK + '<span>Видно прогресс по каждому номеру</span></li>' +
          '<li>' + CHECK + '<span>PIN-код открывает подсказки для взрослого</span></li>' +
-         '<li>' + CHECK + '<span>Листик объясняет простыми словами и только по учебнику</span></li>' +
+         '<li>' + CHECK + '<span>Листик объясняет простыми словами и по специальной методике</span></li>' +
        '</ul>' +
        '<div class="auth-photo"><div class="auth-blob" aria-hidden="true"></div><img src="/img/' + (reg ? 'hero-boy' : 'happy-girl') + '.webp" alt="" width="900" height="900"></div>' +
        '</aside></div>';
@@ -1130,6 +1132,51 @@ async function doAuth(mode) {
   S.err = r.status === 0 ? NET : r.status === 429 ? "Слишком много попыток. Подождите немного." : (r.data.message || "Не получилось. Проверьте данные.");
   render();
 }
+/* забыли пароль: письмо со ссылкой; новый пароль задаётся по ссылке из письма */
+function authShell(inner) {
+  return '<div class="auth"><div class="auth-card">' + inner + '</div><aside class="auth-side"><div class="auth-bubble">Не переживайте, доступ вернём за минуту.</div>' +
+    '<div class="auth-photo"><div class="auth-blob" aria-hidden="true"></div><img src="/img/happy-girl.webp" alt="" width="900" height="900"></div></aside></div>';
+}
+function renderForgot() {
+  const f = S.form || {};
+  let h = '<h1 class="auth-h">Восстановление пароля</h1>';
+  if (S.sent) {
+    h += '<p class="auth-sub">Если кабинет с такой почтой есть, мы отправили письмо со ссылкой. Она действует час. Если письма нет, загляните в «Спам».</p>' +
+      '<div class="row"><button class="btn" data-action="auth" data-mode="login">Вернуться ко входу</button></div>';
+  } else {
+    h += '<p class="auth-sub">Укажите почту кабинета, мы отправим ссылку, по которой можно задать новый пароль.</p><div class="form">' +
+      '<label>Почта<input id="fEmail" class="inp" type="email" autocomplete="username" autocapitalize="none" placeholder="name@mail.com" value="' + esc(f.email || "") + '" data-enter="forgot-send"></label>' +
+      errBox(S.err) +
+      '<div class="row"><button class="btn" data-action="forgot-send">Отправить ссылку</button><button class="btn ghost" data-action="auth" data-mode="login">Назад</button></div></div>';
+  }
+  app.innerHTML = authShell(h); window.scrollTo(0, 0);
+}
+function renderReset() {
+  let h = '<h1 class="auth-h">Новый пароль</h1><p class="auth-sub">Придумайте пароль не короче 8 символов.</p><div class="form">' +
+    '<label>Новый пароль<input id="fPass" class="inp" type="password" autocomplete="new-password"></label>' +
+    '<label>Повторите пароль<input id="fPass2" class="inp" type="password" autocomplete="new-password" data-enter="reset-send"></label>' +
+    '<label class="chk"><input type="checkbox" data-action="showpw"><span>Показать пароль</span></label>' + errBox(S.err) +
+    '<div class="row"><button class="btn" data-action="reset-send">Сохранить пароль</button></div></div>';
+  app.innerHTML = authShell(h); window.scrollTo(0, 0);
+}
+async function doForgot() {
+  const email = val("fEmail").trim();
+  S.form = { email };
+  if (!need("Проверьте адрес почты.", /^\S+@\S+\.\S{2,}$/.test(email))) return;
+  const r = await call("/api/password/forgot", { email });
+  if (r.status === 200) { S.sent = true; S.err = ""; return render(); }
+  S.err = r.status === 0 ? NET : r.status === 429 ? "Слишком много попыток. Подождите немного." : "Не получилось. Попробуйте позже.";
+  render();
+}
+async function doReset() {
+  const password = val("fPass");
+  if (!need("Пароль должен быть не короче 8 символов.", password.length >= 8)) return;
+  if (!need("Пароли не совпали. Проверьте раскладку клавиатуры.", password === val("fPass2"))) return;
+  const r = await call("/api/password/reset", { token: S.token, password });
+  if (r.status === 200) { USER = r.data.user; await reloadTasks(); S = { view: "home", flash: "Пароль изменён, вы вошли в кабинет." }; return render(); }
+  S.err = r.status === 0 ? NET : r.status === 429 ? "Слишком много попыток. Подождите немного." : (r.data.message || "Не получилось. Запросите новую ссылку.");
+  render();
+}
 async function doPinEnter() {
   const r = await call("/api/parent/enter", { pin: val("fPin").trim() });
   if (r.status === 200 && r.data.ok) { USER = r.data.user; return openCabinet("progress"); }
@@ -1206,7 +1253,7 @@ function paintCat() {
 }
 function renderHome() {
   let h = header(false);
-  h += '<div class="cat-title"><h1>Выбери номер из учебника</h1></div>';
+  h += '<div class="cat-title"><h1>Выбери упражнение</h1></div>';
   h += '<div class="cat-tools"><label class="cat-search"><input id="catq" type="search" inputmode="search" autocomplete="off" placeholder="Номер или слово, например 245" aria-label="Найти задачу" value="' + esc(HOME.q) + '"></label>' +
     '<div class="seg" role="group" aria-label="Вид списка"><button data-action="view" data-v="tiles" aria-pressed="' + (HOME.view === "tiles") + '">▦ Плитки</button>' +
     '<button data-action="view" data-v="list" aria-pressed="' + (HOME.view === "list") + '">☰ Список</button></div></div>';
@@ -1277,18 +1324,19 @@ function renderTask() {
       h += '<div class="mark"><b>Похожий пример:</b> ' + S.similar + '</div>';
     }
     if (st.type !== "choice") h += padHTML();
+    if (S.s > 0) h += '<div class="row">' + backBtn() + '</div>';
   }
 
   if (S.stage === "right") {
     h += '<div class="fb ok pop" role="status"><strong class="g">Верно!</strong> ' + S.okText + '</div>';
     const last = S.s === n - 1;
-    h += '<div class="row"><button class="btn" data-action="next">' + (last ? 'Закончить' : 'Дальше') + '</button></div>';
+    h += '<div class="row">' + backBtn() + '<button class="btn" data-action="next">' + (last ? 'Закончить' : 'Дальше') + '</button></div>';
   }
 
   if (S.stage === "locked") {
     h += '<div class="fb bad" role="alert"><strong class="r">Так бывает у всех.</strong> Можно сделать перерыв или позвать взрослого.</div>';
     h += '<div class="mark"><b>Правило:</b> ' + (S.rule || '') + '</div>';
-    h += '<div class="row"><button class="btn ghost" data-action="home">Сделать перерыв</button>' +
+    h += '<div class="row">' + backBtn() + '<button class="btn ghost" data-action="home">Сделать перерыв</button>' +
       (S.adultPassed || !USER ? '' : '<button class="btn" data-action="adult">Позвать взрослого</button>') + '</div>';
     if (!USER) {
       h += '<div class="mark"><b>Для взрослого.</b> Чтобы взрослый мог помочь на этом шаге, нужен кабинет родителя с PIN-кодом. Создать его можно на главной странице.</div>';
@@ -1499,6 +1547,7 @@ async function submit(answer, pickedIndex) {
   const d = r.data;
   if (d.correct) {
     S.stage = "right"; S.okText = d.ok || "";
+    (S.oks = S.oks || {})[S.s] = S.okText;      // запоминаем, чтобы можно было вернуться на этот шаг
     if (d.note) S.notes.push(d.note);
     const am = /Ответ:\s*(.+)$/.exec(d.ok || "");
     if (am) S.notes.push("Ответ: " + am[1]);
@@ -1572,8 +1621,25 @@ function nextStep() {
   S.entry = freshEntry(T.steps[S.s]); S.active = 0;
   S.adultOpen = false; S.adultPassed = false; S.adultErr = false; S.emptyMsg = false;
   S.rule = null; S.similar = null; S.okText = ""; S.netMsg = ""; S.adultAnswer = null;
+  if (S.oks && S.oks[S.s] !== undefined) { S.stage = "right"; S.okText = S.oks[S.s]; }   // шаг уже решён: показываем ответ, а не задаём заново
   render();
   VOICE.announce();
+}
+
+/* кнопка «Назад»: возвращает на предыдущий (уже решённый) шаг, где можно перечитать вопрос и ответ */
+function backBtn() {
+  return S.s > 0 ? '<button class="btn ghost small" data-action="prev">← Назад к шагу ' + S.s + '</button>' : '';
+}
+function prevStep() {
+  if (S.busy || S.s <= 0) return;
+  stopSpeech();
+  const T = TASKS[S.t];
+  S.s--; S.attempts = 0; S.wrong = []; S.voice = null;
+  S.entry = freshEntry(T.steps[S.s]); S.active = 0;
+  S.adultOpen = false; S.adultPassed = false; S.adultErr = false; S.emptyMsg = false;
+  S.rule = null; S.similar = null; S.netMsg = ""; S.adultAnswer = null;
+  S.stage = "right"; S.okText = (S.oks && S.oks[S.s]) || "";
+  render();
 }
 
 function renderDone() {
@@ -1624,6 +1690,9 @@ app.addEventListener("click", e => {
   if (a === "auth") { S = { view: "auth", mode: b.dataset.mode || "login", err: "", form: S.form }; return render(); }
   if (a === "showpw") { ["fPass", "fPass2"].forEach(id => { const el = document.getElementById(id); if (el) el.type = b.checked ? "text" : "password"; }); return; }
   if (a === "cab-tab") { S.tab = b.dataset.tab; S.err = ""; return render(); }
+  if (a === "forgot") { S = { view: "forgot", err: "", form: S.form }; return render(); }
+  if (a === "forgot-send") return doForgot();
+  if (a === "reset-send") return doReset();
   if (a === "login") return doAuth("login");
   if (a === "register") return doAuth("register");
   if (a === "cab-open") { if (!USER) { S = { view: "auth", mode: "login", err: "" }; return render(); } S = { view: "pin" }; return render(); }
@@ -1653,6 +1722,7 @@ app.addEventListener("click", e => {
     return speak(spokenMath(cards.map(c => plain(c.text)).join(" ")), true);
   }
   if (a === "next") return nextStep();
+  if (a === "prev") return prevStep();
   if (a === "adult") return openAdult();
   if (a === "adultcheck") {
     return unlock(val("adultIn").trim());
@@ -2124,6 +2194,17 @@ async function boot() {
   app.innerHTML = '<div class="top"><div class="brand hand">' + LOGO + 'Листик</div></div><p class="lead">Загружаю задачи…</p>';
   try {
     await loadData();
+    const rm = /^#reset=([A-Za-z0-9._-]+)$/.exec(location.hash), hm = /^#(register|login)$/.exec(location.hash);
+    if (rm) {                                   // ссылка из письма «Новый пароль»
+      history.replaceState(null, "", location.pathname);
+      S = { view: "reset", token: rm[1], err: "" };
+      return render();
+    }
+    if (hm && !USER) {                          // кнопки «Регистрация» и «Войти» на других страницах сайта
+      history.replaceState(null, "", location.pathname);
+      S = { view: "auth", mode: hm[1], err: "" };
+      return render();
+    }
     if (location.hash === "#cabinet") {
       history.replaceState(null, "", location.pathname);
       S = USER ? { view: "pin" } : { view: "auth", mode: "login", err: "" };

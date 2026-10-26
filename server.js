@@ -336,6 +336,25 @@ function tooMany(key, limit, windowMs) {
 }
 function hit(key) { const a = buckets.get(key) || []; a.push(Date.now()); buckets.set(key, a); }
 const MIN = 60000;
+const MAIL = require("./mail.js");
+/* адрес сайта для ссылок в письмах: SITE_URL из настроек или адрес, по которому пришёл запрос */
+const siteUrl = req => (process.env.SITE_URL || ((COOKIE_SECURE ? "https" : "http") + "://" + (req.headers.host || "localhost:" + PORT))).replace(/\/$/, "");
+const mailFail = e => console.log("[письмо] не отправлено: " + e.message);
+/* ссылка для нового пароля без хранения на сервере: подпись привязана к текущему паролю, поэтому после смены пароля старая ссылка перестаёт работать */
+function resetToken(user) {
+  const exp = Date.now() + 60 * MIN;
+  return user.id + "." + exp + "." + crypto.createHmac("sha256", PEPPER).update("reset|" + user.id + "|" + exp + "|" + user.pass.hash.slice(0, 16)).digest("hex");
+}
+function userByResetToken(tok) {
+  const p = typeof tok === "string" ? tok.split(".") : [];
+  if (p.length !== 3 || !/^\d+$/.test(p[1]) || Number(p[1]) < Date.now()) return null;
+  const user = USERS.find(u => u.id === p[0]);
+  if (!user || user.blocked) return null;
+  const want = crypto.createHmac("sha256", PEPPER).update("reset|" + user.id + "|" + p[1] + "|" + user.pass.hash.slice(0, 16)).digest();
+  if (!/^[0-9a-f]{64}$/.test(p[2])) return null;
+  const got = Buffer.from(p[2], "hex");
+  return got.length === want.length && crypto.timingSafeEqual(got, want) ? user : null;
+}
 
 /* ---------- сессии ---------- */
 const play = new Map();    // ключ прогресса -> { steps: Map, seen }
@@ -689,6 +708,7 @@ async function api(req, res, url) {
       child: { name, grade: 3 }, createdAt: new Date().toISOString(), progress: null
     };
     USERS.push(user); saveUsers();
+    MAIL.welcome(email, name, siteUrl(req)).catch(mailFail);      // письмо не задерживает ответ и не ломает регистрацию, если почта недоступна
     startLogin(res, user);
     return send(res, 200, { user: { email, child: user.child, parent: false } });
   }
@@ -702,6 +722,27 @@ async function api(req, res, url) {
       hit("login:" + ip); hit("login:" + email); return send(res, 401, { error: "login", message: "Неверный адрес или пароль." });
     }
     if (user.blocked) return send(res, 403, { error: "blocked", message: "Доступ к этому кабинету закрыт. Напишите нам в WhatsApp, мы поможем." });
+    startLogin(res, user);
+    return send(res, 200, { user: { email: user.email, child: user.child, parent: false, plan: hasPlan({ user }) ? { until: user.plan.until } : null } });
+  }
+  /* --- забыли пароль: письмо со ссылкой (ответ всегда одинаковый, чтобы нельзя было выяснить, какие адреса зарегистрированы) --- */
+  if (url === "/api/password/forgot") {
+    const email = typeof b.email === "string" ? b.email.trim().toLowerCase() : "";
+    if (tooMany("fgt:" + ip, 6, 60 * MIN) || tooMany("fgt:" + email, 3, 60 * MIN)) return send(res, 429, { error: "too_many" });
+    hit("fgt:" + ip); hit("fgt:" + email);
+    const user = EMAIL_RE.test(email) ? USERS.find(u => u.email === email) : null;
+    if (user && !user.blocked) MAIL.passwordReset(user.email, siteUrl(req) + "/listik.html#reset=" + resetToken(user)).catch(mailFail);
+    return send(res, 200, { ok: true });
+  }
+  if (url === "/api/password/reset") {
+    if (tooMany("rst:" + ip, 10, 60 * MIN)) return send(res, 429, { error: "too_many" });
+    hit("rst:" + ip);
+    if (typeof b.password !== "string" || b.password.length < 8 || b.password.length > 100)
+      return send(res, 400, { error: "password", message: "Пароль должен быть не короче 8 символов." });
+    const user = userByResetToken(b.token);
+    if (!user) return send(res, 400, { error: "token", message: "Ссылка устарела или уже использована. Запросите новую." });
+    user.pass = await hashSecret(b.password, "pass"); saveUsers();
+    for (const [k, v] of auth) if (v.uid === user.id) auth.delete(k);      // старые входы закрываем
     startLogin(res, user);
     return send(res, 200, { user: { email: user.email, child: user.child, parent: false, plan: hasPlan({ user }) ? { until: user.plan.until } : null } });
   }
