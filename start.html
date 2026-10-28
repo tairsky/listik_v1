@@ -139,7 +139,6 @@ main { padding-top:48px; padding-bottom:72px; display:flex; flex-direction:colum
     <div><button class="back" id="back" type="button" hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1E2A22" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M11 6l-6 6 6 6"/></svg>Назад</button></div>
     <div class="say"><div class="bb"><p id="q">Загружаю…</p></div></div>
     <div class="opts" id="opts"></div>
-    <p class="hint">Все вопросы, правила и ответы записаны заранее.</p>
   </main>
 </div>
 
@@ -172,18 +171,40 @@ main { padding-top:48px; padding-bottom:72px; display:flex; flex-direction:colum
    Раздел берётся с сервера (/api/tasks), остальное задано здесь.
    soon: true — вариант виден, но пока не открывается. */
 const STEPS = [
-  { key: "lang", title: "Привет! Я Листик, компьютерная программа-помощник. На каком языке будем заниматься?", short: "Язык", options: [
+  { key: "lang", title: "Выберите удобный вам язык обучения:", short: "Язык", options: [
       { id: "ru", title: "Русский" },
-      { id: "kk", title: "Қазақша", soon: true } ] },
-  { key: "subject", title: "Какой предмет выберем?", short: "Предмет", options: [
-      { id: "math", title: "Математика" },
-      { id: "more", title: "Другие предметы", soon: true } ] },
-  { key: "grade", title: "В каком ты классе?", short: "Класс", options: [
-      { id: "2", title: "2 класс", soon: true },
-      { id: "3", title: "3 класс" },
-      { id: "4", title: "4 класс", soon: true } ] },
+      { id: "kk", title: "Қазақша", soon: true },
+      { id: "en", title: "English", soon: true } ] },
+  { key: "grade", title: "Выберите класс, в котором учится ребенок:", short: "Класс", sections: [
+      { title: "Начальное образование", options: [
+        { id: "1", title: "1 класс", soon: true },
+        { id: "2", title: "2 класс", soon: true },
+        { id: "3", title: "3 класс" },
+        { id: "4", title: "4 класс", soon: true } ] },
+      { title: "Основное среднее образование", options: [
+        { id: "5", title: "5 класс", soon: true },
+        { id: "6", title: "6 класс", soon: true },
+        { id: "7", title: "7 класс", soon: true },
+        { id: "8", title: "8 класс", soon: true },
+        { id: "9", title: "9 класс", soon: true } ] },
+      { title: "Общее среднее образование", options: [
+        { id: "10", title: "10 класс", soon: true },
+        { id: "11", title: "11 класс", soon: true } ] } ] },
+  { key: "subject", title: "Выберите предмет обучения:", short: "Предмет", options: [] },
   { key: "section", title: "Какое упражнение будем разбирать?", short: "Упражнение", options: [], groups: [] }
 ];
+// Предметы по классам. Открыт только тот, для которого уже есть упражнения (3 класс, математика).
+const S = (id, title) => ({ id, title });
+const LANGS = [S("ru", "Русский язык"), S("kk", "Казахский язык"), S("en", "Английский язык")];
+function subjectsFor(g) {
+  g = +g;
+  let l;
+  if (g <= 4) l = [S("math", "Математика"), ...LANGS, S("read", "Литературное чтение"), S("world", "Познание мира")];
+  else if (g <= 6) l = [S("math", "Математика"), ...LANGS, S("lit", "Литература"), S("kz-hist", "История Казахстана"), S("world-hist", "Всемирная история"), S("nature", "Естествознание"), S("inf", "Информатика"), S("geo", "География")];
+  else if (g <= 9) l = [S("algebra", "Алгебра"), S("geometry", "Геометрия"), ...LANGS, S("lit", "Литература"), S("physics", "Физика"), S("chem", "Химия"), S("bio", "Биология"), S("inf", "Информатика"), S("geo", "География"), S("kz-hist", "История Казахстана"), S("world-hist", "Всемирная история")];
+  else l = [S("algebra", "Алгебра и начала анализа"), S("geometry", "Геометрия"), S("mathlit", "Математическая грамотность"), ...LANGS, S("lit", "Литература"), S("physics", "Физика"), S("chem", "Химия"), S("bio", "Биология"), S("inf", "Информатика"), S("geo", "География"), S("kz-hist", "История Казахстана"), S("world-hist", "Всемирная история"), S("law", "Основы права")];
+  return l.map(o => (g === 3 && o.id === "math") ? o : Object.assign({ soon: true }, o));
+}
 const ARROW = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1F7A45" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>';
 const pick = {};
 let at = 0;
@@ -191,6 +212,7 @@ const $ = id => document.getElementById(id);
 
 function paint() {
   const st = STEPS[at];
+  if (st.key === "subject") st.options = subjectsFor(pick.grade);
   $("q").textContent = st.title;
   $("back").hidden = at === 0;
   $("prog").innerHTML = '<div class="pills" role="img" aria-label="Шаг ' + (at + 1) + ' из ' + STEPS.length + '">' +
@@ -222,7 +244,20 @@ function paint() {
     });
     return;
   }
-  st.options.forEach(op => {
+  if (st.sections) {
+    o.className = "toc";
+    st.sections.forEach(g => {
+      const sec = document.createElement("section"); sec.className = "toc-sec";
+      const hd = document.createElement("h2"); hd.textContent = g.title; sec.appendChild(hd);
+      const grid = document.createElement("div"); grid.className = "opts";
+      renderOpts(st, g.options, grid); sec.appendChild(grid); o.appendChild(sec);
+    });
+    return;
+  }
+  renderOpts(st, st.options, o);
+}
+function renderOpts(st, options, o) {
+  options.forEach(op => {
     const b = document.createElement("button");
     b.className = "opt"; b.type = "button";
     const row = document.createElement("div"); row.className = "row";
