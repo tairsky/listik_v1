@@ -2,6 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
+<meta name="format-detection" content="telephone=no">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Листик — репетитор по математике</title>
 <style>
@@ -267,6 +268,12 @@
   .fb strong.r { color: var(--red); }
   .mark { background: var(--mark-bg); border-radius: 10px; padding: 12px 14px; margin-top: 12px; }
   .mark b { font-weight: 800; }
+  textarea.ex { width: 100%; min-height: 110px; font: inherit; font-size: 20px; padding: 12px 14px; border-radius: 12px; border: 2px solid var(--line, #cfd8d2); resize: vertical; box-sizing: border-box; }
+  .quizc { margin-bottom: 14px; }
+  .quizc .row { margin-top: 10px; gap: 8px; }
+  .fb.calm { background: var(--mark-bg); border: 2px solid #BFE6CE; }
+  .tile .rc { position: absolute; top: 2px; right: 6px; font-size: 14px; color: #E0A800; }
+  .recm { font-style: normal; font-weight: 700; color: #B07F00; white-space: nowrap; }
   .pop { animation: pop .25s ease-out; }
   @keyframes pop { from { transform: scale(.96); } to { transform: scale(1); } }
   @media (prefers-reduced-motion: reduce) {
@@ -562,6 +569,11 @@
    ============================================================ */
 let TASKS = [];        // с сервера, без ответов
 let USER = null;       // вошедший кабинет: { email, child, parent } или null
+let OFFER = { diag: false, warm: 0 };   // что предложить ребёнку: знакомство или разминка (только после входа)
+async function loadOffer() {
+  if (!USER) { OFFER = { diag: false, warm: 0 }; return; }
+  try { const r = await api("/api/quiz/offer"); if (r.status === 200 && r.data) OFFER = { diag: !!r.data.diag, warm: r.data.warm || 0 }; } catch (e) {}
+}
 
 /* ============================================================
    ГОЛОС ЛИСТИКА.
@@ -736,6 +748,18 @@ function buildQueue() {
   QUEUE = q.length ? q : null;
 }
 
+/* Шаги-опоры (scaf), которые сервер решил не показывать, потому что ребёнок уверенно владеет навыком */
+const visIdx = T => T.steps.map((x, i) => x.skip ? -1 : i).filter(i => i >= 0);
+const vpos = (T, i) => visIdx(T).indexOf(i) + 1;
+const vnext = (T, i) => { for (let k = i + 1; k < T.steps.length; k++) if (!T.steps[k].skip) return k; return -1; };
+const vprev = (T, i) => { for (let k = i - 1; k >= 0; k--) if (!T.steps[k].skip) return k; return -1; };
+function applySkip(T, skip) {
+  T.steps.forEach((x, j) => {
+    if (x.q0 === undefined) x.q0 = x.q;
+    x.skip = skip.indexOf(j) >= 0;
+    x.q = (skip.length && x.qs) ? x.qs : x.q0;
+  });
+}
 function freshEntry(st) { return st.type === "pair" ? st.fields.map(() => "") : [""]; }
 
 /* список задач лёгкий; шаги и урок приходят по запросу, когда задачу открывают */
@@ -754,9 +778,13 @@ async function startTask(i) {
   if (USAGE.studyLeft === 0) { S = { view: "rest" }; return render(); }
   if (!(await ensureTask(i))) return;
   QPOS = QUEUE ? QUEUE.indexOf(i) : -1;
-  const st0 = TASKS[i].steps[0];
+  let skip = [];
+  try { const sr = await api("/api/start", { task: TASKS[i].id }); if (sr.status === 200 && sr.data && Array.isArray(sr.data.skip)) skip = sr.data.skip; } catch (e) {}
+  applySkip(TASKS[i], skip);
+  const first = Math.max(0, vnext(TASKS[i], -1));
+  const st0 = TASKS[i].steps[first];
   S = {
-    view: "task", t: i, s: 0, attempts: 0, stage: "ask",
+    view: "task", t: i, s: first, attempts: 0, stage: "ask",
     wrong: [], errors: {}, helped: {}, notes: [],
     entry: freshEntry(st0), active: 0,
     adultOpen: false, adultPassed: false, adultErr: false, emptyMsg: false, voice: null,
@@ -767,7 +795,6 @@ async function startTask(i) {
   say("start");
   render();
   VOICE.announce();
-  call("/api/start", { task: TASKS[i].id });
 }
 
 function sndBtn() {
@@ -778,7 +805,7 @@ function backHTML() { return '<button class="back" data-action="home">' + ARROW_
 function header(backBtn) {
   return '<div class="top">' + BRAND + '<div class="tools">' + sndBtn() +
     (backBtn ? backHTML()
-             : (S.view === "home" ? (USER ? '<button class="back" data-action="cab-open">Кабинет родителя</button>'
+             : (S.view === "home" ? (USER ? '<button class="back" data-action="cab-open" aria-label="Для родителей, нужен PIN-код">🔒 Для родителей</button>'
                                           : '<button class="back" data-action="auth" data-mode="login">Войти в кабинет</button>') : '')) +
     '</div></div>';
 }
@@ -788,6 +815,7 @@ function lessonHeader(T, n, done) {
     '<div class="lmeta"><div class="meters" id="limbox">' + limHTML() + '</div></div>';
 }
 function notebookAside(T, done) {
+  if (T.quiz) return '';
   let h = '<aside class="nbcol" aria-label="Тетрадь"><div class="nbno hand">№ ' + T.no +
     (QPOS >= 0 ? ' · ' + (QPOS + 1) + ' из ' + QUEUE.length : '') + (done ? ' · решена' : '') + '</div>';
   const grid = (PARAMS.get("subject") || "math") === "math";   // математика — в клетку, остальное — в линейку
@@ -805,12 +833,45 @@ function notebookAside(T, done) {
   return h;
 }
 
+/* родительский режим сам закрывается после 10 минут без действий (как и на сервере) */
+let CAB_IDLE = null;
+function cabIdleKick() { if (!CAB_IDLE) return; clearTimeout(CAB_IDLE.t); CAB_IDLE.t = setTimeout(cabIdleLeave, 10 * 60 * 1000); }
+function cabIdleSet(on) {
+  if (on && !CAB_IDLE) {
+    CAB_IDLE = { t: null, fn: cabIdleKick };
+    ["pointerdown", "keydown", "scroll"].forEach(e => window.addEventListener(e, CAB_IDLE.fn, { passive: true }));
+    cabIdleKick();
+  } else if (!on && CAB_IDLE) {
+    clearTimeout(CAB_IDLE.t);
+    ["pointerdown", "keydown", "scroll"].forEach(e => window.removeEventListener(e, CAB_IDLE.fn));
+    CAB_IDLE = null;
+  }
+}
+function cabIdleLeave() {
+  cabIdleSet(false);
+  if (USER) call("/api/parent/leave", {});
+  if (USER) USER.parent = false;
+  S = { view: "home", flash: "Кабинет родителя закрылся, потому что им долго не пользовались." };
+  render();
+}
 function render() {
   const lesson = S.view === "task" || S.view === "done";
   app.classList.toggle("wide", lesson);
   const navCab = document.getElementById("navCab");
+  document.querySelectorAll('.sh-btn[href="/start.html"]').forEach(a => { a.style.display = (typeof USER !== "undefined" && USER) ? "none" : ""; });
   if (navCab) { const on = S.view === "auth" || S.view === "pin" || S.view === "pinreset" || S.view === "cabinet"; navCab.classList.toggle("is-active", on); if (on) navCab.setAttribute("aria-current", "page"); else navCab.removeAttribute("aria-current"); }
   document.body.classList.toggle("plain", lesson);
+  /* режим ребёнка: вошедшему кабинету не показываем меню сайта (тарифы, кабинет); оно возвращается в родительских экранах */
+  const parentScreen = S.view === "cabinet" || S.view === "pin" || S.view === "pinreset" || S.view === "auth";
+  const kid = !!USER && !parentScreen;
+  const shNav = document.querySelector(".sh-nav"); if (shNav) shNav.style.display = kid ? "none" : "";
+  const shLogo = document.querySelector(".sh-logo"); if (shLogo) shLogo.setAttribute("href", kid ? "/listik.html" : "/");
+  /* режим ребёнка: ссылки в подвале (телефон, WhatsApp, документы) не нажимаются; для родителя и гостя возвращаются */
+  document.querySelectorAll(".sf a").forEach(a => {
+    if (kid) { const h = a.getAttribute("href"); if (h !== null) { a.dataset.href = h; a.removeAttribute("href"); } a.setAttribute("aria-disabled", "true"); a.style.cursor = "default"; }
+    else if (a.dataset.href !== undefined) { a.setAttribute("href", a.dataset.href); delete a.dataset.href; a.removeAttribute("aria-disabled"); a.style.cursor = ""; }
+  });
+  cabIdleSet(S.view === "cabinet" || S.view === "pinreset");
   if (S.view === "home") return renderHome();
   if (S.view === "auth") return renderAuth();
   if (S.view === "forgot") return renderForgot();
@@ -895,6 +956,8 @@ function renderPinReset() {
 }
 const fmtDate = iso => iso ? new Date(iso).toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric" }) : null;
 const LEVELS = { good: "получается", train: "тренируем", repeat: "стоит повторить" };
+const TREND_TXT = { up: "↑ растёт", down: "↓ снижается", flat: "→ без изменений" };
+const trendLine = k => (k.trend ? ' ' + TREND_TXT[k.trend] + '.' : '') + (k.dueNow ? ' Пора повторить.' : '');
 /* ---------- кабинет родителя: графики и сводки ---------- */
 const PC = { blue: "#2B4BC4", green: "#1F7A45", amber: "#C2620A" };
 let PCID = 0;
@@ -965,6 +1028,9 @@ function tipsBlock(c) {
   if (rep.length) h += '<div class="pc-tip2 warn"><b>Стоит повторить</b><div>' + rep.map(k => '<span class="tag repeat">' + esc(k.name) + '</span>').join(" ") + '</div></div>';
   if (c.hardTop.length) h += '<div class="pc-tip2"><b>Чаще всего вызывали трудности в последних занятиях</b><div>' + c.hardTop.map(k => esc(k.name) + ' (в ' + k.lessons + ' ' + plural(k.lessons, "занятии", "занятиях", "занятиях") + ')').join("; ") + '</div></div>';
   if (good.length) h += '<div class="pc-tip2 ok"><b>Хорошо получается</b><div>' + good.map(k => '<span class="tag good">' + esc(k.name) + '</span>').join(" ") + '</div></div>';
+  if (!c.diagAt) h += '<div class="pc-tip2"><b>Знакомство ещё не пройдено</b><div>Это 8 коротких вопросов без подсказок: по ним Листик понимает, с чего начинать. Ребёнок увидит предложение на главной странице после входа в кабинет.</div></div>';
+  if (c.errorsTop && c.errorsTop.length) h += '<div class="pc-tip2"><b>Как чаще всего ошибается</b><div>' + c.errorsTop.map(e => esc(e.label) + ' (' + e.n + ' ' + plural(e.n, "раз", "раза", "раз") + ')').join("; ") + '</div><div class="sub">Это подсчёт программы по типичным ошибкам. Список ошибок составлен автором и ещё не проверен учителем.</div></div>';
+  if (c.recs && c.recs.length) h += '<div class="pc-tip2"><b>Что взять следующим</b><div>' + c.recs.map(r => '№ ' + esc(r.no) + ' ' + esc(r.title) + ' (' + REC_TXT[r.kind] + ')').join("; ") + '</div></div>';
   const gap = c.lastAt ? Math.floor((Date.now() - Date.parse(c.lastAt)) / 86400000) : null;
   if (gap !== null && gap >= 3) h += '<div class="pc-tip2"><b>Занятий не было ' + gap + ' ' + plural(gap, "день", "дня", "дней") + '</b><div>Регулярные короткие занятия работают лучше, чем редкие и длинные.</div></div>';
   h += '<div class="pc-tip2"><b>Как помочь дома</b><div>Не подсказывайте ответ сразу. Попросите ребёнка объяснить, что он делает, своими словами: Листик задаёт наводящие вопросы и подсказывает следующий шаг.</div></div>';
@@ -1047,7 +1113,7 @@ function renderCabinet() {
       sk.forEach(k => {
         const pct = Math.round(100 * k.firstTry / k.steps);
         h += '<div class="rowitem"><div class="top2"><span>' + esc(k.name) + '</span><span class="tag ' + k.level + '">' + LEVELS[k.level] + ' · ' + pct + '%</span></div><div class="bar" aria-hidden="true"><i style="width:' + pct + '%"></i></div>' +
-          '<div class="sub">' + k.firstTry + ' из ' + k.steps + ' шагов с первого раза' + (k.helped ? '. С помощью взрослого: ' + k.helped : '') + '</div></div>';
+          '<div class="sub">' + k.firstTry + ' из ' + k.steps + ' шагов с первого раза' + (k.helped ? '. С помощью взрослого: ' + k.helped : '') + '.' + trendLine(k) + '</div></div>';
       });
     }
     h += '<h2 class="sec">Сводка по неделям</h2>' + '<div class="pc-scroll"><table class="pc-tbl"><thead><tr><th>Неделя с</th><th>Минут</th><th>Занятий</th><th>С первого раза</th></tr></thead><tbody>' +
@@ -1069,7 +1135,7 @@ function renderCabinet() {
       c.skills.forEach(k => {
         h += '<div class="rowitem"><div class="top2"><span>' + esc(k.name) + '</span><span class="tag ' + k.level + '">' + LEVELS[k.level] + '</span></div>' +
           '<div class="bar" aria-hidden="true"><i style="width:' + Math.round(100 * k.firstTry / k.steps) + '%"></i></div>' +
-          '<div class="sub">С первого раза: ' + k.firstTry + ' из ' + k.steps + (k.helped ? '. С помощью взрослого: ' + k.helped : '') + '</div></div>';
+          '<div class="sub">С первого раза: ' + k.firstTry + ' из ' + k.steps + (k.helped ? '. С помощью взрослого: ' + k.helped : '') + '.' + trendLine(k) + '</div></div>';
       });
     }
     const hs = c.history.slice(-10).reverse();
@@ -1205,31 +1271,32 @@ const HOME = { q: "", view: "list", open: {}, inited: false };
 try { const v = localStorage.getItem("lk_view2"); if (v === "tiles" || v === "list") HOME.view = v; } catch (e) {}
 let SECTIONS = [];
 const ST_MARK = { done: "✓", progress: "…" };
+const REC_TXT = { review: "пора повторить", harder: "можно потруднее", easier: "лучше полегче" };
 function catItem(t, i) {
   const lock = !!t.locked, cls = (lock ? " lock" : "") + (t.st === "done" ? " done" : t.st === "progress" ? " progress" : "");
   const mk = lock ? "🔒" : (ST_MARK[t.st] || "");
-  const label = "Номер " + t.no + (lock ? ", по подписке" : t.st === "done" ? ", решено" : t.st === "progress" ? ", начато" : "");
+  const label = "Номер " + t.no + (lock ? ", по подписке" : t.st === "done" ? ", решено" : t.st === "progress" ? ", начато" : "") + (t.rec ? ", рекомендуем: " + REC_TXT[t.rec] : "");
   if (HOME.view === "list") {
     return '<li><button class="row-btn' + cls + (t.title === "Задача" ? " word" : "") + '" data-action="start" data-i="' + i + '" aria-label="' + label + '">' +
       '<span class="rno">' + esc(t.no) + '</span><span class="rtx">' + (t.title !== "Задача" ? '<b>' + esc(t.title) + '</b>' : '') +
-      (lock ? 'по подписке' : esc(t.cond || "")) + '</span><span class="rst">' + mk + '</span></button></li>';
+      (t.rec ? ' <em class="recm">★ ' + REC_TXT[t.rec] + '</em> ' : '') + (lock ? 'по подписке' : esc(t.cond || "")) + '</span><span class="rst">' + mk + '</span></button></li>';
   }
   return '<li><button class="tile' + cls + '" data-action="start" data-i="' + i + '" aria-label="' + label + '" title="' + esc(lock ? t.title : (t.cond || t.title)) + '">' +
-    esc(t.no) + (mk ? '<span class="mk" aria-hidden="true">' + mk + '</span>' : '') + '</button></li>';
+    esc(t.no) + (mk ? '<span class="mk" aria-hidden="true">' + mk + '</span>' : '') + (t.rec ? '<span class="rc" title="Рекомендуем: ' + REC_TXT[t.rec] + '" aria-hidden="true">★</span>' : '') + '</button></li>';
 }
 function catItems(idx) {
   return '<ul class="' + (HOME.view === "list" ? "rows" : "tiles") + '">' + idx.map(i => catItem(TASKS[i], i)).join("") + '</ul>';
 }
 function catGroups() {
   const by = {}, order = [];
-  TASKS.forEach((t, i) => { const k = t.section || "_other"; if (!by[k]) { by[k] = []; order.push(k); } by[k].push(i); });
+  TASKS.forEach((t, i) => { if (t.quiz) return; const k = t.section || "_other"; if (!by[k]) { by[k] = []; order.push(k); } by[k].push(i); });
   const list = SECTIONS.map(x => ({ id: x.id, title: x.title }));
   order.forEach(k => { if (!list.some(x => x.id === k)) list.push({ id: k, title: "Другие задачи" }); });
   return list.map(x => ({ id: x.id, title: x.title, idx: by[x.id] || [] }));
 }
 function catListHTML() {
   const q = HOME.q.trim().toLowerCase();
-  const scope = QUEUE || TASKS.map((_, i) => i);
+  const scope = QUEUE || TASKS.map((_, i) => i).filter(i => !TASKS[i].quiz);
   if (q) {
     const hit = scope.filter(i => { const t = TASKS[i]; return String(t.no).toLowerCase() === q || String(t.no).toLowerCase().startsWith(q) || (t.cond || "").toLowerCase().includes(q) || (t.title || "").toLowerCase().includes(q); });
     if (!hit.length) return '<p class="cat-empty">Ничего не нашлось. Проверьте номер или попробуйте другое слово.</p>';
@@ -1251,21 +1318,36 @@ function paintCat() {
   const el = document.getElementById("catlist"); if (el) el.innerHTML = catListHTML();
   document.querySelectorAll(".seg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === HOME.view)));
 }
+function quizCard() {
+  if (!USER) return "";
+  if (OFFER.diag) return '<div class="mark quizc"><b>Давай познакомимся, ' + esc(USER.child.name) + '!</b><div>Восемь коротких вопросов, чтобы Листик понял, что ты уже умеешь. Ошибаться можно. Подсказок не будет.</div>' +
+    '<div class="row"><button class="btn small" data-action="quiz" data-k="diag">Начать</button><button class="btn ghost small" data-action="quiz-later">Не сейчас</button></div></div>';
+  if (OFFER.warm) return '<div class="mark quizc"><b>Разминка на пару минут</b><div>' + OFFER.warm + ' ' + plural(OFFER.warm, "вопрос", "вопроса", "вопросов") + ' про то, что пора повторить.</div>' +
+    '<div class="row"><button class="btn small" data-action="quiz" data-k="warm">Начать разминку</button></div></div>';
+  return "";
+}
+async function startQuiz(kind) {
+  let r; try { r = await api("/api/quiz/start", { kind }); } catch (e) { r = { status: 0, data: {} }; }
+  if (r.status === 401) { USER = null; S = { view: "auth", mode: "login", err: "Войдите в кабинет, чтобы пройти знакомство." }; return render(); }
+  if (r.status === 403 && r.data && r.data.error === "day_limit") { USAGE.studyLeft = 0; return endOfDay(); }
+  if (r.status !== 200 || !r.data || !r.data.task) { S = { view: "home", flash: r.status === 409 ? "Сегодня разминка не нужна." : "Не получилось начать. Попробуй ещё раз." }; return render(); }
+  TASKS = TASKS.filter(t => !t.quiz); TASKS.push(r.data.task);
+  return startTask(TASKS.length - 1);
+}
 function renderHome() {
   let h = header(false);
-  h += '<div class="cat-title"><h1>Выбери упражнение</h1></div>';
+  h += quizCard();
+  h += '<div class="cat-title"><h1>' + (USER && USER.child && USER.child.name ? 'Привет, ' + esc(USER.child.name) + '! ' : '') + 'Выбери упражнение</h1></div>';
   h += '<div class="cat-tools"><label class="cat-search"><input id="catq" type="search" inputmode="search" autocomplete="off" placeholder="Номер или слово, например 245" aria-label="Найти задачу" value="' + esc(HOME.q) + '"></label>' +
     '<div class="seg" role="group" aria-label="Вид списка"><button data-action="view" data-v="tiles" aria-pressed="' + (HOME.view === "tiles") + '">▦ Плитки</button>' +
     '<button data-action="view" data-v="list" aria-pressed="' + (HOME.view === "list") + '">☰ Список</button></div></div>';
   h += '<div id="catlist">' + catListHTML() + '</div>';
   if (S.flash) { h += '<div class="fb ok">' + esc(S.flash) + '</div>'; S.flash = ""; }
-  if (USER) {
-    h += '<div class="mark"><b>Занимается:</b> ' + esc(USER.child.name) + '<div>' + (USER.plan ? 'Подписка до ' + new Date(USER.plan.until).toLocaleDateString("ru-RU") : 'Пробный доступ. <a href="/pricing.html">Тарифы</a>') + '</div><div class="row"><button class="btn ghost small" data-action="cab-open">Кабинет родителя</button></div></div>';
-  } else {
+  if (!USER) {
     h += '<div class="mark"><b>Для родителей.</b> Кабинет родителя защищён PIN-кодом. С ним взрослый сможет помочь ребёнку на трудном шаге. Без кабинета Листик работает, но позвать взрослого нельзя.' +
       '<div class="row"><button class="btn small" data-action="auth" data-mode="register">Создать кабинет</button><button class="btn ghost small" data-action="auth" data-mode="login">Войти</button></div></div>';
   }
-  h += '<div class="foot"><p>Все вопросы, правила и ответы записаны заранее. Программа сама сверяет ответ ребёнка с верным.</p>' + aiNote() + ttsNote() + '</div>';
+  if (!USER) h += '<div class="foot"><p>Все вопросы, правила и ответы записаны заранее. Программа сама сверяет ответ ребёнка с верным.</p>' + aiNote() + ttsNote() + '</div>';
   app.innerHTML = h;
   window.scrollTo(0, 0);
 }
@@ -1283,12 +1365,12 @@ function renderTask() {
   const T = TASKS[S.t];
   if (S.stage === "lesson") return renderLesson(T);
   const st = T.steps[S.s];
-  const n = T.steps.length;
+  const n = visIdx(T).length;
   let h = lessonHeader(T, n, false);
   h += '<div class="lesson"><section class="lcol">';
   h += '<div id="voiceslot">' + voiceHTML() + '</div>';
 
-  h += '<div class="step"><div class="meta-row"><div class="meta">Шаг ' + (S.s + 1) + ' из ' + n + '</div>' +
+  h += '<div class="step"><div class="meta-row"><div class="meta">Шаг ' + vpos(T, S.s) + ' из ' + n + '</div>' +
     (TTS.ok && !VOICE.quiet && !VOICE.available ? '<button class="speak" data-action="readq" aria-label="Прочитать вопрос вслух">🔊 Прочитать</button>' : '') + '</div>';
   h += '<p class="q">' + st.q + '</p>';
 
@@ -1300,6 +1382,9 @@ function renderTask() {
         h += '<button class="opt' + (w ? ' wrong' : '') + '" data-action="pick" data-i="' + i + '"' + (w ? ' disabled' : '') + '><span class="let hand">' + LETTERS[i] + '</span><span>' + o + '</span></button>';
       });
       h += '</div>';
+    } else if (st.type === "explain") {
+      h += '<div class="fields"><textarea id="exin" class="inp ex" rows="4" maxlength="400" placeholder="Напиши или скажи своими словами…" aria-label="Твоё объяснение">' + esc(S.entry[0] || "") + '</textarea></div>' +
+        '<div class="row"><button class="btn" data-action="explain-send">Проверить</button></div>';
     } else {
       const labels = st.type === "pair" ? st.fields : [null];
       h += '<div class="fields">';
@@ -1315,6 +1400,11 @@ function renderTask() {
     if (S.emptyMsg) h += '<div class="fb bad" role="alert">Набери число кнопками и нажми «Проверить».</div>';
     if (S.netMsg) h += '<div class="fb bad" role="alert">' + S.netMsg + '</div>';
 
+    if (S.calm) {
+      h += '<div class="fb calm pop" role="status">' + (S.calm === "break"
+        ? 'Кажется, пора отдохнуть. Можно сделать паузу и вернуться позже или выбрать задачу полегче. <button class="btn ghost small" data-action="home">К списку задач</button>'
+        : 'Ты стараешься, и это самое главное. Давай глубоко вдохнём и посмотрим на правило ещё раз. Так бывает у всех.') + '</div>';
+    }
     if (S.attempts >= 1) {
       h += '<div class="fb bad pop" role="alert"><strong class="r">Пока не так.</strong> ' +
         (S.attempts === 1 ? 'Смотри правило и попробуй ещё раз.' : 'Разберём похожий пример и попробуем снова.') + '</div>';
@@ -1323,13 +1413,13 @@ function renderTask() {
     if (S.attempts >= 2 && S.similar) {
       h += '<div class="mark"><b>Похожий пример:</b> ' + S.similar + '</div>';
     }
-    if (st.type !== "choice") h += padHTML();
-    if (S.s > 0) h += '<div class="row">' + backBtn() + '</div>';
+    if (st.type !== "choice" && st.type !== "explain") h += padHTML();
+    if (vprev(T, S.s) >= 0) h += '<div class="row">' + backBtn() + '</div>';
   }
 
   if (S.stage === "right") {
-    h += '<div class="fb ok pop" role="status"><strong class="g">Верно!</strong> ' + S.okText + '</div>';
-    const last = S.s === n - 1;
+    h += '<div class="fb ok pop" role="status">' + (S.mv && S.mv[S.s] ? '<strong>Идём дальше.</strong> ' : '<strong class="g">Верно!</strong> ') + (S.mv && S.mv[S.s] ? '' : S.okText) + '</div>';
+    const last = vnext(T, S.s) < 0;
     h += '<div class="row">' + backBtn() + '<button class="btn" data-action="next">' + (last ? 'Закончить' : 'Дальше') + '</button></div>';
   }
 
@@ -1531,12 +1621,12 @@ function lbPlayOne(i) {
   lbSay(TASKS[S.t].lesson.cards[i].text, () => {});
 }
 
-async function submit(answer, pickedIndex) {
+async function submit(answer, pickedIndex, ch) {
   if (S.busy) return;
   const my = S, T = TASKS[S.t], st = T.steps[S.s], stepNo = S.s;
   S.busy = true; S.netMsg = ""; S.emptyMsg = false;
   let r;
-  try { r = await api("/api/check", { task: T.id, step: stepNo, answer }); }
+  try { r = await api("/api/check", { task: T.id, step: stepNo, answer, ch: ch === "voice" ? "voice" : "tap" }); }
   catch (e) { my.busy = false; my.netMsg = "Нет связи. Попробуй ещё раз."; VOICE.onResult({ kind: "error", msg: "нет связи с сервером" }); return S === my && render(); }
   my.busy = false;
   if (S !== my || my.s !== stepNo) { VOICE.onResult({ kind: "error", msg: "шаг уже сменился" }); return; }
@@ -1545,6 +1635,7 @@ async function submit(answer, pickedIndex) {
   if (r.status === 429) { my.netMsg = "Слишком много попыток. Подожди минуту."; VOICE.onResult({ kind: "error", msg: "слишком много попыток, нужно подождать минуту" }); return render(); }
   if (r.status !== 200 && r.status !== 423) { my.netMsg = "Что-то пошло не так. Обнови страницу."; VOICE.onResult({ kind: "error", msg: "ошибка сервера" }); return render(); }
   const d = r.data;
+  if (d.quizDone) S.quizSum = d.quizDone;
   if (d.correct) {
     S.stage = "right"; S.okText = d.ok || "";
     (S.oks = S.oks || {})[S.s] = S.okText;      // запоминаем, чтобы можно было вернуться на этот шаг
@@ -1553,17 +1644,23 @@ async function submit(answer, pickedIndex) {
     if (am) S.notes.push("Ответ: " + am[1]);
     say((S.errors[S.s] || 0) > 0 ? "rightAfter" : "right", st.skill);
     VOICE.onResult({ kind: "correct", ok: d.ok, note: d.note });
+  } else if (d.moveOn) {
+    S.stage = "right"; S.okText = T.quiz === "diag" ? "Хорошо, идём дальше." : "Ничего страшного, идём дальше.";
+    (S.oks = S.oks || {})[S.s] = S.okText; (S.mv = S.mv || {})[S.s] = true;
+    VOICE.onResult({ kind: "moveon" });
   } else if (r.status === 423) {
     S.stage = "locked"; S.rule = d.rule;
     VOICE.onResult({ kind: "locked", rule: d.rule });
   } else {
     S.errors[S.s] = (S.errors[S.s] || 0) + 1;
     S.attempts = d.attempts; S.rule = d.rule; S.similar = d.similar || null;
+    if (d.tired) S.calm = d.tired;
     if (pickedIndex !== undefined) S.wrong.push(pickedIndex);
-    S.entry = freshEntry(st); S.active = 0;
+    if (st.type !== "explain") S.entry = freshEntry(st);
+    S.active = 0;
     if (d.locked) { S.stage = "locked"; say("locked", st.skill); }
     else say(S.attempts === 1 ? "wrong1" : "wrong2", st.skill);
-    VOICE.onResult({ kind: "wrong", attempts: d.attempts, rule: d.rule, similar: d.similar || null, locked: !!d.locked });
+    VOICE.onResult({ kind: "wrong", attempts: d.attempts, rule: d.rule, similar: d.similar || null, locked: !!d.locked, tired: d.tired || null });
   }
   render();
 }
@@ -1587,7 +1684,7 @@ async function unlock(value) {
 }
 
 function digit(d) {
-  if (S.entry[S.active].length >= 3) return;
+  if (S.entry[S.active].length >= 4) return;
   S.entry[S.active] = S.entry[S.active] === "0" ? d : S.entry[S.active] + d;
   S.emptyMsg = false;
   render();
@@ -1608,7 +1705,7 @@ function checkTyped() {
 
 function nextStep() {
   const T = TASKS[S.t];
-  if (S.s === T.steps.length - 1) {
+  if (vnext(T, S.s) < 0) {
     S.view = "done"; S.voice = null;
     render();
     say("done");
@@ -1617,7 +1714,7 @@ function nextStep() {
     return;
   }
   stopSpeech();
-  S.s++; S.attempts = 0; S.stage = "ask"; S.wrong = []; S.voice = null;
+  S.s = vnext(T, S.s); S.attempts = 0; S.stage = "ask"; S.wrong = []; S.voice = null; S.calm = "";
   S.entry = freshEntry(T.steps[S.s]); S.active = 0;
   S.adultOpen = false; S.adultPassed = false; S.adultErr = false; S.emptyMsg = false;
   S.rule = null; S.similar = null; S.okText = ""; S.netMsg = ""; S.adultAnswer = null;
@@ -1628,13 +1725,14 @@ function nextStep() {
 
 /* кнопка «Назад»: возвращает на предыдущий (уже решённый) шаг, где можно перечитать вопрос и ответ */
 function backBtn() {
-  return S.s > 0 ? '<button class="btn ghost small" data-action="prev">← Назад к шагу ' + S.s + '</button>' : '';
+  const T = TASKS[S.t], p = vprev(T, S.s);
+  return p >= 0 ? '<button class="btn ghost small" data-action="prev">← Назад к шагу ' + vpos(T, p) + '</button>' : '';
 }
 function prevStep() {
-  if (S.busy || S.s <= 0) return;
-  stopSpeech();
   const T = TASKS[S.t];
-  S.s--; S.attempts = 0; S.wrong = []; S.voice = null;
+  if (S.busy || vprev(T, S.s) < 0) return;
+  stopSpeech();
+  S.s = vprev(T, S.s); S.attempts = 0; S.wrong = []; S.voice = null; S.calm = "";
   S.entry = freshEntry(T.steps[S.s]); S.active = 0;
   S.adultOpen = false; S.adultPassed = false; S.adultErr = false; S.emptyMsg = false;
   S.rule = null; S.similar = null; S.netMsg = ""; S.adultAnswer = null;
@@ -1642,11 +1740,24 @@ function prevStep() {
   render();
 }
 
+function renderQuizDone() {
+  const T = TASKS[S.t], q = S.quizSum || { ok: 0, total: T.steps.length, weak: [], strong: [] };
+  let h = lessonHeader(T, T.steps.length, true);
+  h += '<div class="lesson"><section class="lcol"><div id="voiceslot">' + voiceHTML() + '</div><div class="sum"><h2>' + (T.quiz === "diag" ? "Мы познакомились!" : "Разминка готова!") + '</h2>';
+  h += '<p>Сразу получилось: <b>' + q.ok + ' из ' + q.total + '</b>.</p>';
+  if (q.strong.length) h += '<p><b>Хорошо получается:</b> ' + q.strong.join(", ") + '.</p>';
+  if (q.weak.length) h += '<p><b>Потренируем:</b> ' + q.weak.join(", ") + '. Листик вернётся к этому в ближайшие дни.</p>';
+  h += '<div class="row"><button class="btn" data-action="home">Выбрать упражнение</button></div></div></section></div>';
+  app.innerHTML = h;
+  window.scrollTo(0, 0);
+}
 function renderDone() {
+  if (TASKS[S.t].quiz) return renderQuizDone();
   const T = TASKS[S.t];
   const clean = new Set(), hard = new Set(), repeat = new Set();
   let firstTry = 0;
   T.steps.forEach((st, i) => {
+    if (st.skip) return;
     const e = S.errors[i] || 0;
     if (e === 0 && !S.helped[i]) { firstTry++; clean.add(st.skill); }
     if (e > 0) hard.add(st.skill);
@@ -1658,7 +1769,7 @@ function renderDone() {
   h += '<div class="lesson"><section class="lcol">';
   h += '<div id="voiceslot">' + voiceHTML() + '</div>';
   h += '<div class="sum"><h2>Итог занятия</h2>';
-  h += '<p>С первого раза получилось шагов: <b>' + firstTry + ' из ' + T.steps.length + '</b>.</p>';
+  h += '<p>С первого раза получилось шагов: <b>' + firstTry + ' из ' + visIdx(T).length + '</b>.</p>';
   h += '<p><b>Получилось сам:</b> ' + (clean.size ? list(clean) : 'в этот раз всё давалось с трудом, и это нормально') + '.</p>';
   h += '<p><b>Было трудно:</b> ' + (hard.size ? list(hard) : 'ничего, шаги шли гладко') + '.</p>';
   h += '<p><b>Стоит повторить:</b> ' + (repeat.size ? list(repeat) : 'пока ничего, можно брать следующую задачу') + '.</p>';
@@ -1684,9 +1795,11 @@ app.addEventListener("click", e => {
   if (!b) return;
   const a = b.dataset.action;
   if (a === "start") return startTask(+b.dataset.i);
+  if (a === "quiz") return startQuiz(b.dataset.k === "warm" ? "warm" : "diag");
+  if (a === "quiz-later") { OFFER.diag = false; call("/api/quiz/later", {}); return render(); }
   if (a === "sec") { HOME.open[b.dataset.s] = !HOME.open[b.dataset.s]; return paintCat(); }
   if (a === "view") { HOME.view = b.dataset.v; try { localStorage.setItem("lk_view2", HOME.view); } catch (e) {} return paintCat(); }
-  if (a === "home") { stopSpeech(); VOICE.stop(null, true); if (S.view === "cabinet" && USER) call("/api/parent/leave", {}); S = { view: "home" }; return render(); }
+  if (a === "home") { stopSpeech(); VOICE.stop(null, true); if (S.view === "cabinet" && USER) call("/api/parent/leave", {}); S = { view: "home" }; render(); loadOffer().then(() => { if (S.view === "home") render(); }); return; }
   if (a === "auth") { S = { view: "auth", mode: b.dataset.mode || "login", err: "", form: S.form }; return render(); }
   if (a === "showpw") { ["fPass", "fPass2"].forEach(id => { const el = document.getElementById(id); if (el) el.type = b.checked ? "text" : "password"; }); return; }
   if (a === "cab-tab") { S.tab = b.dataset.tab; S.err = ""; return render(); }
@@ -1711,6 +1824,13 @@ app.addEventListener("click", e => {
   if (a === "back") return backspace();
   if (a === "focus") { S.active = +b.dataset.i; return render(); }
   if (a === "check") return checkTyped();
+  if (a === "explain-send") {
+    const el = document.getElementById("exin"), txt = ((el && el.value) || S.entry[0] || "").trim();
+    S.entry[0] = txt;
+    if (txt.length < 3) { S.netMsg = "Напиши или скажи хотя бы пару слов."; return render(); }
+    S.netMsg = "";
+    return submit(txt);
+  }
   if (a === "lnext" || a === "lprev") { stopSpeech(); S.lc += a === "lnext" ? 1 : -1; render(); VOICE.announce(true); return; }
   if (a === "lstart") { stopSpeech(); S.stage = "ask"; S.lc = 0; render(); VOICE.announce(); return; }
   if (a === "lplay") return lbPlayAll();
@@ -1739,7 +1859,10 @@ app.addEventListener("click", e => {
 });
 
 /* цифры с обычной клавиатуры (на компьютере) */
-app.addEventListener("input", e => { if (e.target && e.target.id === "catq") { HOME.q = e.target.value; paintCat(); } });
+app.addEventListener("input", e => {
+  if (e.target && e.target.id === "catq") { HOME.q = e.target.value; paintCat(); }
+  if (e.target && e.target.id === "exin" && S && S.entry) S.entry[0] = e.target.value;
+});
 app.addEventListener("keydown", e => {
   if (e.key === "Enter" && e.target && e.target.id === "catq") {
     const first = document.querySelector("#catlist [data-action=start]"); if (first) startTask(+first.dataset.i);
@@ -1751,7 +1874,7 @@ document.addEventListener("keydown", e => {
   }
   if (!S || S.view !== "task" || S.stage !== "ask") return;
   const st = TASKS[S.t].steps[S.s];
-  if (st.type === "choice") return;
+  if (st.type === "choice" || st.type === "explain") return;
   if (e.target && e.target.tagName === "INPUT") return;
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (/^\d$/.test(e.key)) { digit(e.key); e.preventDefault(); }
@@ -1949,9 +2072,10 @@ Object.assign(VOICE, {
     else if (S.view === "done") this.tell(this.doneText());
   },
   stepText(retry) {
-    const T = TASKS[S.t], st = T.steps[S.s], n = T.steps.length;
-    let t = "[Программа] Задача №" + T.no + ". Условие: " + vsay(T.condition) + ". Сейчас шаг " + (S.s + 1) + " из " + n + ". Вопрос (уже подготовлен для чтения вслух): " + vsay(st.q) + ". ";
+    const T = TASKS[S.t], st = T.steps[S.s], n = visIdx(T).length;
+    let t = (T.quiz ? "[Программа] Это быстрые вопросы (" + (T.quiz === "diag" ? "знакомство" : "разминка") + "), а не обычная задача." + (T.quiz === "diag" ? " Ничего не подсказывай и не объясняй: программа так узнаёт, что ребёнок уже умеет. Задавай вопросы по очереди." : "") : "[Программа] Задача №" + T.no + ". Условие: " + vsay(T.condition) + ".") + " Сейчас шаг " + vpos(T, S.s) + " из " + n + ". Вопрос (уже подготовлен для чтения вслух): " + vsay(st.q) + ". ";
     if (st.type === "choice") t += "Тип ответа: выбор варианта (передавай букву в поле choice). Варианты: " + st.options.map((o, i) => LETTERS[i] + ") " + vsay(o)).join("; ") + ". ";
+    else if (st.type === "explain") t += "Тип ответа: ребёнок объясняет своими словами. Выслушай и передай его слова дословно в поле text. Сам ничего не объясняй и не подсказывай, ответ не называй. ";
     else if (st.type === "pair") t += "Тип ответа: " + st.fields.length + " числа по порядку (поле values): " + st.fields.map(f => vsay(f)).join(", ") + ". ";
     else t += "Тип ответа: одно целое число (поле number). ";
     if (retry) t += "Взрослый помог, ребёнок пробует этот шаг ещё раз. Ободри его и повтори вопрос.";
@@ -1968,9 +2092,14 @@ Object.assign(VOICE, {
   },
   doneText() {
     const T = TASKS[S.t];
+    if (T.quiz) {
+      const q = S.quizSum || { ok: 0, total: T.steps.length, weak: [], strong: [] };
+      return "[Программа] " + (T.quiz === "diag" ? "Знакомство закончено" : "Разминка закончена") + ". Сразу получилось " + q.ok + " из " + q.total + ". Хорошо получается: " + (q.strong.length ? q.strong.join(", ") : "пока рано говорить") +
+        ". Потренируем: " + (q.weak.length ? q.weak.join(", ") : "ничего") + ". Скажи в двух коротких предложениях, что получилось хорошо, и что Листик вернётся к трудному в ближайшие дни. Предложи выбрать упражнение. Не называй проценты.";
+    }
     let first = 0; const hard = new Set();
     T.steps.forEach((st, i) => { const e = S.errors[i] || 0; if (e === 0 && !S.helped[i]) first++; if (e > 0) hard.add(plain(st.skill)); });
-    return "[Программа] Задача решена. С первого раза получилось " + first + " из " + T.steps.length + ". Было трудно: " + (hard.size ? [...hard].join(", ") : "ничего") +
+    return "[Программа] Задача решена. С первого раза получилось " + first + " из " + visIdx(T).length + ". Было трудно: " + (hard.size ? [...hard].join(", ") : "ничего") +
       ". Подведи итог в 2–3 коротких предложениях: что получилось само, что стоит повторить. Скажи, что можно нажать «Следующая задача» или сделать перерыв.";
   },
 
@@ -2043,7 +2172,11 @@ Object.assign(VOICE, {
     if (S.view !== "task" || S.stage !== "ask" || S.busy) return { error: "Сейчас ответ принять нельзя: шаг не ждёт ответа.", stage: S.stage || S.view };
     const st = TASKS[S.t].steps[S.s];
     let answer, picked;
-    if (st.type === "number") {
+    if (st.type === "explain") {
+      const tx = String(args.text || "").trim().slice(0, 400);
+      if (tx.length < 3) return { error: "Для этого шага нужны слова ребёнка в поле text." };
+      answer = tx;
+    } else if (st.type === "number") {
       if (!Number.isInteger(args.number)) return { error: "Для этого шага нужно одно целое число (поле number)." };
       answer = args.number;
     } else if (st.type === "choice") {
@@ -2059,7 +2192,7 @@ Object.assign(VOICE, {
       const p = { resolve: v => { clearTimeout(timer); resolve(v); } };
       const timer = setTimeout(() => { if (VOICE.pending === p) { VOICE.pending = null; resolve({ error: "проверка не ответила, попробуй ещё раз" }); } }, 10000);
       VOICE.pending = p;
-      submit(answer, picked);
+      submit(answer, picked, "voice");
     });
   },
 
@@ -2071,13 +2204,20 @@ Object.assign(VOICE, {
       this.adv = "queued";
       out = { result: "correct", message: vsay(info.ok), instruction: "Произнеси message дословно и добавь не больше пяти слов одобрения. Следующий вопрос не задавай: программа сама перейдёт к следующему шагу." };
     } else if (info.kind === "wrong") {
-      out = { result: "wrong", attempt: info.attempts, max_attempts: 3, rule: vsay(info.rule), similar: info.similar ? vsay(info.similar) : null, locked: !!info.locked,
+      out = { result: "wrong", attempt: info.attempts, max_attempts: 3, rule: vsay(info.rule), similar: info.similar ? vsay(info.similar) : null, locked: !!info.locked, tired: info.tired || null,
         instruction: info.locked
           ? "Скажи «Так бывает у всех. Можно сделать перерыв или позвать взрослого». Ничего не добавляй, ответ не называй."
           : "Скажи «Пока не так», дословно прочитай rule (и similar, если он есть) и попроси попробовать ещё раз. Ничего не добавляй от себя, ответ не называй и за ребёнка не считай." };
+    } else if (info.kind === "moveon") {
+      this.adv = "queued";
+      out = { result: "move_on", instruction: "Скажи «Хорошо, идём дальше» или «Ничего страшного, идём дальше» и больше ничего. Ответ не называй и не объясняй. Программа сама перейдёт к следующему вопросу." };
     } else if (info.kind === "locked") {
       out = { result: "locked", locked: true, rule: vsay(info.rule), instruction: "Шаг заблокирован. Скажи «Так бывает у всех. Можно сделать перерыв или позвать взрослого». Ответ не называй." };
     } else out = { error: info.msg || "ошибка" };
+    if (info.kind === "wrong" && info.tired && out.instruction && !out.locked)
+      out.instruction += info.tired === "break"
+        ? " Потом добавь одну добрую фразу: ты молодец, что стараешься, и можно сделать перерыв или выбрать задачу полегче."
+        : " Потом добавь одну добрую фразу: ты стараешься, и так бывает у всех. Говори спокойно и коротко.";
     if (this.pending) { const p = this.pending; this.pending = null; p.resolve(out); }
     else this.tell("[Программа] Ребёнок ответил на экране (кнопками). Результат проверки: " + JSON.stringify(out));
   },
@@ -2175,7 +2315,8 @@ function usageTick() {
 setInterval(usageTick, 15000);
 
 async function reloadTasks() {
-  try { const t = await api("/api/tasks"); if (t.status === 200 && Array.isArray(t.data.tasks) && t.data.tasks.length === TASKS.length) TASKS = t.data.tasks; } catch (e) {}
+  try { const t = await api("/api/tasks"); if (t.status === 200 && Array.isArray(t.data.tasks) && t.data.tasks.length === TASKS.filter(x => !x.quiz).length) TASKS = t.data.tasks; } catch (e) {}
+  await loadOffer();
 }
 async function loadData() {
   const [tasks, phrases, prompts] = await Promise.all([api("/api/tasks"), loadJSON("phrases.json"), loadJSON("prompts.json")]);
@@ -2187,6 +2328,7 @@ async function loadData() {
   PROMPT_TEMPLATE = prompts.ai_voice.template;
   BANNED = new RegExp(prompts.ai_voice.banned_pattern, prompts.ai_voice.banned_flags);
   try { const me = await api("/api/me"); USER = me.data.user || null; } catch (e) { USER = null; }
+  await loadOffer();
   try { const v = await api("/api/voice/available"); VOICE.available = !!(v.data && v.data.ok) && !!((window.AudioContext || window.webkitAudioContext) && window.AudioWorkletNode && navigator.mediaDevices && navigator.mediaDevices.getUserMedia); } catch (e) { VOICE.available = false; }
   try { const u = await api("/api/usage"); setUsage(u.data); } catch (e) {}
 }
@@ -2225,5 +2367,9 @@ async function boot() {
 boot();
 </script>
 <script>window.addEventListener("hashchange",function(){if(location.hash==="#cabinet")location.reload();});</script>
+<script>
+/* Вошедшему родителю кнопка «Попробовать бесплатно» в шапке не нужна */
+(function(){try{fetch("/api/me",{cache:"no-store",credentials:"same-origin"}).then(function(r){return r.json()}).then(function(d){var u=d&&(d.user||(d.data&&d.data.user));if(!u)return;document.querySelectorAll('.sh-btn[href="/start.html"],.mh-btn[href="/start.html"]').forEach(function(a){a.style.display="none"})}).catch(function(){})}catch(e){}})();
+</script>
 </body>
 </html>
