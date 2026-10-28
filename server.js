@@ -751,6 +751,7 @@ const STATIC = {
   "/admin": ["admin.html", "text/html; charset=utf-8"],
   "/admin.html": ["admin.html", "text/html; charset=utf-8"],
   "/site.css": ["site.css", "text/css; charset=utf-8"],
+  "/sitechat-widget.js": ["sitechat-widget.js", "application/javascript; charset=utf-8"],
   "/img/hero-boy.jpg": ["img/hero-boy.jpg", "image/jpeg"],
   "/img/tired-girl.jpg": ["img/tired-girl.jpg", "image/jpeg"],
   "/img/happy-girl.jpg": ["img/happy-girl.jpg", "image/jpeg"],
@@ -890,6 +891,7 @@ async function api(req, res, url) {
     }
     if (url === "/api/me") return send(res, 200, { user: a ? publicUser(a) : null });
     if (url === "/api/quiz/offer") return send(res, 200, a ? quizOffer(a.user) : { diag: false, warm: 0 });
+    if (url === "/api/chat/available") return send(res, 200, { ok: SITECHAT.available() });
     if (url === "/api/voice/available") return send(res, 200, { ok: !!OPENAI_KEY && SETTINGS.voiceEnabled && (!!a || VOICE_GUESTS) });
     if (url === "/api/usage") return send(res, 200, usageView(usageKey(a, ip)));
     if (url === "/api/cabinet") return isParent(a) ? send(res, 200, cabinetView(a.user)) : send(res, a ? 403 : 401, { error: "parent_required" });
@@ -898,6 +900,7 @@ async function api(req, res, url) {
   if (req.method !== "POST" || !sameOrigin(req) || !String(req.headers["content-type"] || "").includes("application/json"))
     return send(res, 403, { error: "forbidden" });
   if (url === "/api/voice/turn") return voiceTurn(req, res, ip, a);
+  if (url === "/api/chat") return SITECHAT.handle(req, res, ip, a);
   let b;
   try { b = await body(req); } catch (e) { return send(res, 400, { error: "bad_request" }); }
 
@@ -1236,6 +1239,8 @@ function loadSnapshot() {
   return { verdict, cards, hist: h.map(s => ({ t: s.t, kids: s.kids, peak: s.peak, turns: s.turns, lag: s.lagMax, rss: s.rss })), samples: M.hist.length };
 }
 
+const SITECHAT = require("./sitechat.js")({ modelCall, outputText, Upstream, tooMany, hit, send, bigBody, M, dayStamp, logEvent, logWho, OPENAI_KEY, SETTINGS, LLM_MODEL });
+
 const ADMIN = require("./admin_panel.js")({
   users: () => USERS, metrics: loadSnapshot, saveUsers, usage: () => USAGE, usageOf, flushUsage, dayStamp, limitsFor, SETTINGS, saveSettings,
   cabinetView, hasPlan, hashSecret, TASKS, SECTIONS: () => TASKS_FILE.sections || [], SUBJECT, EMAIL_RE, auth, tooMany, hit, buckets, send, STORE_DIR, COOKIE_SECURE, parseCookies, voiceSessions,
@@ -1259,6 +1264,7 @@ http.createServer((req, res) => {
 }).listen(PORT, () => {
   console.log("Листик: http://localhost:" + PORT);
   console.log(OPENAI_KEY ? "Голос: включён (дешёвая схема: " + STT_MODEL + " + " + LLM_MODEL + " + " + TTS_MODEL + ")" : "Голос: выключен (нет OPENAI_API_KEY в файле .env)");
+  console.log("Чат на сайте: " + (SITECHAT.available() ? "включён (до " + (process.env.SITE_CHAT_GLOBAL_DAY || 3000) + " сообщений в сутки)" : "выключен (нет ключа OpenAI или SITE_CHAT=0)"));
   console.log("Кабинетов в базе: " + USERS.length + " (файл: " + USERS_FILE + ")");
   console.log(TRUST_PROXY ? "Прокси: TRUST_PROXY=1, TRUST_HOPS=" + TRUST_HOPS + " (DEBUG_IP=1 покажет, какой адрес выбирается)"
     : "Прокси: TRUST_PROXY не задан. Если сервер стоит за прокси (Render), все посетители будут выглядеть как один адрес!");

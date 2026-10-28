@@ -288,5 +288,10 @@ fetch("/api/tasks", { cache: "no-cache" }).then(r => r.json()).then(d => {
   $("opts").innerHTML = '<div class="err">Проверьте интернет и обновите страницу. Если вы запускаете программу сами, откройте её через сервер (команда: node server.js). <a href="/">На главную</a></div>';
 });
 </script>
+<script>
+/* Вошедшему родителю кнопка «Попробовать бесплатно» в шапке не нужна */
+(function(){try{fetch("/api/me",{cache:"no-store",credentials:"same-origin"}).then(function(r){return r.json()}).then(function(d){var u=d&&(d.user||(d.data&&d.data.user));if(!u)return;document.querySelectorAll('.sh-btn[href="/start.html"],.mh-btn[href="/start.html"]').forEach(function(a){a.style.display="none"})}).catch(function(){})}catch(e){}})();
+</script>
+<script src="/sitechat-widget.js" defer></script>
 </body>
 </html>

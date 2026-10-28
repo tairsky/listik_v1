@@ -61,6 +61,7 @@ svg .lk-blink{transform-box:fill-box;transform-origin:center;animation:lkblink 5
 .mh-flip>div:first-child{max-width:330px!important}
 .mh-final{padding-bottom:0!important}
 .mh-fcta{align-items:center!important;text-align:center}
+.mh-herobox{padding-bottom:0!important}
 .mh-x{display:none}
 .mh-btn{display:none!important}
 }
@@ -98,7 +99,7 @@ svg .lk-blink{transform-box:fill-box;transform-origin:center;animation:lkblink 5
 
 <!-- Первый экран -->
 <div style="position:relative;overflow:hidden">
-<div style="max-width:1120px;margin:0 auto;padding:40px 24px 56px;box-sizing:border-box;display:flex;flex-wrap:wrap;align-items:center;gap:56px">
+<div class="mh-herobox" style="max-width:1120px;margin:0 auto;padding:40px 24px 56px;box-sizing:border-box;display:flex;flex-wrap:wrap;align-items:center;gap:56px">
 <div class="mh-hero" style="flex:1 1 440px;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:24px">
 <h1 class="mh-h1" style="margin:0;font-size:46.8px;line-height:1.1;font-weight:800;letter-spacing:-0.01em">Не успеваете помогать ребенку с уроками?</h1>
 <p class="mh-sub" style="margin:0;font-size:22px;color:#4B5A50;max-width:620px">ИИ-репетитор объяснит любую тему школьной программы простыми словами, без нервов и спешки.</p>
@@ -177,6 +178,12 @@ svg .lk-blink{transform-box:fill-box;transform-origin:center;animation:lkblink 5
 </div>
 </div>
 
+<style>
+.lk-step{position:relative}
+@media (min-width:1000px){
+.lk-step:not(:last-child)::after{content:"";position:absolute;top:50%;right:-15px;width:9px;height:9px;margin-top:-5px;border-top:2.5px solid #B7C4B6;border-right:2.5px solid #B7C4B6;transform:rotate(45deg);border-radius:1px}
+}
+</style>
 <!-- Как это работает -->
 <div style="max-width:1120px;margin:0 auto;padding:64px 24px;box-sizing:border-box;display:flex;flex-direction:column;gap:40px">
 <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:32px">
@@ -186,23 +193,23 @@ svg .lk-blink{transform-box:fill-box;transform-origin:center;animation:lkblink 5
 </div>
 
 </div>
-<div style="display:flex;flex-wrap:wrap;gap:20px">
-<div style="flex:1 1 220px;min-width:0;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:20px;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px">
+<div class="lk-steps" style="display:flex;flex-wrap:wrap;gap:20px">
+<div class="lk-step" style="flex:1 1 220px;min-width:0;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:20px;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px">
 <div style="width:40px;height:40px;border-radius:50%;background:#E6F2E8;color:#14532D;font-weight:800;display:flex;align-items:center;justify-content:center">1</div>
 <h3 style="margin:0;font-size:19.8px;line-height:1.25;font-weight:800">Язык</h3>
 <p style="margin:0;font-size:16px;color:#4B5A50">Выберите язык, на котором ребёнку удобнее заниматься.</p>
 </div>
-<div style="flex:1 1 220px;min-width:0;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:20px;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px">
+<div class="lk-step" style="flex:1 1 220px;min-width:0;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:20px;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px">
 <div style="width:40px;height:40px;border-radius:50%;background:#E6F2E8;color:#14532D;font-weight:800;display:flex;align-items:center;justify-content:center">2</div>
 <h3 style="margin:0;font-size:19.8px;line-height:1.25;font-weight:800">Класс</h3>
 <p style="margin:0;font-size:16px;color:#4B5A50">Выберите класс, в котором учится ваш ребенок.</p>
 </div>
-<div style="flex:1 1 220px;min-width:0;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:20px;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px">
+<div class="lk-step" style="flex:1 1 220px;min-width:0;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:20px;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px">
 <div style="width:40px;height:40px;border-radius:50%;background:#E6F2E8;color:#14532D;font-weight:800;display:flex;align-items:center;justify-content:center">3</div>
 <h3 style="margin:0;font-size:19.8px;line-height:1.25;font-weight:800">Предмет</h3>
 <p style="margin:0;font-size:16px;color:#4B5A50">Какой предмет хотите подтянуть - на ваш выбор.</p>
 </div>
-<div style="flex:1 1 220px;min-width:0;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:20px;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px">
+<div class="lk-step" style="flex:1 1 220px;min-width:0;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:20px;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px">
 <div style="width:40px;height:40px;border-radius:50%;background:#E6F2E8;color:#14532D;font-weight:800;display:flex;align-items:center;justify-content:center">4</div>
 <h3 style="margin:0;font-size:19.8px;line-height:1.25;font-weight:800">Тема</h3>
 <p style="margin:0;font-size:16px;color:#4B5A50">Выберите тему и приступайте к обучению.</p>
@@ -289,5 +296,10 @@ svg .lk-blink{transform-box:fill-box;transform-origin:center;animation:lkblink 5
 </footer>
 
 </div>
+<script>
+/* Вошедшему родителю кнопка «Попробовать бесплатно» в шапке не нужна */
+(function(){try{fetch("/api/me",{cache:"no-store",credentials:"same-origin"}).then(function(r){return r.json()}).then(function(d){var u=d&&(d.user||(d.data&&d.data.user));if(!u)return;document.querySelectorAll('.sh-btn[href="/start.html"],.mh-btn[href="/start.html"]').forEach(function(a){a.style.display="none"})}).catch(function(){})}catch(e){}})();
+</script>
+<script src="/sitechat-widget.js" defer></script>
 </body>
 </html>
