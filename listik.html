@@ -688,7 +688,7 @@ function spokenMath(s) {
     .replace(/\s+/g, " ").trim();
 }
 const LB = { token: 0, st: null, counts: [], cur: -1 };   // доска мини-урока
-function stopSpeech() { LB.token++; if (TTS.ok) { try { speechSynthesis.cancel(); } catch (e) {} } }
+function stopSpeech() { LB.token++; try { VOICE.interrupt(); } catch (e) {} if (TTS.ok) { try { speechSynthesis.cancel(); } catch (e) {} } }
 function speak(text, force) {
   if (VOICE.quiet || VOICE.active || (VOICE.available && !VOICE.err)) return;   // говорит живой Листик, а не голос браузера; в тихом режиме молчим
   if (!TTS.ok || (!TTS.on && !force) || !text) return;
@@ -1817,7 +1817,7 @@ app.addEventListener("click", e => {
   if (a === "logout") { call("/api/logout", {}).then(reloadTasks).then(() => { if (S.view === "home") render(); }); USER = null; S = { view: "home", flash: "Вы вышли из кабинета." }; return render(); }
   if (a === "ttstoggle") { TTS.on = !TTS.on; if (!TTS.on) stopSpeech(); return render(); }
   if (a === "voicetoggle") { if (VOICE.active || VOICE.connecting) VOICE.stop(); else VOICE.start(); return; }
-  if (a === "readq") { if (VOICE.quiet) return; if (!VOICE.active && VOICE.available && !VOICE.err) { VOICE.start(); return; } if (VOICE.active) return VOICE.tell("[Программа] Ребёнок просит повторить вопрос. Прочитай текущий вопрос ещё раз вслух."); const q = TASKS[S.t].steps[S.s].q; return speak(spokenMath(q), true); }
+  if (a === "readq") { if (VOICE.quiet) return; if (!VOICE.active && VOICE.available && !VOICE.err) { VOICE.start(); return; } if (VOICE.active) { VOICE.interrupt(); return VOICE.tell("[Программа] Ребёнок просит повторить вопрос. Прочитай текущий вопрос ещё раз вслух."); } const q = TASKS[S.t].steps[S.s].q; return speak(spokenMath(q), true); }
   if (a === "aitoggle") { AI.on = !AI.on; return render(); }
   if (a === "pick") { const i = +b.dataset.i; return submit(i, i); }
   if (a === "digit") return digit(b.dataset.d);
@@ -1838,7 +1838,7 @@ app.addEventListener("click", e => {
   if (a === "readlesson") { if (VOICE.quiet) return;
     const cards = TASKS[S.t].lesson.cards;
     if (!VOICE.active && VOICE.available && !VOICE.err) { VOICE.start(); return; }
-    if (VOICE.active) return VOICE.tell("[Программа] Ребёнок просит прочитать урок ещё раз. Прочитай весь урок вслух дословно, подряд, без пауз и вопросов: " + cards.map(c => vsay(c.text)).join(" "));
+    if (VOICE.active) { VOICE.interrupt(); return VOICE.tell("[Программа] Ребёнок просит прочитать урок ещё раз. Прочитай весь урок вслух дословно, подряд, без пауз и вопросов: " + cards.map(c => vsay(c.text)).join(" ")); }
     return speak(spokenMath(cards.map(c => plain(c.text)).join(" ")), true);
   }
   if (a === "next") return nextStep();
@@ -1896,7 +1896,7 @@ document.addEventListener("keydown", e => {
 const VOICE = {
   available: false, active: false, connecting: false, quiet: false, err: "",
   sid: null, ac: null, node: null, stream: null, player: null, playing: false, listening: false, vad: null,
-  inFlight: false, queue: [], pending: null, adv: "none", advTimer: null, maxTimer: null,
+  inFlight: false, queue: [], pending: null, adv: "none", advTimer: null, maxTimer: null, epoch: 0, done: null,
   state: "idle", heard: "", greeted: false
 };
 const VOICE_SILENCE = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAABErAAABAAgAZGF0YQAAAAA=";
@@ -2058,6 +2058,14 @@ Object.assign(VOICE, {
     if (!silent) render();
   },
 
+  /* Оборвать речь Листика: ребёнок перешёл на другой шаг, и старая реплика больше не нужна.
+     Реплики, которые ещё в пути от сервера, помечаются устаревшими (epoch) и не озвучиваются. */
+  interrupt() {
+    this.epoch++;
+    clearTimeout(this.advTimer); this.adv = "none";
+    try { if (this.player) { this.player.onended = null; this.player.onerror = null; this.player.pause(); } } catch (e) {}
+    const r = this.done; this.done = null; if (r) r();
+  },
   tell(t) { if (!this.active) return; this.queue.push(t); this.flush(); },
   flush() {
     if (!this.active || this.inFlight || this.playing || !this.queue.length) return;
@@ -2067,6 +2075,7 @@ Object.assign(VOICE, {
   /* что происходит на экране -> сообщение для Листика */
   announce(retry) {
     if (!this.active) return;
+    this.interrupt();
     if (S.view === "task" && S.stage === "lesson") this.tell(this.lessonText(retry));
     else if (S.view === "task" && S.stage === "ask") this.tell(this.stepText(retry));
     else if (S.view === "done") this.tell(this.doneText());
@@ -2112,6 +2121,7 @@ Object.assign(VOICE, {
     try {
       for (let hop = 0; hop < 4; hop++) {
         if (this.queue.length) payload = Object.assign({}, payload, { tell: (payload.tell || []).concat(this.queue.splice(0)) });
+        const ep = this.epoch;
         const r = await api("/api/voice/turn", Object.assign({ sid }, payload));
         if (!this.active || this.sid !== sid) return;
         if (r.status === 403 && r.data && r.data.error === "voice_limit") { enterQuiet(); return; }
@@ -2123,7 +2133,8 @@ Object.assign(VOICE, {
           const outputs = [];
           for (const c of d.calls) {
             let out;
-            try { out = await this.exec(c); } catch (e) { console.error(e); out = { error: "внутренняя ошибка" }; }
+            if (ep !== this.epoch) out = { error: "шаг уже сменился, этот ответ относился к прошлому шагу" };
+            else try { out = await this.exec(c); } catch (e) { console.error(e); out = { error: "внутренняя ошибка" }; }
             outputs.push({ call_id: c.call_id, output: JSON.stringify(out) });
           }
           if (!this.active || this.sid !== sid) return;
@@ -2133,7 +2144,7 @@ Object.assign(VOICE, {
         }
         if (this.err) { this.err = ""; paintVoice(); }
         this.inFlight = false;
-        await this.playReply(d);
+        await this.playReply(d, ep);
         return;
       }
       this.inFlight = false; this.armMic(); this.flush();
@@ -2146,18 +2157,25 @@ Object.assign(VOICE, {
       this.armMic(); this.flush();
     }
   },
-  async playReply(d) {
+  async playReply(d, ep) {
+    if (ep !== undefined && ep !== this.epoch) {   // шаг сменился, пока реплика летела с сервера: молчим
+      this.setState("listen"); this.flush(); this.armMic(); return;
+    }
     if (d.reply && S) { S.voice = { id: ++voiceSeq, text: d.reply, loading: false }; paintVoice(); }
     if (d.audio && this.player) {
       this.playing = true; this.setState("speak");
       await new Promise(resolve => {
         const p = this.player;
+        this.done = resolve;
         p.onended = resolve; p.onerror = resolve;
         p.src = "data:" + (d.mime || "audio/mpeg") + ";base64," + d.audio;
         p.play().catch(resolve);
       });
-      this.playing = false;
+      this.playing = false; this.done = null;
       if (!this.active) return;
+      if (ep !== undefined && ep !== this.epoch) {   // оборвали на полуслове: идёт новый шаг
+        this.setState("listen"); this.flush(); this.armMic(); return;
+      }
     }
     this.setState("listen");
     this.maybeAdvance(false);      // похвалу дочитали: переходим к следующему шагу
