@@ -56,6 +56,9 @@ svg .lk-blink{transform-box:fill-box;transform-origin:center;animation:lkblink 5
 .mh-sub{font-size:17px!important;line-height:1.5!important}
 .mh-hero{align-items:center!important;text-align:center}
 .mh-hero .lk-cta{margin-top:8px!important}
+.mh-flip{flex-direction:column-reverse!important;flex-wrap:nowrap!important;gap:28px!important}
+.mh-flip>div{flex:none!important;width:100%}
+.mh-flip>div:first-child{max-width:330px!important}
 .mh-x{display:none}
 .mh-btn{display:none!important}
 }
@@ -108,43 +111,56 @@ svg .lk-blink{transform-box:fill-box;transform-origin:center;animation:lkblink 5
 <div style="transform:rotate(-12deg)">
 <svg width="120" height="130" viewBox="0 0 120 130" aria-hidden="true">
 <defs>
-<clipPath id="lkgc"><circle cx="60" cy="60" r="52"></circle></clipPath>
-<radialGradient id="lkgs" cx="38%" cy="35%" r="75%"><stop offset="55%" stop-color="#0B3D5C" stop-opacity="0"></stop><stop offset="100%" stop-color="#0B3D5C" stop-opacity="0.3"></stop></radialGradient>
+<clipPath id="lkgc"><circle cx="60" cy="58" r="46"></circle></clipPath>
+<radialGradient id="lkgo" cx="36%" cy="30%" r="85%"><stop offset="0%" stop-color="#CFEEFB"></stop><stop offset="60%" stop-color="#8FD0EE"></stop><stop offset="100%" stop-color="#4FA6D6"></stop></radialGradient>
+<radialGradient id="lkgs" cx="36%" cy="30%" r="80%"><stop offset="55%" stop-color="#0B3D5C" stop-opacity="0"></stop><stop offset="100%" stop-color="#0B3D5C" stop-opacity="0.38"></stop></radialGradient>
 </defs>
-<path d="M44 124 H76 M60 112 V124" stroke="#1E2A22" stroke-width="4" stroke-linecap="round" fill="none"></path>
-<circle cx="60" cy="60" r="52" fill="#BFE3F5"></circle>
+<ellipse cx="60" cy="123" rx="24" ry="5" fill="#1E2A22" opacity="0.14"></ellipse>
+<path d="M40 121 Q60 112 80 121" stroke="#1E2A22" stroke-width="5" stroke-linecap="round" fill="none"></path>
+<path d="M60 112 V104" stroke="#1E2A22" stroke-width="5" stroke-linecap="round"></path>
+<path d="M60 4 A54 54 0 0 1 60 112" stroke="#1E2A22" stroke-width="4" fill="none" stroke-linecap="round"></path>
+<circle cx="60" cy="58" r="46" fill="url(#lkgo)"></circle>
 <g clip-path="url(#lkgc)">
 <g class="lk-globe-land">
-<g fill="#4FA66B">
+<g fill="#5DB57A" stroke="#2F8A52" stroke-width="1.6" stroke-linejoin="round">
 <path d="M10 40 C20 25 45 28 52 40 C58 52 48 70 35 74 C22 70 8 56 10 40Z"></path>
 <path d="M75 30 C90 22 112 30 118 44 C122 58 105 66 96 62 C86 70 74 58 78 46Z"></path>
 <path d="M140 50 C150 38 172 40 180 52 C186 66 170 82 156 80 C142 76 134 62 140 50Z"></path>
 <path d="M120 84 C128 80 138 86 134 94 C128 98 118 92 120 84Z"></path>
 </g>
-<g fill="#4FA66B" transform="translate(200 0)">
+<g fill="#5DB57A" stroke="#2F8A52" stroke-width="1.6" stroke-linejoin="round" transform="translate(200 0)">
 <path d="M10 40 C20 25 45 28 52 40 C58 52 48 70 35 74 C22 70 8 56 10 40Z"></path>
 <path d="M75 30 C90 22 112 30 118 44 C122 58 105 66 96 62 C86 70 74 58 78 46Z"></path>
 <path d="M140 50 C150 38 172 40 180 52 C186 66 170 82 156 80 C142 76 134 62 140 50Z"></path>
 <path d="M120 84 C128 80 138 86 134 94 C128 98 118 92 120 84Z"></path>
 </g>
 </g>
+<g fill="none" stroke="#FFFFFF" stroke-width="1" opacity="0.45">
+<ellipse cx="60" cy="58" rx="46" ry="14"></ellipse>
+<ellipse cx="60" cy="58" rx="46" ry="30"></ellipse>
+<ellipse cx="60" cy="58" rx="18" ry="46"></ellipse>
+<ellipse cx="60" cy="58" rx="34" ry="46"></ellipse>
+<path d="M60 12 V104"></path>
 </g>
-<circle cx="60" cy="60" r="52" fill="url(#lkgs)"></circle>
-<ellipse cx="42" cy="38" rx="16" ry="9" fill="#FFFFFF" opacity="0.28" transform="rotate(-30 42 38)"></ellipse>
-<circle cx="60" cy="60" r="52" fill="none" stroke="#1F7A45" stroke-width="3"></circle>
+</g>
+<circle cx="60" cy="58" r="46" fill="url(#lkgs)"></circle>
+<ellipse cx="42" cy="36" rx="13" ry="7" fill="#FFFFFF" opacity="0.5" transform="rotate(-32 42 36)"></ellipse>
+<circle cx="60" cy="58" r="46" fill="none" stroke="#1E2A22" stroke-width="3.5"></circle>
+<circle cx="60" cy="4" r="4" fill="#F2C14E" stroke="#1E2A22" stroke-width="2.5"></circle>
+<circle cx="60" cy="112" r="4" fill="#F2C14E" stroke="#1E2A22" stroke-width="2.5"></circle>
 </svg>
 </div>
 </div>
-<div class="lk-float" aria-hidden="true" style="position:absolute;left:-18px;top:84px;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:16px;padding:8px 14px;font-weight:800;font-size:20px;color:#14532D;box-shadow:0 6px 16px rgba(30,42,34,0.12)">2 + 3</div>
-<div class="lk-float3" aria-hidden="true" style="position:absolute;left:-14px;bottom:70px;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:16px;padding:8px 16px;font-weight:800;font-size:22px;color:#14532D;box-shadow:0 6px 16px rgba(30,42,34,0.12)">А Б В</div>
-<div class="lk-float2" aria-hidden="true" style="position:absolute;right:-12px;bottom:36px;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:16px;padding:8px 14px;font-weight:800;font-size:20px;color:#14532D;box-shadow:0 6px 16px rgba(30,42,34,0.12)">H₂O</div>
+<div class="lk-float" aria-hidden="true" style="position:absolute;left:-18px;top:84px;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:16px;padding:8px 14px;font-weight:800;font-size:20px;color:#14532D;box-shadow:0 6px 16px rgba(30,42,34,0.12)">x + 7 = 15</div>
+<div class="lk-float3" aria-hidden="true" style="position:absolute;left:-14px;bottom:70px;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:16px;padding:8px 16px;font-weight:800;font-size:22px;color:#14532D;box-shadow:0 6px 16px rgba(30,42,34,0.12)">параш<span style="border-bottom:3px solid #F2C14E">ю</span>т</div>
+<div class="lk-float2" aria-hidden="true" style="position:absolute;right:-12px;bottom:36px;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:16px;padding:8px 14px;font-weight:800;font-size:20px;color:#14532D;box-shadow:0 6px 16px rgba(30,42,34,0.12)">CO₂</div>
 </div>
 </div>
 </div>
 
 <!-- Знакомая ситуация -->
 <div style="background:#F3EFE0;padding:64px 24px;box-sizing:border-box">
-<div style="max-width:1040px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:56px">
+<div class="mh-flip" style="max-width:1040px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:56px">
 <div style="flex:1 1 300px;min-width:0;max-width:330px;margin:0 auto">
 <div style="position:relative;width:100%;aspect-ratio:1/1">
 <div aria-hidden="true" style="position:absolute;left:-3%;right:-3%;bottom:0;height:62%;background:#A9CBEA;border-radius:170px 40px 0 0"></div>
