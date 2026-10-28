@@ -196,6 +196,10 @@ const VOICE_USER_TURNS_DAY = Number(process.env.VOICE_USER_TURNS_DAY || 800);   
 const VOICE_GLOBAL_DAY = Number(process.env.VOICE_GLOBAL_DAY || 30000);           // потолок голосовых обращений на весь сайт в сутки (защита бюджета OpenAI)
 const VOICE_GUESTS = process.env.VOICE_GUESTS !== "0";                            // пускать ли в голос без входа в кабинет (по умолчанию да; VOICE_GUESTS=0 закрывает)
 let voiceBusy = 0;
+/* Замеры скорости голоса (в памяти, последние 200 ходов): сколько миллисекунд занял каждый шаг. */
+const LAT = { stt: [], llm: [], tts: [], total: [] };
+function latAdd(k, ms) { const a = LAT[k]; a.push(Math.round(ms)); if (a.length > 200) a.shift(); }
+const latPct = (k, p) => { const a = LAT[k].slice().sort((x, y) => x - y); return a.length ? a[Math.min(a.length - 1, Math.floor(p * a.length))] : 0; };
 const voiceGlobal = { day: "", n: 0 };
 async function voiceTurn(req, res, ip, a) {
   if (voiceBusy >= VOICE_MAX_INFLIGHT) { M.busy++; req.resume(); return send(res, 503, { error: "busy" }); }
@@ -220,6 +224,7 @@ async function voiceTurnInner(req, res, ip, a) {
   voiceGlobal.n++; M.turns++; du.vt = (du.vt || 0) + 1; scheduleUsageSave();
   vs.turns++;
   const prevPending = vs.pending;
+  const T0 = Date.now(); let tStt = 0, tLlm = 0, tTts = 0;
   try {
     const input = [];
     const outs = Array.isArray(b.outputs) ? b.outputs.slice(0, 8) : [];
@@ -232,7 +237,7 @@ async function voiceTurnInner(req, res, ip, a) {
     if (typeof b.audio === "string" && b.audio.length > 4000) {
       const pcm = Buffer.from(b.audio, "base64");
       if (pcm.length > AUDIO_MAX_BYTES) return send(res, 413, { error: "too_big" });
-      heard = await sttText(pcm);
+      const ts = Date.now(); heard = await sttText(pcm); tStt = Date.now() - ts; latAdd("stt", tStt);
       if (heard) input.push({ role: "user", content: heard });
       if (heard && MOOD_RE.test(heard)) {
         input.push({ role: "system", content: "[Программа] Судя по словам, ребёнок расстроен или устал. Остановись: скажи, что так бывает у всех, предложи перерыв или более лёгкую задачу того же типа. Ответ не называй. Говори только про учёбу." });
@@ -241,10 +246,12 @@ async function voiceTurnInner(req, res, ip, a) {
     }
     if (!input.length) return send(res, 200, { heard });
     vs.pending = [];
+    const tl = Date.now();
     const r = await modelCall({
       model: LLM_MODEL, instructions: vs.instructions, tools: VOICE_TOOLS, tool_choice: "auto",
       previous_response_id: vs.last || undefined, input, store: true, max_output_tokens: 800
     });
+    tLlm = Date.now() - tl; latAdd("llm", tLlm);
     vs.last = r.id;
     const calls = (r.output || []).filter(o => o.type === "function_call");
     if (calls.length) {
@@ -253,7 +260,10 @@ async function voiceTurnInner(req, res, ip, a) {
     }
     const reply = outputText(r).replace(/\s*\([^()]*(инструмент|функци|вызыва)[^()]*\)/gi, "").trim();   // служебные пометки в скобках ребёнку не озвучиваем
     if (!reply) return send(res, 200, { heard, reply: "" });
+    const tt = Date.now();
     const sp = await speak(reply);
+    tTts = Date.now() - tt; latAdd("tts", tTts); latAdd("total", Date.now() - T0);
+    logEvent({ kind: "vlat", u: logWho(a, vs.ukey), stt: tStt, llm: tLlm, tts: tTts, total: Date.now() - T0, chars: reply.length });
     return send(res, 200, { heard, reply, audio: sp.audio, mime: sp.mime });
   } catch (e) {
     vs.pending = prevPending;
@@ -1214,6 +1224,12 @@ function loadSnapshot() {
   add("save", "Сохранение кабинетов", M.saveCount ? M.saveMs + " мс" : "—", "семей: " + USERS.length + " · файл ≈ " + (M.saveBytes / 1048576).toFixed(1) + " МБ · самое долгое за час: " + saveH + " мс", st(saveH, 150, 400),
     saveH >= 400 ? "Каждое сохранение останавливает весь сервер. Пора переносить кабинеты из users.json в базу данных (Postgres)."
     : "Сохранение заметно тормозит сервер. Приготовьтесь к переносу кабинетов в Postgres (ориентир — 1000–2000 семей).");
+
+  const nLat = LAT.total.length;
+  add("speed", "Скорость голоса", nLat ? "на ответ " + (latPct("total", 0.5) / 1000).toFixed(1) + " с" : "—",
+    nLat ? "медиана по шагам (мс): распознавание " + latPct("stt", 0.5) + " · модель " + latPct("llm", 0.5) + " · озвучка " + latPct("tts", 0.5) + " · 90% ходов быстрее: распознавание " + latPct("stt", 0.9) + ", модель " + latPct("llm", 0.9) + ", озвучка " + latPct("tts", 0.9) + " · ответов с озвучкой в выборке: " + nLat : "пока нет ответов с озвучкой после запуска",
+    nLat < 5 ? "info" : st(latPct("total", 0.5), 3000, 5000),
+    "Самый большой из трёх шагов и надо ускорять. Подробности по каждому ходу пишутся в журнал событий (kind: vlat). «На ответ» не включает время хода ребёнка и сети до браузера.");
 
   const failH = sum("fail"), o429H = sum("o429");
   add("openai", "Ошибки голоса за час", failH, "из них отказы OpenAI по лимиту (429): " + o429H, o429H > 0 ? "bad" : failH >= 5 ? "warn" : "ok",
