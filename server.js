@@ -178,6 +178,114 @@ async function speak(text) {
   }
   throw new Upstream("tts", last);
 }
+/* ---------- потоковый ответ: фразы озвучиваются по мере того, как модель их пишет ----------
+   Браузер присылает stream:true, сервер отвечает построчно (NDJSON):
+   {"heard":"…"} · {"text":"фраза","audio":"base64","mime":"audio/mpeg"} · {"calls":[…]} · {"done":true} · {"error":"voice_failed","stage":"…"}
+   Без stream:true работает прежний ответ одним куском. */
+async function modelStream(body) {
+  let r;
+  for (const extra of [{ reasoning: { effort: "low" } }, {}]) {   // если модель не принимает параметр, повторяем без него
+    r = await upstream("llm", OPENAI_BASE + "/responses", {
+      method: "POST", headers: { Authorization: "Bearer " + OPENAI_KEY, "Content-Type": "application/json" },
+      body: JSON.stringify({ ...body, ...extra, stream: true })
+    });
+    if (r.ok || r.status !== 400 || !("reasoning" in extra)) break;
+    try { await r.text(); } catch (e) {}
+  }
+  if (!r.ok) { let t = ""; try { t = await r.text(); } catch (e) {} throw new Upstream("llm", r.status + " " + t.slice(0, 300)); }
+  return r;
+}
+async function* sseEvents(r) {          // события потока Responses API: {type, ...}
+  const dec = new TextDecoder(); let buf = "";
+  try {
+    for await (const chunk of r.body) {
+      buf += dec.decode(chunk, { stream: true });
+      let i;
+      while ((i = buf.indexOf("\n\n")) >= 0) {
+        const block = buf.slice(0, i); buf = buf.slice(i + 2);
+        const data = block.split("\n").filter(l => l.startsWith("data:")).map(l => l.slice(5).trim()).join("");
+        if (!data || data === "[DONE]") continue;
+        try { yield JSON.parse(data); } catch (e) {}
+      }
+    }
+  } catch (e) { throw new Upstream("llm", "поток прервался: " + e.message); }
+}
+const cleanReply = t => String(t).replace(/\s*\([^()]*(инструмент|функци|вызыва)[^()]*\)/gi, "").trim();   // служебные пометки в скобках ребёнку не озвучиваем
+const STREAM_MIN_FIRST = Number(process.env.STREAM_MIN_FIRST || 20);    // первая фраза: не короче стольки знаков (иначе склеиваем со следующей)
+const STREAM_MIN_NEXT = Number(process.env.STREAM_MIN_NEXT || 60);      // следующие: чтобы не плодить мелкие запросы к озвучке
+function takeSentences(buf, minLen, flush) {   // -> { chunks, rest }
+  const chunks = []; let rest = buf, acc = "";
+  for (;;) {
+    const m = /[.!?…]+["»)]*\s/.exec(rest);
+    if (!m) break;
+    const end = m.index + m[0].length;
+    acc += rest.slice(0, end); rest = rest.slice(end);
+    if (acc.trim().length >= minLen) { chunks.push(acc.trim()); acc = ""; }
+  }
+  rest = acc + rest;
+  if (flush && rest.trim()) { chunks.push(rest.trim()); rest = ""; }
+  return { chunks, rest };
+}
+async function streamReply(res, vs, ctx) {
+  const { a, input, heard, T0, tStt, prevPending } = ctx;
+  const tl = Date.now();
+  const r = await modelStream({
+    model: LLM_MODEL, instructions: vs.instructions, tools: VOICE_TOOLS, tool_choice: "auto",
+    previous_response_id: vs.last || undefined, input, store: true, max_output_tokens: 800
+  });
+  let gone = false; res.on("close", () => { if (!res.writableFinished) gone = true; });   // браузер ушёл (ребёнок перешёл дальше): новые фразы не озвучиваем
+  res.writeHead(200, { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-store", "X-Accel-Buffering": "no" });
+  const out = o => { if (!gone && !res.writableEnded) try { res.write(JSON.stringify(o) + "\n"); } catch (e) {} };
+  out({ heard });
+  let writer = Promise.resolve(), text = "", rest = "", hasCall = false, nChunks = 0, tFirstText = 0, tTts = 0, tFirstAudio = 0, ttsFail = null;
+  const enqueue = sentence => {
+    const t = cleanReply(sentence); if (!t || gone) return;
+    nChunks++;
+    if (!tFirstText) { tFirstText = Date.now() - tl; latAdd("llm", tFirstText); }
+    const ts = Date.now(), first = nChunks === 1;
+    const tp = speak(t).then(sp => ({ t, sp }), e => ({ t, err: e }));   // озвучка фраз идёт параллельно, пишем строго по порядку
+    writer = writer.then(async () => {
+      const x = await tp;
+      if (first && x.sp) { tTts = Date.now() - ts; latAdd("tts", tTts); }
+      if (x.err) { ttsFail = x.err; out({ text: x.t }); return; }
+      if (!tFirstAudio) tFirstAudio = Date.now() - T0;
+      out({ text: x.t, audio: x.sp.audio, mime: x.sp.mime });
+    });
+  };
+  let done = null;
+  try {
+    for await (const ev of sseEvents(r)) {
+      if (ev.type === "response.output_item.added" && ev.item && ev.item.type === "function_call") hasCall = true;
+      else if (ev.type === "response.output_text.delta" && typeof ev.delta === "string" && !hasCall) {
+        text += ev.delta; rest += ev.delta;
+        const t = takeSentences(rest, nChunks ? STREAM_MIN_NEXT : STREAM_MIN_FIRST, false); rest = t.rest;
+        t.chunks.forEach(enqueue);
+      } else if (ev.type === "response.completed" && ev.response) done = ev.response;
+      else if (ev.type === "response.failed" || ev.type === "error") throw new Upstream("llm", "ошибка потока: " + JSON.stringify(ev).slice(0, 200));
+    }
+    if (!done) throw new Upstream("llm", "поток закончился без завершения");
+    vs.last = done.id;
+    const calls = (done.output || []).filter(o => o.type === "function_call");
+    if (calls.length) {
+      vs.pending = calls.map(c => c.call_id);
+      await writer;
+      out({ calls: calls.map(c => ({ call_id: c.call_id, name: c.name, arguments: c.arguments })) });
+    } else {
+      takeSentences(rest, nChunks ? STREAM_MIN_NEXT : STREAM_MIN_FIRST, true).chunks.forEach(enqueue);
+      await writer;
+      if (ttsFail && !tFirstAudio) throw ttsFail;            // не озвучилось ни одной фразы: как раньше, ошибка озвучки
+    }
+    out({ done: true });
+    if (tFirstAudio) {
+      latAdd("first", tFirstAudio);
+      logEvent({ kind: "vlat", u: logWho(a, vs.ukey), stt: tStt, llm: tFirstText, tts: tTts, first: tFirstAudio, total: Date.now() - T0, chunks: nChunks, chars: cleanReply(text).length, stream: 1 });
+    }
+  } catch (e) {
+    vs.pending = prevPending;
+    if (e instanceof Upstream) { M.fail++; if (/^429/.test(String(e.detail))) M.o429++; console.error("[голос:" + e.stage + "]", e.detail); out({ error: "voice_failed", stage: e.stage }); }
+    else { console.error("[голос:поток]", e); out({ error: "voice_failed", stage: "server" }); }
+  } finally { try { if (!res.writableEnded) res.end(); } catch (e) {} }
+}
 function bigBody(req, limit) {
   return new Promise((resolve, reject) => {
     const chunks = []; let n = 0;
@@ -197,7 +305,7 @@ const VOICE_GLOBAL_DAY = Number(process.env.VOICE_GLOBAL_DAY || 30000);         
 const VOICE_GUESTS = process.env.VOICE_GUESTS !== "0";                            // пускать ли в голос без входа в кабинет (по умолчанию да; VOICE_GUESTS=0 закрывает)
 let voiceBusy = 0;
 /* Замеры скорости голоса (в памяти, последние 200 ходов): сколько миллисекунд занял каждый шаг. */
-const LAT = { stt: [], llm: [], tts: [], total: [] };
+const LAT = { stt: [], llm: [], tts: [], total: [], first: [] };
 function latAdd(k, ms) { const a = LAT[k]; a.push(Math.round(ms)); if (a.length > 200) a.shift(); }
 const latPct = (k, p) => { const a = LAT[k].slice().sort((x, y) => x - y); return a.length ? a[Math.min(a.length - 1, Math.floor(p * a.length))] : 0; };
 const voiceGlobal = { day: "", n: 0 };
@@ -223,6 +331,9 @@ async function voiceTurnInner(req, res, ip, a) {
   hit("vturn:" + who);
   voiceGlobal.n++; M.turns++; du.vt = (du.vt || 0) + 1; scheduleUsageSave();
   vs.turns++;
+  /* ходы одной сессии идут по очереди: ребёнок мог перейти дальше, пока шёл прошлый ход */
+  const prevTurn = vs.chain || Promise.resolve(); let relTurn; vs.chain = new Promise(r => { relTurn = r; });
+  await prevTurn;
   const prevPending = vs.pending;
   const T0 = Date.now(); let tStt = 0, tLlm = 0, tTts = 0;
   try {
@@ -246,6 +357,7 @@ async function voiceTurnInner(req, res, ip, a) {
     }
     if (!input.length) return send(res, 200, { heard });
     vs.pending = [];
+    if (b.stream === true && process.env.VOICE_STREAM !== "0") { await streamReply(res, vs, { a, input, heard, T0, tStt, prevPending }); return; }
     const tl = Date.now();
     const r = await modelCall({
       model: LLM_MODEL, instructions: vs.instructions, tools: VOICE_TOOLS, tool_choice: "auto",
@@ -262,14 +374,14 @@ async function voiceTurnInner(req, res, ip, a) {
     if (!reply) return send(res, 200, { heard, reply: "" });
     const tt = Date.now();
     const sp = await speak(reply);
-    tTts = Date.now() - tt; latAdd("tts", tTts); latAdd("total", Date.now() - T0);
+    tTts = Date.now() - tt; latAdd("tts", tTts); latAdd("total", Date.now() - T0); latAdd("first", Date.now() - T0);
     logEvent({ kind: "vlat", u: logWho(a, vs.ukey), stt: tStt, llm: tLlm, tts: tTts, total: Date.now() - T0, chars: reply.length });
     return send(res, 200, { heard, reply, audio: sp.audio, mime: sp.mime });
   } catch (e) {
     vs.pending = prevPending;
     if (e instanceof Upstream) { M.fail++; if (/^429/.test(String(e.detail))) M.o429++; console.error("[голос:" + e.stage + "]", e.detail); return send(res, 502, { error: "voice_failed", stage: e.stage }); }
     throw e;
-  }
+  } finally { relTurn(); }
 }
 
 /* ---------- контент: что видит браузер ---------- */
@@ -1226,9 +1338,10 @@ function loadSnapshot() {
     : "Сохранение заметно тормозит сервер. Приготовьтесь к переносу кабинетов в Postgres (ориентир — 1000–2000 семей).");
 
   const nLat = LAT.total.length;
-  add("speed", "Скорость голоса", nLat ? "на ответ " + (latPct("total", 0.5) / 1000).toFixed(1) + " с" : "—",
-    nLat ? "медиана по шагам (мс): распознавание " + latPct("stt", 0.5) + " · модель " + latPct("llm", 0.5) + " · озвучка " + latPct("tts", 0.5) + " · 90% ходов быстрее: распознавание " + latPct("stt", 0.9) + ", модель " + latPct("llm", 0.9) + ", озвучка " + latPct("tts", 0.9) + " · ответов с озвучкой в выборке: " + nLat : "пока нет ответов с озвучкой после запуска",
-    nLat < 5 ? "info" : st(latPct("total", 0.5), 3000, 5000),
+  const nFirst = LAT.first.length;
+  add("speed", "Скорость голоса", nFirst ? "до первого звука " + (latPct("first", 0.5) / 1000).toFixed(1) + " с" : "—",
+    nFirst ? "медиана по шагам (мс): распознавание " + latPct("stt", 0.5) + " · модель (до первой фразы) " + latPct("llm", 0.5) + " · озвучка первой фразы " + latPct("tts", 0.5) + " · до первого звука: 90% ответов быстрее " + latPct("first", 0.9) + " мс · ответов в выборке: " + nFirst : "пока нет ответов с озвучкой после запуска",
+    nFirst < 5 ? "info" : st(latPct("first", 0.5), 3000, 5000),
     "Самый большой из трёх шагов и надо ускорять. Подробности по каждому ходу пишутся в журнал событий (kind: vlat). «На ответ» не включает время хода ребёнка и сети до браузера.");
 
   const failH = sum("fail"), o429H = sum("o429");

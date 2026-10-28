@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+<script>try{if(localStorage.getItem("listik_in")==="1"){var s=document.createElement("style");s.textContent='.sh-btn[href="/start.html"],.mh-btn[href="/start.html"]{display:none!important}';document.head.appendChild(s)}}catch(e){}</script>
+
 <meta charset="utf-8">
 <meta name="format-detection" content="telephone=no">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -1814,7 +1816,7 @@ app.addEventListener("click", e => {
   if (a === "pin-reset") return doPinChange(false);
   if (a === "cab-pin") return doPinChange(true);
   if (a === "cab-child") return doChild();
-  if (a === "logout") { call("/api/logout", {}).then(reloadTasks).then(() => { if (S.view === "home") render(); }); USER = null; S = { view: "home", flash: "Вы вышли из кабинета." }; return render(); }
+  if (a === "logout") { try{localStorage.removeItem("listik_in")}catch(e){} call("/api/logout", {}).then(reloadTasks).then(() => { if (S.view === "home") render(); }); USER = null; S = { view: "home", flash: "Вы вышли из кабинета." }; return render(); }
   if (a === "ttstoggle") { TTS.on = !TTS.on; if (!TTS.on) stopSpeech(); return render(); }
   if (a === "voicetoggle") { if (VOICE.active || VOICE.connecting) VOICE.stop(); else VOICE.start(); return; }
   if (a === "readq") { if (VOICE.quiet) return; if (!VOICE.active && VOICE.available && !VOICE.err) { VOICE.start(); return; } if (VOICE.active) { VOICE.interrupt(); return VOICE.tell("[Программа] Ребёнок просит повторить вопрос. Прочитай текущий вопрос ещё раз вслух."); } const q = TASKS[S.t].steps[S.s].q; return speak(spokenMath(q), true); }
@@ -1896,7 +1898,7 @@ document.addEventListener("keydown", e => {
 const VOICE = {
   available: false, active: false, connecting: false, quiet: false, err: "",
   sid: null, ac: null, node: null, stream: null, player: null, playing: false, listening: false, vad: null,
-  inFlight: false, queue: [], pending: null, adv: "none", advTimer: null, maxTimer: null, epoch: 0, done: null,
+  inFlight: false, queue: [], pending: null, adv: "none", advTimer: null, maxTimer: null, epoch: 0, pl: null, rd: null,
   state: "idle", heard: "", greeted: false
 };
 const VOICE_SILENCE = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAABErAAABAAgAZGF0YQAAAAA=";
@@ -2048,6 +2050,9 @@ Object.assign(VOICE, {
     try { this.stream && this.stream.getTracks().forEach(t => t.stop()); } catch (e) {}
     try { this.ac && this.ac.close(); } catch (e) {}
     try { this.player && this.player.pause(); } catch (e) {}
+    try { this.pl && this.pl.cancel(); } catch (e) {}
+    try { this.rd && this.rd.cancel(); } catch (e) {}
+    this.pl = this.rd = null;
     clearTimeout(this.advTimer); clearTimeout(this.maxTimer);
     this.sid = this.ac = this.node = this.stream = this.player = this.vad = null;
     this.active = false; this.connecting = false; this.inFlight = false; this.playing = false; this.listening = false;
@@ -2064,7 +2069,82 @@ Object.assign(VOICE, {
     this.epoch++;
     clearTimeout(this.advTimer); this.adv = "none";
     try { if (this.player) { this.player.onended = null; this.player.onerror = null; this.player.pause(); } } catch (e) {}
-    const r = this.done; this.done = null; if (r) r();
+    try { if (this.pl) this.pl.cancel(); } catch (e) {}
+    try { if (this.rd) this.rd.cancel(); } catch (e) {}     // обрываем поток с сервера: новые фразы не нужны
+  },
+  /* очередь фраз: играем по одной, по мере прихода с сервера; finished — когда всё проиграно (или оборвали) */
+  makePlayback() {
+    const V = this, q = []; let ended = false, playing = false, cancelled = false, started = false, over = false, resolveFin;
+    const finished = new Promise(r => { resolveFin = r; });
+    const fin = () => { if (over) return; over = true; if (V.pl === pb) V.pl = null; resolveFin(); };
+    const next = () => {
+      if (cancelled) return;
+      if (!q.length) { playing = false; if (ended) fin(); return; }
+      playing = true;
+      const it = q.shift(), p = V.player; let called = false;
+      const once = () => { if (called) return; called = true; next(); };
+      if (!p) return once();
+      p.onended = once; p.onerror = once;
+      p.src = "data:" + (it.mime || "audio/mpeg") + ";base64," + it.b64;
+      p.play().catch(once);
+    };
+    const pb = {
+      finished,
+      get started() { return started; },
+      push(mime, b64) {
+        if (cancelled || !b64) return;
+        q.push({ mime, b64 });
+        if (!started) { started = true; V.playing = true; V.setState("speak"); }
+        if (!playing) next();
+      },
+      end() { ended = true; if (!playing && !q.length) fin(); },
+      cancel() { cancelled = true; q.length = 0; if (V.pl === pb) V.playing = false; fin(); }
+    };
+    this.pl = pb;
+    return pb;
+  },
+  /* один запрос «ход»: сервер присылает фразы по мере готовности (stream), браузер сразу начинает играть первую */
+  async turn(payload, ep) {
+    const pb = this.makePlayback();
+    const res = await fetch("/api/voice/turn", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(Object.assign({ session: SESSION, stream: true }, payload)) });
+    const ct = res.headers.get("content-type") || "";
+    const show = text => { if (ep === this.epoch && S) { vid = vid || ++voiceSeq; S.voice = { id: vid, text, loading: false }; paintVoice(); } };
+    let vid = 0;
+    if (res.status !== 200 || ct.indexOf("ndjson") < 0) {       // ошибка или прежний ответ одним куском
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 200 && data.audio) pb.push(data.mime, data.audio);
+      if (res.status === 200 && data.reply) show(data.reply);
+      pb.end();
+      return { status: res.status, data, pb };
+    }
+    const rd = res.body.getReader(); this.rd = rd;
+    if (ep !== this.epoch) { try { rd.cancel(); } catch (e) {} }
+    const dec = new TextDecoder(); let buf = "", err = null;
+    const data = { heard: "", calls: null, reply: "" };
+    const handle = o => {
+      if (o.heard !== undefined) data.heard = o.heard;
+      else if (o.calls) data.calls = o.calls;
+      else if (o.error) err = o;
+      else if (o.text !== undefined) {
+        data.reply += (data.reply ? " " : "") + o.text; show(data.reply);
+        if (o.audio) pb.push(o.mime, o.audio);
+      }
+    };
+    try {
+      for (;;) {
+        const x = await rd.read(); if (x.done) break;
+        buf += dec.decode(x.value, { stream: true });
+        let i; while ((i = buf.indexOf("\n")) >= 0) {
+          const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
+          if (line) { try { handle(JSON.parse(line)); } catch (e) {} }
+        }
+      }
+    } catch (e) { if (ep === this.epoch) { pb.cancel(); throw e; } }
+    if (this.rd === rd) this.rd = null;
+    pb.end();
+    if (err && !pb.started) return { status: 502, data: { error: err.error, stage: err.stage }, pb };
+    return { status: 200, data, pb };
   },
   tell(t) { if (!this.active) return; this.queue.push(t); this.flush(); },
   flush() {
@@ -2122,7 +2202,7 @@ Object.assign(VOICE, {
       for (let hop = 0; hop < 4; hop++) {
         if (this.queue.length) payload = Object.assign({}, payload, { tell: (payload.tell || []).concat(this.queue.splice(0)) });
         const ep = this.epoch;
-        const r = await api("/api/voice/turn", Object.assign({ sid }, payload));
+        const r = await this.turn(Object.assign({ sid }, payload), ep);
         if (!this.active || this.sid !== sid) return;
         if (r.status === 403 && r.data && r.data.error === "voice_limit") { enterQuiet(); return; }
         if (r.status === 410) { this.stop("Занятие с голосом получилось слишком долгим. Нажми кнопку, чтобы начать заново."); return; }
@@ -2144,7 +2224,7 @@ Object.assign(VOICE, {
         }
         if (this.err) { this.err = ""; paintVoice(); }
         this.inFlight = false;
-        await this.playReply(d, ep);
+        await this.playReply(d, ep, r.pb);
         return;
       }
       this.inFlight = false; this.armMic(); this.flush();
@@ -2157,25 +2237,17 @@ Object.assign(VOICE, {
       this.armMic(); this.flush();
     }
   },
-  async playReply(d, ep) {
-    if (ep !== undefined && ep !== this.epoch) {   // шаг сменился, пока реплика летела с сервера: молчим
+  async playReply(d, ep, pb) {
+    const stale = () => ep !== undefined && ep !== this.epoch;
+    if (stale()) {   // шаг сменился, пока шла реплика: молчим
+      if (pb) pb.cancel();
       this.setState("listen"); this.flush(); this.armMic(); return;
     }
-    if (d.reply && S) { S.voice = { id: ++voiceSeq, text: d.reply, loading: false }; paintVoice(); }
-    if (d.audio && this.player) {
-      this.playing = true; this.setState("speak");
-      await new Promise(resolve => {
-        const p = this.player;
-        this.done = resolve;
-        p.onended = resolve; p.onerror = resolve;
-        p.src = "data:" + (d.mime || "audio/mpeg") + ";base64," + d.audio;
-        p.play().catch(resolve);
-      });
-      this.playing = false; this.done = null;
+    if (pb && pb.started) {
+      await pb.finished;
+      if (this.pl === null || this.pl === pb) this.playing = false;
       if (!this.active) return;
-      if (ep !== undefined && ep !== this.epoch) {   // оборвали на полуслове: идёт новый шаг
-        this.setState("listen"); this.flush(); this.armMic(); return;
-      }
+      if (stale()) { this.setState("listen"); this.flush(); this.armMic(); return; }
     }
     this.setState("listen");
     this.maybeAdvance(false);      // похвалу дочитали: переходим к следующему шагу
@@ -2387,7 +2459,7 @@ boot();
 <script>window.addEventListener("hashchange",function(){if(location.hash==="#cabinet")location.reload();});</script>
 <script>
 /* Вошедшему родителю кнопка «Попробовать бесплатно» в шапке не нужна */
-(function(){try{fetch("/api/me",{cache:"no-store",credentials:"same-origin"}).then(function(r){return r.json()}).then(function(d){var u=d&&(d.user||(d.data&&d.data.user));if(!u)return;document.querySelectorAll('.sh-btn[href="/start.html"],.mh-btn[href="/start.html"]').forEach(function(a){a.style.display="none"})}).catch(function(){})}catch(e){}})();
+(function(){try{fetch("/api/me",{cache:"no-store",credentials:"same-origin"}).then(function(r){return r.json()}).then(function(d){var u=d&&(d.user||(d.data&&d.data.user));try{if(u)localStorage.setItem("listik_in","1");else localStorage.removeItem("listik_in")}catch(e){}if(!u)return;document.querySelectorAll('.sh-btn[href="/start.html"],.mh-btn[href="/start.html"]').forEach(function(a){a.style.display="none"})}).catch(function(){})}catch(e){}})();
 </script>
 </body>
 </html>
