@@ -46,7 +46,7 @@ svg .lk-blink{transform-box:fill-box;transform-origin:center;animation:lkblink 5
 /* мобильная шапка: компактная, с чёткой границей от первого экрана */
 @media (max-width:720px){
 .mh{background:#fff;border-bottom:1px solid #E3E8DC;box-shadow:0 2px 10px rgba(30,42,34,.06);position:relative;z-index:2}
-.mh-in{padding:10px 16px 0!important;gap:0!important;flex-direction:column;align-items:stretch!important}
+.mh-in{padding:16px 16px 4px!important;gap:0!important;flex-direction:column;align-items:stretch!important}
 .mh-logo{justify-content:center}
 .mh-logo img{height:30px!important;width:auto!important}
 .mh-logo span{font-size:22px!important}
@@ -54,6 +54,8 @@ svg .lk-blink{transform-box:fill-box;transform-origin:center;animation:lkblink 5
 .mh-nav a:not(.mh-btn){font-size:14px!important;padding:8px 6px 8px!important;line-height:20px!important;white-space:nowrap}
 .mh-h1{font-size:30px!important;line-height:1.15!important}
 .mh-sub{font-size:17px!important;line-height:1.5!important}
+.mh-hero{align-items:center!important;text-align:center}
+.mh-hero .lk-cta{margin-top:8px!important}
 .mh-x{display:none}
 .mh-btn{display:none!important}
 }
@@ -92,7 +94,7 @@ svg .lk-blink{transform-box:fill-box;transform-origin:center;animation:lkblink 5
 <!-- Первый экран -->
 <div style="position:relative;overflow:hidden">
 <div style="max-width:1120px;margin:0 auto;padding:40px 24px 56px;box-sizing:border-box;display:flex;flex-wrap:wrap;align-items:center;gap:56px">
-<div style="flex:1 1 440px;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:24px">
+<div class="mh-hero" style="flex:1 1 440px;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:24px">
 <h1 class="mh-h1" style="margin:0;font-size:46.8px;line-height:1.1;font-weight:800;letter-spacing:-0.01em">Не успеваете помогать ребенку с уроками?</h1>
 <p class="mh-sub" style="margin:0;font-size:22px;color:#4B5A50;max-width:620px">ИИ-репетитор объяснит любую тему школьной программы простыми словами, без нервов и спешки.</p>
 <a class="lk-cta" href="/start.html" style="margin-top:16px;display:inline-flex;align-items:center;justify-content:center;min-height:56px;box-sizing:border-box;background:#1F7A45;color:#FFFFFF;font-weight:800;font-size:20px;padding:14px 36px;border-radius:999px;text-decoration:none">Попробовать бесплатно</a>
