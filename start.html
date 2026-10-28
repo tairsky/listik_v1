@@ -105,9 +105,10 @@ main { padding-top:48px; padding-bottom:72px; display:flex; flex-direction:colum
 .err { background:#FFF0DB; border:2px solid #C2620A; border-radius:18px; padding:14px 18px; font-size:17px; }
 .err a { font-weight:700; color:var(--pen); }
 .hint { font-size:15px; color:var(--muted); }
-.toc { display:flex; flex-direction:column; gap:30px; }
-.toc-sec h2 { font-size:22px; font-weight:800; line-height:1.3; margin:0 0 10px; display:flex; align-items:baseline; justify-content:space-between; gap:12px; letter-spacing:0; }
-.toc-sec h2 small { flex:none; font-size:14px; font-weight:700; color:var(--muted); }
+.toc { display:flex; flex-direction:column; gap:18px; }
+.toc-sec h2 { font-size:16px; font-weight:700; line-height:1.3; margin:0 0 6px; display:flex; align-items:baseline; justify-content:space-between; gap:12px; letter-spacing:0; }
+.toc-sec.lvl h2 { font-size:22px; font-weight:800; margin:0 0 10px; }
+.toc-sec h2 small { flex:none; font-size:12px; font-weight:700; color:var(--muted); }
 .toc ul { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:minmax(0,1fr); gap:6px; }
 .toc li { min-width:0; }
 .toc a { display:flex; align-items:center; gap:12px; min-height:52px; padding:6px 12px; background:#fff; border:2px solid var(--line); border-radius:14px; text-decoration:none; color:var(--ink); }
@@ -247,7 +248,7 @@ function paint() {
   if (st.sections) {
     o.className = "toc";
     st.sections.forEach(g => {
-      const sec = document.createElement("section"); sec.className = "toc-sec";
+      const sec = document.createElement("section"); sec.className = "toc-sec lvl";
       const hd = document.createElement("h2"); hd.textContent = g.title; sec.appendChild(hd);
       const grid = document.createElement("div"); grid.className = "opts";
       renderOpts(st, g.options, grid); sec.appendChild(grid); o.appendChild(sec);
