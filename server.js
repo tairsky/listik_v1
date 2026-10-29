@@ -385,7 +385,7 @@ async function voiceTurnInner(req, res, ip, a) {
 }
 
 /* ---------- контент: что видит браузер ---------- */
-const SECRET_STEP = ["correct", "answer", "rule", "ok", "note", "traps", "wrong", "rubric"];
+const SECRET_STEP = ["correct", "answer", "rule", "ok", "note", "traps", "wrong", "rubric", "col"];
 const publicTask = t => {
   const { similar, ...task } = t;
   task.steps = t.steps.map(s => { const o = { ...s }; SECRET_STEP.forEach(k => delete o[k]); return o; });
@@ -1227,7 +1227,7 @@ async function api(req, res, url) {
       st.attempts = 0;
       logEvent({ kind: "check", u: wlog, task: logTask(task), step: b.step, skill: step.skill, ok: true, ans: shown, att: st.errors + 1, ms, ch });
       if (!st.solved) { st.solved = true; if (a) { if (quiz) quizRecord(a.user, step, st); else recordSolved(a.user, task, ps, b.step, st); } }
-      return send(res, 200, { correct: true, ok: step.ok, note: step.note || null, quizDone: quiz && a ? quizDone(a.user, task, ps) : undefined });
+      return send(res, 200, { correct: true, ok: step.ok, note: step.note || null, col: step.col || null, quizDone: quiz && a ? quizDone(a.user, task, ps) : undefined });
     }
     st.errors++; st.attempts++;
     const trapInfo = judge ? null : findTrap(step, b.answer), code = trapInfo ? trapInfo.code : null;

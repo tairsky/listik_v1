@@ -434,6 +434,19 @@
   .nb.long .ln { font-size: 28px; }
   .nb .ln.cond { color: var(--ink); }
   .nb .ln.cur { color: var(--ink); }
+  /* сложение и вычитание столбиком на листочке */
+  .colm { display: grid; grid-template-columns: 28px repeat(var(--k), 40px); width: max-content; margin: 4px 0 12px; font-family: "Caveat", "Segoe Script", cursive; font-weight: 600; font-size: 34px; color: var(--ink); }
+  .colm .cc { position: relative; height: 40px; line-height: 40px; text-align: center; }
+  .colm .sg { height: 40px; line-height: 40px; text-align: center; }
+  .colm .rl { border-bottom: 3px solid var(--ink); }
+  .colm .pen { color: var(--pen); }
+  .colm .cr { position: absolute; top: 1px; left: 3px; font-size: 19px; line-height: 1; color: var(--pen); }
+  .colm .old { position: absolute; top: 0; left: 2px; font-size: 22px; line-height: 1.1; color: var(--muted); text-decoration: line-through; text-decoration-thickness: 2px; }
+  .colm .nw { color: var(--pen); }
+  .colm .nw.two { font-size: 27px; letter-spacing: -1px; }
+  .colm .pop { animation: colpop .35s ease; }
+  @keyframes colpop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  @media (max-width: 380px) { .colm { font-size: 30px; grid-template-columns: 24px repeat(var(--k), 34px); } }
   .nbcap { margin: 0; font-size: 15px; color: var(--muted); }
 
   .sum { background: #fff; border: 1px solid var(--line); border-radius: 28px; padding: 28px; box-shadow: 0 28px 56px -28px rgba(27,36,64,.25); }
@@ -528,7 +541,7 @@
 <header class="sh">
   <div class="sh-in">
     <a class="sh-logo" href="/" aria-label="Листик — на главную"><img src="/img/logo.png" alt="" width="49" height="44" style="height:44px;width:auto;display:block"><b>Листик</b></a>
-    <nav class="sh-nav" aria-label="Главное меню"><a href="/about.html">О Листике</a><a href="/listik.html#cabinet" id="navCab">Кабинет<span class="sh-x"> родителя</span></a><a href="/pricing.html">Тарифы</a><a class="sh-btn" href="/start.html">Попробовать бесплатно</a></nav>
+    <nav class="sh-nav" aria-label="Главное меню"><a href="/about.html">О программе</a><a href="/pricing.html">Тарифы</a><a href="/listik.html#cabinet" id="navCab"><span class="navcab-t">Войти</span></a><a class="sh-btn" href="/start.html">Попробовать бесплатно</a></nav>
   </div>
 </header>
 </div>
@@ -816,6 +829,40 @@ function lessonHeader(T, n, done) {
   return '<div class="top lhead">' + backHTML() + '<div class="hright">' + voiceBtn() + sndBtn() + '</div></div>' +
     '<div class="lmeta"><div class="meters" id="limbox">' + limHTML() + '</div></div>';
 }
+/* столбик на листочке: числа берём из условия, цифры и переносы появляются по мере верных шагов (их присылает сервер в ответе, поле col) */
+function colHTML(T) {
+  const m = /(\d+)\s*([+−])\s*(\d+)/.exec(T.condition || "");
+  if (!m) return "";
+  const add = m[2] === "+", A = m[1], B = m[3];
+  const k = Math.max(A.length, B.length) + (add ? 1 : 0);
+  const top = {}, dig = {}, car = {}, fresh = S.colNew || {};
+  let all = null;
+  Object.keys(S.cols || {}).map(Number).sort((x, y) => x - y).forEach(i => (S.cols[i] || []).forEach(o => {
+    if (o.d) dig[o.d[0]] = o.d[1];
+    if (o.c) car[o.c[0]] = o.c[1];
+    if (o.t) top[o.t[0]] = o.t[1];
+    if (o.all) all = String(o.all);
+  }));
+  const dgt = (str, p) => (p < str.length ? str[str.length - 1 - p] : "");
+  const pos = j => k - 1 - j;            // j — столбец слева направо, p — разряд справа налево (0 — единицы)
+  let r1 = '<span class="sg"></span>', r2 = '<span class="sg rl">' + (add ? "+" : "−") + '</span>', r3 = '<span class="sg"></span>';
+  for (let j = 0; j < k; j++) {
+    const p = pos(j), a0 = dgt(A, p), b0 = dgt(B, p);
+    let c1 = "";
+    if (car[p] !== undefined) c1 += '<i class="cr' + (fresh["c" + p] ? " pop" : "") + '">' + car[p] + "</i>";
+    if (top[p] !== undefined && top[p] !== Number(a0)) {
+      const v = String(top[p]);
+      c1 += '<s class="old">' + a0 + "</s>" + '<b class="nw' + (v.length > 1 ? " two" : "") + (fresh["t" + p] ? " pop" : "") + '">' + v + "</b>";
+    } else c1 += a0;
+    r1 += '<span class="cc">' + c1 + "</span>";
+    r2 += '<span class="cc rl">' + b0 + "</span>";
+    let res = "";
+    if (all !== null) res = dgt(all, p);
+    else if (dig[p] !== undefined) res = String(dig[p]);
+    r3 += '<span class="cc pen' + (fresh["d" + p] ? " pop" : "") + '">' + res + "</span>";
+  }
+  return '<div class="colm" style="--k:' + k + '" role="img" aria-label="Запись столбиком: ' + A + " " + m[2] + " " + B + '">' + r1 + r2 + r3 + "</div>";
+}
 function notebookAside(T, done) {
   if (T.quiz) return '';
   let h = '<aside class="nbcol" aria-label="Тетрадь"><div class="nbno hand">№ ' + T.no +
@@ -823,6 +870,7 @@ function notebookAside(T, done) {
   const grid = (PARAMS.get("subject") || "math") === "math";   // математика — в клетку, остальное — в линейку
   const acts = T.steps.filter(x => x.type !== "choice" && x.skill !== "проверка ответа").length;
   h += '<div class="nb' + (grid ? ' grid' : '') + (T.long ? ' long' : '') + '"><div class="ln cond">' + T.condition + '</div>';
+  if (T.column) h += colHTML(T);
   const cur = (!done && S.stage !== "right" && T.steps[S.s]) ? T.steps[S.s].cond : "";   // пример текущего шага: тот же, что в вопросе слева
   if (S.notes.length) h += '<div class="ln">Решение.</div>';
   let k = 0;
@@ -861,6 +909,7 @@ function render() {
   app.classList.toggle("wide", lesson);
   const navCab = document.getElementById("navCab");
   document.querySelectorAll('.sh-btn[href="/start.html"]').forEach(a => { a.style.display = (typeof USER !== "undefined" && USER) ? "none" : ""; });
+  if (navCab) { const nt = navCab.querySelector(".navcab-t"); if (nt) nt.textContent = (typeof USER !== "undefined" && USER) ? "Кабинет родителя" : "Войти"; }
   if (navCab) { const on = S.view === "auth" || S.view === "pin" || S.view === "pinreset" || S.view === "cabinet"; navCab.classList.toggle("is-active", on); if (on) navCab.setAttribute("aria-current", "page"); else navCab.removeAttribute("aria-current"); }
   document.body.classList.toggle("plain", lesson);
   /* режим ребёнка: вошедшему кабинету не показываем меню сайта (тарифы, кабинет); оно возвращается в родительских экранах */
@@ -908,7 +957,7 @@ function renderAuth() {
   h += '<h1 class="auth-h">' + (reg ? 'Создайте кабинет родителя' : 'С возвращением!') + '</h1>';
   h += '<p class="auth-sub">' + (reg ? 'Это займёт минуту. Кабинет сохраняет прогресс ребёнка и помогает взрослому на трудном шаге.' : 'Войдите, чтобы увидеть, как ребёнок занимается с Листиком.') + '</p>';
   h += '<div class="tabs"><button class="btn ghost' + (!reg ? ' on' : '') + '" data-action="auth" data-mode="login">Войти</button>' +
-       '<button class="btn ghost' + (reg ? ' on' : '') + '" data-action="auth" data-mode="register">Создать кабинет</button></div>';
+       '<button class="btn ghost' + (reg ? ' on' : '') + '" data-action="auth" data-mode="register">Регистрация</button></div>';
   h += '<div class="form">';
   h += '<label>Почта<input id="fEmail" class="inp" type="email" autocomplete="username" autocapitalize="none" placeholder="name@mail.com" value="' + esc(f.email || "") + '" data-enter="' + en + '"></label>';
   h += '<label>Пароль' + (reg ? ' <span class="hint">не короче 8 символов</span>' : '') + '<input id="fPass" class="inp" type="password" autocomplete="' + (reg ? 'new-password' : 'current-password') + '" data-enter="' + en + '"></label>';
@@ -923,7 +972,7 @@ function renderAuth() {
     h += '<label class="chk"><input id="fAgree" type="checkbox"' + (f.agree ? ' checked' : '') + '><span>Согласен(на) на хранение адреса почты, имени ребёнка и результатов занятий для работы кабинета.</span></label>';
   }
   h += errBox(S.err);
-  h += '<div class="row"><button class="btn" data-action="' + en + '">' + (reg ? 'Создать кабинет' : 'Войти') + '</button></div>';
+  h += '<div class="row"><button class="btn" data-action="' + en + '">' + (reg ? 'Регистрация' : 'Войти') + '</button></div>';
   if (!reg) h += '<p class="hint" style="margin-top:16px">Забыли пароль? <button class="btn ghost small" data-action="forgot">Получить ссылку на почту</button></p>';
   h += '</div></div>';
   h += '<aside class="auth-side">' +
@@ -1347,7 +1396,7 @@ function renderHome() {
   if (S.flash) { h += '<div class="fb ok">' + esc(S.flash) + '</div>'; S.flash = ""; }
   if (!USER) {
     h += '<div class="mark"><b>Для родителей.</b> Кабинет родителя защищён PIN-кодом. С ним взрослый сможет помочь ребёнку на трудном шаге. Без кабинета Листик работает, но позвать взрослого нельзя.' +
-      '<div class="row"><button class="btn small" data-action="auth" data-mode="register">Создать кабинет</button><button class="btn ghost small" data-action="auth" data-mode="login">Войти</button></div></div>';
+      '<div class="row"><button class="btn small" data-action="auth" data-mode="register">Регистрация</button><button class="btn ghost small" data-action="auth" data-mode="login">Войти</button></div></div>';
   }
   if (!USER) h += '<div class="foot"><p>Все вопросы, правила и ответы записаны заранее. Программа сама сверяет ответ ребёнка с верным.</p>' + aiNote() + ttsNote() + '</div>';
   app.innerHTML = h;
@@ -1642,6 +1691,11 @@ async function submit(answer, pickedIndex, ch) {
     S.stage = "right"; S.okText = d.ok || "";
     (S.oks = S.oks || {})[S.s] = S.okText;      // запоминаем, чтобы можно было вернуться на этот шаг
     if (d.note) S.notes.push(d.note);
+    if (d.col) {                                  // цифры столбика на листочке
+      (S.cols = S.cols || {})[stepNo] = d.col;
+      S.colNew = {};
+      d.col.forEach(o => { if (o.d) S.colNew["d" + o.d[0]] = 1; if (o.c) S.colNew["c" + o.c[0]] = 1; if (o.t) S.colNew["t" + o.t[0]] = 1; });
+    } else S.colNew = {};
     const am = /Ответ:\s*(.+)$/.exec(d.ok || "");
     if (am) S.notes.push("Ответ: " + am[1]);
     say((S.errors[S.s] || 0) > 0 ? "rightAfter" : "right", st.skill);
