@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="ru">
 <head>
+<script>try{if(localStorage.getItem("listik_in")==="1"){var s=document.createElement("style");s.textContent='.sh-btn[href="/start.html"],.mh-btn[href="/start.html"]{display:none!important}';document.head.appendChild(s)}}catch(e){}</script>
+
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Листик: тарифы</title>
@@ -37,7 +39,7 @@ details[open] .plus{transform:rotate(45deg)}
 <header class="sh">
   <div class="sh-in">
     <a class="sh-logo" href="/" aria-label="Листик — на главную"><img src="/img/logo.png" alt="" width="49" height="44" style="height:44px;width:auto;display:block"><b>Листик</b></a>
-    <nav class="sh-nav" aria-label="Главное меню"><a href="/about.html">О Листике</a><a href="/listik.html#cabinet">Кабинет<span class="sh-x"> родителя</span></a><a href="/pricing.html" class="is-active" aria-current="page">Тарифы</a><a class="sh-btn" href="/start.html">Попробовать бесплатно</a></nav>
+    <nav class="sh-nav" aria-label="Главное меню"><a href="/about.html">О программе</a><a href="/pricing.html" class="is-active" aria-current="page">Тарифы</a><a href="/listik.html#cabinet"><span class="navcab-t">Войти</span></a><a class="sh-btn" href="/start.html">Попробовать бесплатно</a></nav>
   </div>
 </header>
 
@@ -157,7 +159,7 @@ details[open] .plus{transform:rotate(45deg)}
 
 <script>
 /* Вошедшему родителю кнопка «Попробовать бесплатно» в шапке не нужна */
-(function(){try{fetch("/api/me",{cache:"no-store",credentials:"same-origin"}).then(function(r){return r.json()}).then(function(d){var u=d&&(d.user||(d.data&&d.data.user));if(!u)return;document.querySelectorAll('.sh-btn[href="/start.html"],.mh-btn[href="/start.html"]').forEach(function(a){a.style.display="none"})}).catch(function(){})}catch(e){}})();
+(function(){try{fetch("/api/me",{cache:"no-store",credentials:"same-origin"}).then(function(r){return r.json()}).then(function(d){var u=d&&(d.user||(d.data&&d.data.user));try{if(u)localStorage.setItem("listik_in","1");else localStorage.removeItem("listik_in")}catch(e){}if(!u)return;document.querySelectorAll('a[href="/listik.html#cabinet"] .navcab-t').forEach(function(t){t.textContent="Кабинет родителя"});document.querySelectorAll('.sh-btn[href="/start.html"],.mh-btn[href="/start.html"]').forEach(function(a){a.style.display="none"})}).catch(function(){})}catch(e){}})();
 </script>
 <script src="/sitechat-widget.js" defer></script>
 </body>

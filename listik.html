@@ -816,7 +816,12 @@ function sndBtn() {
   if (VOICE.available && !VOICE.err) return '';   // говорит живой Листик: переключатель голоса браузера не нужен
   return TTS.ok ? '<button class="snd" data-action="ttstoggle" aria-pressed="' + TTS.on + '">' + (TTS.on ? SND_ON + 'Звук включён' : SND_OFF + 'Звук выключен') + '</button>' : '';
 }
-function backHTML() { return '<button class="back" data-action="home">' + ARROW_L + 'Все номера</button>'; }
+/* адрес списка упражнений (start.html на последнем шаге), если урок открыт оттуда */
+function listHref() {
+  const l = PARAMS.get("lang") || "ru", g = PARAMS.get("grade"), sj = PARAMS.get("subject");
+  return (g && sj) ? "start.html?" + new URLSearchParams({ lang: l, grade: g, subject: sj }).toString() : "";
+}
+function backHTML() { return '<button class="back" data-action="' + (listHref() ? 'list' : 'home') + '">' + ARROW_L + 'Все номера</button>'; }
 function header(backBtn) {
   return '<div class="top">' + BRAND + '<div class="tools">' + sndBtn() +
     (backBtn ? backHTML()
@@ -1357,7 +1362,7 @@ function catListHTML() {
   if (QUEUE) {
     const g = groups[0];
     const done = QUEUE.filter(i => TASKS[i].st === "done").length;
-    return '<p class="cat-meta">' + esc(g ? g.title : "Раздел") + ' · ' + QUEUE.length + ' задач' + (USER ? ', решено ' + done : '') + ' · <a href="start.html">Выбрать другой раздел</a></p>' + catItems(QUEUE);
+    return '<p class="cat-meta">' + esc(g ? g.title : "Раздел") + ' · ' + QUEUE.length + ' задач' + (USER ? ', решено ' + done : '') + ' · <a href="' + (listHref() || 'start.html') + '">Выбрать другой раздел</a></p>' + catItems(QUEUE);
   }
   return groups.map(g => {
     const done = g.idx.filter(i => TASKS[i].st === "done").length;
@@ -1832,8 +1837,8 @@ function renderDone() {
   h += '<div class="row">' +
     (QPOS >= 0 && QPOS < QUEUE.length - 1
       ? '<button class="btn" data-action="start" data-i="' + QUEUE[QPOS + 1] + '">Следующая задача</button>'
-      : (QPOS >= 0 ? '<a class="btn" href="start.html" style="text-decoration:none;display:inline-flex;align-items:center">Раздел пройден. Выбрать другой</a>' : '<button class="btn" data-action="home">К списку задач</button>')) +
-    (QPOS >= 0 ? '<button class="btn ghost" data-action="home">К списку задач</button>' : '') +
+      : (QPOS >= 0 ? '<a class="btn" href="' + (listHref() || 'start.html') + '" style="text-decoration:none;display:inline-flex;align-items:center">Раздел пройден. Выбрать другой</a>' : '<button class="btn" data-action="home">К списку задач</button>')) +
+    (QPOS >= 0 ? '<button class="btn ghost" data-action="' + (listHref() ? 'list' : 'home') + '">К списку задач</button>' : '') +
     '<button class="btn ghost" data-action="start" data-i="' + S.t + '">Решить ещё раз</button></div></div></section>' + notebookAside(T, true) + '</div>';
   app.innerHTML = h;
   window.scrollTo(0, 0);
@@ -1855,7 +1860,8 @@ app.addEventListener("click", e => {
   if (a === "quiz-later") { OFFER.diag = false; call("/api/quiz/later", {}); return render(); }
   if (a === "sec") { HOME.open[b.dataset.s] = !HOME.open[b.dataset.s]; return paintCat(); }
   if (a === "view") { HOME.view = b.dataset.v; try { localStorage.setItem("lk_view2", HOME.view); } catch (e) {} return paintCat(); }
-  if (a === "home") { stopSpeech(); VOICE.stop(null, true); if (S.view === "cabinet" && USER) call("/api/parent/leave", {}); S = { view: "home" }; render(); loadOffer().then(() => { if (S.view === "home") render(); }); return; }
+  if (a === "list" && listHref()) { stopSpeech(); VOICE.stop(null, true); location.href = listHref(); return; }
+  if (a === "home" || a === "list") { stopSpeech(); VOICE.stop(null, true); if (S.view === "cabinet" && USER) call("/api/parent/leave", {}); S = { view: "home" }; render(); loadOffer().then(() => { if (S.view === "home") render(); }); return; }
   if (a === "auth") { S = { view: "auth", mode: b.dataset.mode || "login", err: "", form: S.form }; return render(); }
   if (a === "showpw") { ["fPass", "fPass2"].forEach(id => { const el = document.getElementById(id); if (el) el.type = b.checked ? "text" : "password"; }); return; }
   if (a === "cab-tab") { S.tab = b.dataset.tab; S.err = ""; return render(); }
