@@ -407,6 +407,11 @@
   .fb strong.r { color: var(--red); }
   .mark { background: var(--mark-bg); border: 2px solid #BFE6CE; border-radius: 18px; padding: 14px 18px; font-size: 18px; }
   .mark b { font-weight: 700; }
+  /* подсказка после ошибки — красная, верный ответ (.fb.ok) — зелёный */
+  .mark.hint { background: #FDECEC; border: 2px solid #D64545; }
+  .mark.hint b { color: #C62828; }
+  .mark.similar { background: #EAF1FB; border: 2px solid #8FB0E0; }
+  .mark.similar b { color: #2F5FA8; }
   .disp { border-radius: 16px; border: 3px solid var(--line); background: #fff; color: var(--ink); }
   .disp.active { border-color: var(--green); background: var(--tint); }
   .disp.active .val::after { border-right-color: var(--green); }
@@ -458,7 +463,7 @@
   .pills { flex: 1 1 auto; min-width: 0; max-width: 100%; }
   .pills span { flex: 1 1 34px; min-width: 6px; max-width: 34px; }
   @media (max-width: 1007px) {
-    .nbcol { order: -1; }
+    .nbcol { display: none; }   /* на телефоне и планшете тетрадь скрыта — только на компьютере */
     .nb { min-height: 200px; }
     .lprog { justify-content: flex-start; width: 100%; }
     .lhead .pills { flex-basis: 100%; order: 5; }
@@ -657,7 +662,7 @@ async function askVoice(ev, skill) {
 }
 
 function say(ev, skill) {
-  if (ev === "start") return;   // приветственную фразу в начале задачи не показываем
+  if (ev !== "locked") return;   // болтливые фразы («ты молодец», «ничего страшного», «попробуем ещё раз») не показываем; оставлена только пауза при блокировке шага
   if (VOICE.active) return;   // в режиме живого голоса говорит Листик из голосовой связи
   const id = ++voiceSeq;
   const canned = pickCanned(ev);
@@ -747,7 +752,7 @@ const SND_ON = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stro
 const SND_OFF = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1E2A22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9.5l4 5"/><path d="M21 9.5l-4 5"/></svg>';
 const LETTERS = ["А", "Б", "В", "Г", "Д"];
 
-let S = { view: "home" };
+let S = { view: "loading" };   // пока boot() грузит данные, список упражнений не рисуем (иначе он мигает перед уроком)
 
 /* Выбор из мастера (start.html): ?lang=ru&subject=math&grade=3&section=equations.
    Если раздел выбран, задачи идут по очереди, одна за другой. */
@@ -910,6 +915,7 @@ function cabIdleLeave() {
   render();
 }
 function render() {
+  if (S.view === "loading") return;
   const lesson = S.view === "task" || S.view === "done";
   app.classList.toggle("wide", lesson);
   const navCab = document.getElementById("navCab");
@@ -1462,12 +1468,10 @@ function renderTask() {
         : 'Ты стараешься, и это самое главное. Давай глубоко вдохнём и посмотрим на правило ещё раз. Так бывает у всех.') + '</div>';
     }
     if (S.attempts >= 1) {
-      h += '<div class="fb bad pop" role="alert"><strong class="r">Пока не так.</strong> ' +
-        (S.attempts === 1 ? 'Смотри правило и попробуй ещё раз.' : 'Разберём похожий пример и попробуем снова.') + '</div>';
-      h += '<div class="mark"><b>Правило:</b> ' + (S.rule || '') + '</div>';
+      h += '<div class="mark hint"><b>Правило:</b> ' + (S.rule || '') + '</div>';
     }
     if (S.attempts >= 2 && S.similar) {
-      h += '<div class="mark"><b>Похожий пример:</b> ' + S.similar + '</div>';
+      h += '<div class="mark similar"><b>Похожий пример:</b> ' + S.similar + '</div>';
     }
     if (st.type !== "choice" && st.type !== "explain") h += padHTML();
     if (vprev(T, S.s) >= 0) h += '<div class="row">' + backBtn() + '</div>';
@@ -1704,7 +1708,7 @@ async function submit(answer, pickedIndex, ch) {
     const am = /Ответ:\s*(.+)$/.exec(d.ok || "");
     if (am) S.notes.push("Ответ: " + am[1]);
     say((S.errors[S.s] || 0) > 0 ? "rightAfter" : "right", st.skill);
-    VOICE.onResult({ kind: "correct", ok: d.ok, note: d.note });
+    VOICE.onResult({ kind: "correct", ok: d.ok, note: d.note, say: d.say });
   } else if (d.moveOn) {
     S.stage = "right"; S.okText = T.quiz === "diag" ? "Хорошо, идём дальше." : "Ничего страшного, идём дальше.";
     (S.oks = S.oks || {})[S.s] = S.okText; (S.mv = S.mv || {})[S.s] = true;
@@ -1721,7 +1725,7 @@ async function submit(answer, pickedIndex, ch) {
     S.active = 0;
     if (d.locked) { S.stage = "locked"; say("locked", st.skill); }
     else say(S.attempts === 1 ? "wrong1" : "wrong2", st.skill);
-    VOICE.onResult({ kind: "wrong", attempts: d.attempts, rule: d.rule, similar: d.similar || null, locked: !!d.locked, tired: d.tired || null });
+    VOICE.onResult({ kind: "wrong", attempts: d.attempts, rule: d.rule, similar: d.similar || null, locked: !!d.locked, tired: d.tired || null, say: d.say });
   }
   render();
 }
@@ -1879,7 +1883,7 @@ app.addEventListener("click", e => {
   if (a === "logout") { try{localStorage.removeItem("listik_in")}catch(e){} call("/api/logout", {}).then(reloadTasks).then(() => { if (S.view === "home") render(); }); USER = null; S = { view: "home", flash: "Вы вышли из кабинета." }; return render(); }
   if (a === "ttstoggle") { TTS.on = !TTS.on; if (!TTS.on) stopSpeech(); return render(); }
   if (a === "voicetoggle") { if (VOICE.active || VOICE.connecting) VOICE.stop(); else VOICE.start(); return; }
-  if (a === "readq") { if (VOICE.quiet) return; if (!VOICE.active && VOICE.available && !VOICE.err) { VOICE.start(); return; } if (VOICE.active) { VOICE.interrupt(); return VOICE.tell("[Программа] Ребёнок просит повторить вопрос. Прочитай текущий вопрос ещё раз вслух."); } const q = TASKS[S.t].steps[S.s].q; return speak(spokenMath(q), true); }
+  if (a === "readq") { if (VOICE.quiet) return; if (!VOICE.active && VOICE.available && !VOICE.err) { VOICE.start(); return; } if (VOICE.active) { VOICE.interrupt(); if (VOICE.fast && S.view === "task" && S.stage === "ask" && VOICE.fastAsk(true)) return; return VOICE.tell("[Программа] Ребёнок просит повторить вопрос. Прочитай текущий вопрос ещё раз вслух."); } const q = TASKS[S.t].steps[S.s].q; return speak(spokenMath(q), true); }
   if (a === "aitoggle") { AI.on = !AI.on; return render(); }
   if (a === "pick") { const i = +b.dataset.i; return submit(i, i); }
   if (a === "digit") return digit(b.dataset.d);
@@ -2028,6 +2032,7 @@ Object.assign(VOICE, {
       if (r.status === 429) throw new Error("Слишком много запусков голоса. Подожди немного.");
       if (r.status !== 200 || !r.data.sid) throw new Error("Голос сейчас недоступен. Можно отвечать кнопками.");
       this.sid = r.data.sid;
+      this.fast = r.data.fast || null; if (this.fast) this.prefetch();
       this.active = true; this.connecting = false; this.state = "think";
       this.announce(); render();
     } catch (e) {
@@ -2102,7 +2107,7 @@ Object.assign(VOICE, {
     }
     const u8 = new Uint8Array(pcm.buffer); let bin = "";
     for (let i = 0; i < u8.length; i += 0x8000) bin += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
-    this.exchange({ audio: btoa(bin) });
+    this.exchange(this.withFast({ audio: btoa(bin) }));
   },
 
   teardown() {
@@ -2117,6 +2122,7 @@ Object.assign(VOICE, {
     this.sid = this.ac = this.node = this.stream = this.player = this.vad = null;
     this.active = false; this.connecting = false; this.inFlight = false; this.playing = false; this.listening = false;
     this.queue = []; this.pending = null; this.adv = "none"; this.state = "idle"; this.heard = ""; this.greeted = false;
+    this.fast = null; this.fastTok = (this.fastTok || 0) + 1;
   },
   stop(msg, silent) {
     this.teardown(); this.err = msg || "";
@@ -2145,15 +2151,15 @@ Object.assign(VOICE, {
       const once = () => { if (called) return; called = true; next(); };
       if (!p) return once();
       p.onended = once; p.onerror = once;
-      p.src = "data:" + (it.mime || "audio/mpeg") + ";base64," + it.b64;
+      p.src = it.url || ("data:" + (it.mime || "audio/mpeg") + ";base64," + it.b64);
       p.play().catch(once);
     };
     const pb = {
       finished,
       get started() { return started; },
-      push(mime, b64) {
-        if (cancelled || !b64) return;
-        q.push({ mime, b64 });
+      push(mime, b64, url) {
+        if (cancelled || (!b64 && !url)) return;
+        q.push({ mime, b64, url });
         if (!started) { started = true; V.playing = true; V.setState("speak"); }
         if (!playing) next();
       },
@@ -2216,6 +2222,7 @@ Object.assign(VOICE, {
   announce(retry) {
     if (!this.active) return;
     this.interrupt();
+    if (this.fast && S.view === "task" && S.stage === "ask" && this.fastAsk(false)) return;
     if (S.view === "task" && S.stage === "lesson") this.tell(this.lessonText(retry));
     else if (S.view === "task" && S.stage === "ask") this.tell(this.stepText(retry));
     else if (S.view === "done") this.tell(this.doneText());
@@ -2227,7 +2234,8 @@ Object.assign(VOICE, {
     else if (st.type === "explain") t += "Тип ответа: ребёнок объясняет своими словами. Выслушай и передай его слова дословно в поле text. Сам ничего не объясняй и не подсказывай, ответ не называй. ";
     else if (st.type === "pair") t += "Тип ответа: " + st.fields.length + " числа по порядку (поле values): " + st.fields.map(f => vsay(f)).join(", ") + ". ";
     else t += "Тип ответа: одно целое число (поле number). ";
-    if (retry) t += "Взрослый помог, ребёнок пробует этот шаг ещё раз. Ободри его и повтори вопрос.";
+    if (retry === "ctx") t += "Этот вопрос ребёнку уже озвучен готовой записью, заново его не читай. Выслушай ребёнка и действуй по правилам.";
+    else if (retry) t += "Взрослый помог, ребёнок пробует этот шаг ещё раз. Ободри его и повтори вопрос.";
     else if (!this.greeted) { this.greeted = true; t += "Это начало занятия: коротко поздоровайся (ты Листик), прочитай ребёнку вопрос вслух дословно и жди ответ голосом."; }
     else t += "Прочитай ребёнку вопрос вслух дословно и жди ответ голосом.";
     return t.replace(/([.?!])\./g, "$1");
@@ -2269,6 +2277,29 @@ Object.assign(VOICE, {
         if (r.status !== 200) throw new Error("голос: ответ " + r.status + " " + JSON.stringify(r.data));
         const d = r.data;
         if (d.heard) this.setState(null, String(d.heard).trim().slice(0, 120));
+        if (d.fast && d.intent === "repeat") {          // «повтори»: проигрываем вопрос ещё раз, модель не нужна
+          if (ep !== this.epoch) { this.inFlight = false; this.setState("listen"); this.flush(); this.armMic(); return; }
+          if (this.fastAsk(true)) return;
+          payload = { tell: ["[Программа] Ребёнок просит повторить вопрос. Прочитай текущий вопрос ещё раз вслух."] };
+          continue;
+        }
+        if (d.fast && d.calls && d.calls.length) {      // ответ понятен без модели: проверяем и играем готовую реплику
+          this.lastInfo = null;
+          let out = null;
+          for (const c of d.calls) {
+            if (ep !== this.epoch) { out = { error: "stale" }; break; }
+            try { out = await this.exec(c); } catch (e) { console.error(e); out = { error: "внутренняя ошибка" }; }
+          }
+          if (!this.active || this.sid !== sid) return;
+          if (ep !== this.epoch) { this.inFlight = false; this.setState("listen"); this.flush(); this.armMic(); return; }
+          const info = this.lastInfo; this.lastInfo = null;
+          if (this.adv === "queued") this.adv = "praising";
+          const ids = out && !out.error && info ? this.sayFor(info) : null;
+          if (ids && await this.fastSay(ids, ep)) return;
+          this.inFlight = true;                         // запасной путь: пусть ответит модель
+          payload = { tell: ["[Программа] Ребёнок ответил голосом. Результат проверки: " + JSON.stringify(out)] };
+          continue;
+        }
         if (d.calls && d.calls.length) {
           const outputs = [];
           for (const c of d.calls) {
@@ -2349,6 +2380,7 @@ Object.assign(VOICE, {
   /* результат проверки от сервера (вызывается из submit) */
   onResult(info) {
     if (!this.active) return;
+    this.lastInfo = info;
     let out;
     if (info.kind === "correct") {
       this.adv = "queued";
@@ -2369,13 +2401,118 @@ Object.assign(VOICE, {
         ? " Потом добавь одну добрую фразу: ты молодец, что стараешься, и можно сделать перерыв или выбрать задачу полегче."
         : " Потом добавь одну добрую фразу: ты стараешься, и так бывает у всех. Говори спокойно и коротко.";
     if (this.pending) { const p = this.pending; this.pending = null; p.resolve(out); }
-    else this.tell("[Программа] Ребёнок ответил на экране (кнопками). Результат проверки: " + JSON.stringify(out));
+    else {
+      const msg = "[Программа] Ребёнок ответил на экране (кнопками). Результат проверки: " + JSON.stringify(out);
+      const ids = this.fast && info.kind !== "error" ? this.sayFor(info) : null;
+      if (ids) this.fastSay(ids, this.epoch).then(ok => { if (!ok) this.tell(msg); });
+      else this.tell(msg);
+    }
   },
   maybeAdvance(force) {
     if (this.adv !== "praising") return;
     if (this.inFlight && !force) return;
     this.adv = "none"; clearTimeout(this.advTimer);
     if (S.view === "task" && S.stage === "right") nextStep();
+  }
+});
+
+/* ---------- быстрый голос: готовые записи вместо «модель + озвучка» ----------
+   Вопрос шага, «верно», правило и подсказки под типичные ошибки написаны учителями и озвучены заранее (mp3 на сервере).
+   Ответ ребёнка сервер разбирает без модели (fastparse.js); если не уверен, отвечает модель, как раньше.
+   Если запись не загрузилась, тоже работает прежний путь. Выключатель на сервере: VOICE_FAST=0. */
+Object.assign(VOICE, {
+  fast: null, fastTok: 0, lastInfo: null, clipBlobs: new Map(), lastPick: {},
+  loadClip(id) {                       // -> Promise<адрес для проигрывателя | null>; повторные просьбы берут из памяти
+    if (!id) return Promise.resolve(null);
+    let p = this.clipBlobs.get(id);
+    if (!p) {
+      p = fetch("/clips/" + id + ".mp3").then(r => r.ok ? r.blob() : Promise.reject(new Error("clip " + r.status)))
+        .then(b => URL.createObjectURL(b)).catch(() => { this.clipBlobs.delete(id); return null; });
+      this.clipBlobs.set(id, p);
+    }
+    return p;
+  },
+  prefetch() {                         // заранее качаем общие фразы и вопросы текущей задачи (ответы и подсказки не качаем: в них есть решение)
+    if (!this.fast) return;
+    const ids = [];
+    Object.values(this.fast.clips || {}).forEach(a => (a || []).forEach(id => ids.push(id)));
+    try { TASKS[S.t].steps.forEach(st => { if (st.qc) ids.push(st.qc); }); } catch (e) {}
+    ids.forEach(id => this.loadClip(id));
+  },
+  pickClip(key) {                      // случайный вариант фразы, но не тот же, что в прошлый раз
+    const a = (this.fast && this.fast.clips && this.fast.clips[key]) || [];
+    if (!a.length) return null;
+    let id = a[Math.floor(Math.random() * a.length)];
+    if (a.length > 1 && id === this.lastPick[key]) id = a[(a.indexOf(id) + 1) % a.length];
+    this.lastPick[key] = id; return id;
+  },
+  /* что сказать после проверки ответа (номера клипов); null — готовой записи нет, пусть говорит модель */
+  sayFor(info) {
+    const say = (info.say || []).filter(Boolean);
+    if (info.kind === "correct") return say.length ? say : null;
+    if (info.kind === "moveon") { const m = this.pickClip("moveon"); return m ? [m] : null; }
+    if (info.kind === "locked") { const m = this.pickClip("locked"); return m ? [m] : null; }
+    if (info.kind === "wrong") {
+      if (info.locked) { const m = this.pickClip("locked"); return m ? [m] : null; }
+      const lead = this.pickClip("lead_wrong");
+      if (!say.length || !lead) return null;
+      const ids = [lead, ...say];
+      if (info.tired) { const t = this.pickClip(info.tired === "break" ? "tired_break" : "tired_ease"); if (t) ids.push(t); }
+      return ids;
+    }
+    return null;
+  },
+  /* сложить записи в очередь проигрывателя; все грузятся параллельно, играть начинаем с первой готовой */
+  async playClips(ids, ep) {
+    const loads = ids.map(id => this.loadClip(id));
+    const pb = this.makePlayback(); let ok = false;
+    for (const l of loads) {
+      const u = await l;
+      if (ep !== this.epoch || !this.active) { pb.cancel(); return { ok: false, stale: true }; }
+      if (u) { pb.push("audio/mpeg", null, u); ok = true; }
+      else if (!ok) { pb.cancel(); return { ok: false }; }   // первой записи нет: играть нечего, отдаём модели
+    }
+    pb.end();
+    return { ok: true, pb };
+  },
+  /* сказать записями и вернуться к слушанию; false — не получилось, надо делать по-старому */
+  async fastSay(ids, ep) {
+    const my = this.fastTok = (this.fastTok || 0) + 1;
+    this.inFlight = true; this.setState("think");
+    let r; try { r = await this.playClips(ids, ep); } catch (e) { r = { ok: false }; }
+    if (!this.active) return true;
+    if (this.fastTok !== my) { if (r.pb) r.pb.cancel(); return true; }      // уже началось другое: оно само всё доведёт
+    if (r.stale || ep !== this.epoch) { if (r.pb) r.pb.cancel(); this.inFlight = false; this.setState("listen"); this.flush(); this.armMic(); return true; }
+    if (!r.ok) { this.inFlight = false; return false; }
+    this.inFlight = false;
+    await this.playReply({}, ep, r.pb);
+    return true;
+  },
+  /* вопрос текущего шага из записи (в первый раз с приветствием). true — взялись, false — записи нет */
+  fastAsk(again) {
+    const st = TASKS[S.t].steps[S.s];
+    if (!this.fast || !st || !st.qc) return false;
+    const ids = [];
+    if (!this.greeted && !again) { this.greeted = true; const g = this.pickClip("greet"); if (g) ids.push(g); }
+    ids.push(st.qc);
+    this.prefetch();
+    this.fastSay(ids, this.epoch).then(ok => { if (!ok) { this.greeted = this.greeted; this.tell(this.stepText(false)); } });
+    return true;
+  },
+  /* что ждём от ребёнка на этом шаге: по этому сервер разбирает речь без модели */
+  fastSpec() {
+    if (!this.fast || !S || S.view !== "task" || S.stage !== "ask") return null;
+    const st = TASKS[S.t].steps[S.s];
+    if (!st) return null;
+    if (st.type === "number") return { type: "number" };
+    if (st.type === "pair" && st.fields) return { type: "pair", n: st.fields.length };
+    if (st.type === "choice" && st.options) return { type: "choice", options: st.options.map(o => plain(o)) };
+    return null;
+  },
+  withFast(p) {
+    const spec = this.fastSpec();
+    if (spec) { p.fast = spec; p.tell = [this.stepText("ctx")]; }     // контекст для модели на случай, если разбор не уверен
+    return p;
   }
 });
 
@@ -2507,6 +2644,7 @@ async function boot() {
       const want = PARAMS.get("task"), k = want ? TASKS.findIndex(t => t.id === want) : -1;
       return startTask(k >= 0 && QUEUE.indexOf(k) >= 0 ? k : QUEUE[0]);
     }
+    S = { view: "home" };
     render();
   } catch (e) {
     app.innerHTML = '<div class="top"><div class="brand hand">' + LOGO + 'Листик</div></div>' +
