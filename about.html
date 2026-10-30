@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ru">
 <head>
-<script>try{if(localStorage.getItem("listik_in")==="1"){var s=document.createElement("style");s.textContent='.sh-btn[href="/start.html"],.mh-btn[href="/start.html"]{display:none!important}';document.head.appendChild(s)}}catch(e){}</script>
+<script>try{if(localStorage.getItem("listik_in")==="1"){var s=document.createElement("style");s.textContent='.sh-btn[href="/listik.html#register"],.mh-btn[href="/listik.html#register"]{display:none!important}';document.head.appendChild(s)}}catch(e){}</script>
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -84,7 +84,7 @@ svg .lk-blink{transform-box:fill-box;transform-origin:center;animation:lkblink 5
 <a href="/about.html" style="color:#1E2A22;text-decoration:none;font-weight:600;font-size:16px;line-height:24px;padding:12px 0 9px;border-bottom:3px solid transparent">О программе</a>
 <a href="/pricing.html" style="color:#1E2A22;text-decoration:none;font-weight:600;font-size:16px;line-height:24px;padding:12px 0 9px;border-bottom:3px solid transparent">Тарифы</a>
 <a href="/listik.html#cabinet" style="color:#1E2A22;text-decoration:none;font-weight:600;font-size:16px;line-height:24px;padding:12px 0 9px;border-bottom:3px solid transparent"><span class="navcab-t">Войти</span></a>
-<a class="mh-btn" href="/start.html" style="display:inline-flex;align-items:center;min-height:44px;box-sizing:border-box;background:#1F7A45;color:#FFFFFF;font-weight:800;font-size:16px;padding:10px 22px;border-radius:999px;text-decoration:none">Попробовать бесплатно</a>
+<a class="mh-btn" href="/listik.html#register" style="display:inline-flex;align-items:center;min-height:44px;box-sizing:border-box;background:#1F7A45;color:#FFFFFF;font-weight:800;font-size:16px;padding:10px 22px;border-radius:999px;text-decoration:none">Регистрация</a>
 </nav>
 </div>
 </header>
@@ -265,7 +265,7 @@ svg .lk-blink{transform-box:fill-box;transform-origin:center;animation:lkblink 5
 <div style="flex:1 1 420px;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:20px">
 <h2 style="margin:0;font-size:36px;line-height:1.2;font-weight:800;color:#FFFFFF">Дайте ребёнку почувствовать: «Я сам это решил»</h2>
 <p style="margin:0;font-size:20px;color:#E6F2E8">Именно с этого ощущения начинается интерес к учёбе.</p>
-<a class="lk-cta2" href="/start.html" style="display:inline-flex;align-items:center;justify-content:center;min-height:56px;box-sizing:border-box;background:#FBFAF4;color:#14532D;font-weight:800;font-size:20px;padding:14px 36px;border-radius:999px;text-decoration:none">Начать бесплатно</a>
+<a class="lk-cta2" href="/listik.html#register" style="display:inline-flex;align-items:center;justify-content:center;min-height:56px;box-sizing:border-box;background:#FBFAF4;color:#14532D;font-weight:800;font-size:20px;padding:14px 36px;border-radius:999px;text-decoration:none">Начать бесплатно</a>
 </div>
 <div style="flex:1 1 280px;min-width:0;max-width:300px;margin:0 auto;position:relative">
 <div style="position:relative;width:100%;aspect-ratio:1/1">
@@ -305,8 +305,8 @@ svg .lk-blink{transform-box:fill-box;transform-origin:center;animation:lkblink 5
 
 </div>
 <script>
-/* Вошедшему родителю кнопка «Попробовать бесплатно» в шапке не нужна */
-(function(){try{fetch("/api/me",{cache:"no-store",credentials:"same-origin"}).then(function(r){return r.json()}).then(function(d){var u=d&&(d.user||(d.data&&d.data.user));try{if(u)localStorage.setItem("listik_in","1");else localStorage.removeItem("listik_in")}catch(e){}if(!u)return;document.querySelectorAll('a[href="/listik.html#cabinet"] .navcab-t').forEach(function(t){t.textContent="Кабинет родителя"});document.querySelectorAll('.sh-btn[href="/start.html"],.mh-btn[href="/start.html"]').forEach(function(a){a.style.display="none"})}).catch(function(){})}catch(e){}})();
+/* Вошедшему родителю кнопка «Регистрация» в шапке не нужна */
+(function(){try{fetch("/api/me",{cache:"no-store",credentials:"same-origin"}).then(function(r){return r.json()}).then(function(d){var u=d&&(d.user||(d.data&&d.data.user));try{if(u)localStorage.setItem("listik_in","1");else localStorage.removeItem("listik_in")}catch(e){}if(!u)return;document.querySelectorAll('a[href="/listik.html#cabinet"] .navcab-t').forEach(function(t){t.textContent="Кабинет родителя"});document.querySelectorAll('.sh-btn[href="/listik.html#register"],.mh-btn[href="/listik.html#register"]').forEach(function(a){a.style.display="none"})}).catch(function(){})}catch(e){}})();
 </script>
 <script src="/sitechat-widget.js" defer></script>
 </body>

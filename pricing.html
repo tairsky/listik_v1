@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ru">
 <head>
-<script>try{if(localStorage.getItem("listik_in")==="1"){var s=document.createElement("style");s.textContent='.sh-btn[href="/start.html"],.mh-btn[href="/start.html"]{display:none!important}';document.head.appendChild(s)}}catch(e){}</script>
+<script>try{if(localStorage.getItem("listik_in")==="1"){var s=document.createElement("style");s.textContent='.sh-btn[href="/listik.html#register"],.mh-btn[href="/listik.html#register"]{display:none!important}';document.head.appendChild(s)}}catch(e){}</script>
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -39,7 +39,7 @@ details[open] .plus{transform:rotate(45deg)}
 <header class="sh">
   <div class="sh-in">
     <a class="sh-logo" href="/" aria-label="Листик — на главную"><img src="/img/logo.png" alt="" width="49" height="44" style="height:44px;width:auto;display:block"><b>Листик</b></a>
-    <nav class="sh-nav" aria-label="Главное меню"><a href="/about.html">О программе</a><a href="/pricing.html" class="is-active" aria-current="page">Тарифы</a><a href="/listik.html#cabinet"><span class="navcab-t">Войти</span></a><a class="sh-btn" href="/start.html">Попробовать бесплатно</a></nav>
+    <nav class="sh-nav" aria-label="Главное меню"><a href="/about.html">О программе</a><a href="/pricing.html" class="is-active" aria-current="page">Тарифы</a><a href="/listik.html#cabinet"><span class="navcab-t">Войти</span></a><a class="sh-btn" href="/listik.html#register">Регистрация</a></nav>
   </div>
 </header>
 
@@ -68,7 +68,7 @@ details[open] .plus{transform:rotate(45deg)}
 <li style="display: flex; gap: 12px; align-items: flex-start"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" style="flex: none; margin-top: 2px"><circle cx="12" cy="12" r="12" fill="#E5F3E9"/><path d="M7 12.5l3.2 3.2L17 9" fill="none" stroke="#1F7A45" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Листик ведёт по шагам, ответ не показывает</span></li>
 <li style="display: flex; gap: 12px; align-items: flex-start"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" style="flex: none; margin-top: 2px"><circle cx="12" cy="12" r="12" fill="#E5F3E9"/><path d="M7 12.5l3.2 3.2L17 9" fill="none" stroke="#1F7A45" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Можно пройти вместе с ребёнком</span></li>
 </ul>
-<a href="/start.html" class="btn btn-line" style="margin-top: auto; display: inline-flex; align-items: center; justify-content: center; min-height: 58px; padding: 0 28px; box-sizing: border-box; border: 2px solid var(--ink); color: var(--ink); border-radius: 16px; text-decoration: none; font-weight: 600; font-size: 18px; background: transparent">Попробовать задачу</a>
+<a href="/listik.html#register" class="btn btn-line" style="margin-top: auto; display: inline-flex; align-items: center; justify-content: center; min-height: 58px; padding: 0 28px; box-sizing: border-box; border: 2px solid var(--ink); color: var(--ink); border-radius: 16px; text-decoration: none; font-weight: 600; font-size: 18px; background: transparent">Попробовать задачу</a>
 </article>
 
 <!-- Month (featured) -->
@@ -127,7 +127,7 @@ details[open] .plus{transform:rotate(45deg)}
 <p style="margin: 0; font-size: 19px; line-height: 1.6; text-wrap: pretty">Одна задача занимает несколько минут. Платить за это не нужно.</p>
 </div>
 <div style="display: flex; flex-wrap: wrap; gap: 14px">
-<a href="/start.html" class="btn" style="display: inline-flex; align-items: center; min-height: 58px; padding: 0 30px; box-sizing: border-box; background: var(--sun); color: var(--ink); border-radius: 16px; text-decoration: none; font-weight: 700; font-size: 18px">Попробовать задачу</a>
+<a href="/listik.html#register" class="btn" style="display: inline-flex; align-items: center; min-height: 58px; padding: 0 30px; box-sizing: border-box; background: var(--sun); color: var(--ink); border-radius: 16px; text-decoration: none; font-weight: 700; font-size: 18px">Попробовать задачу</a>
 </div>
 </div>
 </section>
@@ -158,8 +158,8 @@ details[open] .plus{transform:rotate(45deg)}
 </div>
 
 <script>
-/* Вошедшему родителю кнопка «Попробовать бесплатно» в шапке не нужна */
-(function(){try{fetch("/api/me",{cache:"no-store",credentials:"same-origin"}).then(function(r){return r.json()}).then(function(d){var u=d&&(d.user||(d.data&&d.data.user));try{if(u)localStorage.setItem("listik_in","1");else localStorage.removeItem("listik_in")}catch(e){}if(!u)return;document.querySelectorAll('a[href="/listik.html#cabinet"] .navcab-t').forEach(function(t){t.textContent="Кабинет родителя"});document.querySelectorAll('.sh-btn[href="/start.html"],.mh-btn[href="/start.html"]').forEach(function(a){a.style.display="none"})}).catch(function(){})}catch(e){}})();
+/* Вошедшему родителю кнопка «Регистрация» в шапке не нужна */
+(function(){try{fetch("/api/me",{cache:"no-store",credentials:"same-origin"}).then(function(r){return r.json()}).then(function(d){var u=d&&(d.user||(d.data&&d.data.user));try{if(u)localStorage.setItem("listik_in","1");else localStorage.removeItem("listik_in")}catch(e){}if(!u)return;document.querySelectorAll('a[href="/listik.html#cabinet"] .navcab-t').forEach(function(t){t.textContent="Кабинет родителя"});document.querySelectorAll('.sh-btn[href="/listik.html#register"],.mh-btn[href="/listik.html#register"]').forEach(function(a){a.style.display="none"})}).catch(function(){})}catch(e){}})();
 </script>
 <script src="/sitechat-widget.js" defer></script>
 </body>

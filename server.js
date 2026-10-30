@@ -57,11 +57,16 @@ const OPENAI_KEY = process.env.OPENAI_API_KEY || "";
 const OPENAI_BASE = (process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/$/, "");
 const LLM_MODEL = process.env.LLM_MODEL || "gpt-6-luna";            // дёшево; если плохо слушается: gpt-6.1-sol
 const STT_MODEL = process.env.STT_MODEL || "gpt-4o-mini-transcribe";
-const TTS_MODEL = process.env.TTS_MODEL || "gpt-4o-mini-tts";
-const TTS_VOICE = process.env.TTS_VOICE || process.env.VOICE || "marin";
-const TTS_STYLE = process.env.TTS_STYLE === undefined
-  ? "Говори по-русски, с русским произношением и русскими ударениями, тепло, дружелюбно и спокойно, не торопясь, как добрая старшая сестра, которая объясняет ребёнку 8–9 лет. Чётко произноси числа."
-  : process.env.TTS_STYLE;
+/* настройки озвучки и готовые реплики: clips.js (там же их читает build-audio.js, чтобы номера файлов совпадали) */
+const CLIPS = require("./clips.js");
+const FASTPARSE = require("./fastparse.js");
+const TTS_MODEL = CLIPS.config.model;
+const TTS_VOICE = CLIPS.config.voice;
+const TTS_STYLE = CLIPS.config.style;
+/* Быстрый голос: типичные реплики (вопрос, «верно», правило, подсказки) играются из готовых mp3 без модели и озвучки.
+   Выключатель: VOICE_FAST=0 в Render возвращает прежнюю схему «распознавание -> модель -> озвучка» целиком. */
+const FAST_ON = process.env.VOICE_FAST !== "0";
+const clipFor = raw => { if (!FAST_ON || !raw) return null; try { return CLIPS.reg(raw); } catch (e) { return null; } };
 const VOICE_SERVER_MAX_MIN = Number(process.env.VOICE_MAX_MINUTES || 45);   // потолок одной голосовой сессии; дневной лимит голоса считается отдельно (VOICE_DAY_MIN)
 const VOICE_PROMPT = `Ты — Листик, добрый голосовой помощник-репетитор для ребёнка 8-9 лет (3 класс, Казахстан). Ты общаешься по-русски, голосом.
 
@@ -165,6 +170,10 @@ function speechText(t) {              // запасная замена знак�
 }
 async function speak(text) {
   const input = speechText(text);
+  if (CLIPS.config.provider !== "openai") {       // другой голос (ElevenLabs): живые реплики модели звучат тем же голосом, что и готовые записи
+    const buf = await CLIPS.synth(input).catch(e => { throw new Upstream("tts", String(e.message).slice(0, 200)); });
+    return { audio: buf.toString("base64"), mime: "audio/mpeg" };
+  }
   let last = "";
   for (const withStyle of [true, false]) {
     if (!TTS_STYLE && withStyle) continue;
@@ -355,6 +364,20 @@ async function voiceTurnInner(req, res, ip, a) {
         logEvent({ kind: "mood", u: logWho(a, vs.ukey), sid: String(b.sid).slice(0, 6) });
       }
     }
+    /* быстрый путь: если ответ ребёнка понятен без модели, сразу отдаём вызов проверки (или просьбу повторить) */
+    if (FAST_ON && heard && b.fast && typeof b.fast === "object" && !MOOD_RE.test(heard)) {
+      const f = b.fast, spec = { type: String(f.type || ""), n: Number(f.n) || 0,
+        options: Array.isArray(f.options) ? f.options.slice(0, 5).map(x => String(x).slice(0, 200)) : [] };
+      const pf = FASTPARSE.parseFast(heard, spec);
+      if (pf) {
+        M.fastHit = (M.fastHit || 0) + 1;
+        logEvent({ kind: "vfast", u: logWho(a, vs.ukey), hit: 1, stt: tStt, ms: Date.now() - T0 });
+        if (pf.intent) return send(res, 200, { heard, fast: true, intent: pf.intent });
+        return send(res, 200, { heard, fast: true, calls: [{ call_id: "fast_" + vs.turns, name: "submit_answer", arguments: JSON.stringify(pf.args) }] });
+      }
+      M.fastMiss = (M.fastMiss || 0) + 1;
+      logEvent({ kind: "vfast", u: logWho(a, vs.ukey), hit: 0, stt: tStt, type: spec.type, heard: heard.slice(0, 80) });
+    }
     if (!input.length) return send(res, 200, { heard });
     vs.pending = [];
     if (b.stream === true && process.env.VOICE_STREAM !== "0") { await streamReply(res, vs, { a, input, heard, T0, tStt, prevPending }); return; }
@@ -388,10 +411,12 @@ async function voiceTurnInner(req, res, ip, a) {
 const SECRET_STEP = ["correct", "answer", "rule", "ok", "note", "traps", "wrong", "rubric", "col"];
 const publicTask = t => {
   const { similar, ...task } = t;
-  task.steps = t.steps.map(s => { const o = { ...s }; SECRET_STEP.forEach(k => delete o[k]); return o; });
+  task.steps = t.steps.map(s => { const o = { ...s }; SECRET_STEP.forEach(k => delete o[k]); const qc = clipFor(s.q); if (qc) o.qc = qc; return o; });
   return task;
 };
+if (FAST_ON) { try { CLIPS.registerTasks(TASKS); } catch (e) { console.error("[клипы]", e.message); } }
 const PUBLIC_TASKS = TASKS.map(publicTask);
+const GENERAL_CLIPS = FAST_ON ? (() => { try { return CLIPS.generalIds(); } catch (e) { return {}; } })() : {};
 
 /* ---------- пробные и платные задачи ----------
    В data/private/tasks.json у задачи может быть "access": "trial" (открыта всем без оплаты).
@@ -399,7 +424,7 @@ const PUBLIC_TASKS = TASKS.map(publicTask);
    Подписку выдаёт владелец командой: node admin.js plan <почта> <дней> (см. admin.js). */
 const isPaidTask = t => t.access !== "trial";
 const hasPlan = a => !!(a && a.user.plan && a.user.plan.until && Date.parse(a.user.plan.until) > Date.now());
-const taskLocked = (t, a) => isPaidTask(t) && !hasPlan(a);
+const taskLocked = (t, a) => !a || (isPaidTask(t) && !hasPlan(a));   // гостям задачи не отдаём: только после регистрации
 /* Список задач для страницы: только то, что нужно для каталога (номер, название, раздел, короткое условие, статус).
    При сотнях задач целиком каждую отдавать нельзя: шаги и урок приходят по запросу /api/task/<id> при открытии задачи. */
 const shortCond = t => String(t.condition || "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim().slice(0, 110);
@@ -1155,7 +1180,7 @@ async function api(req, res, url) {
     const instructions = VOICE_PROMPT + (a && a.user.child && a.user.child.name ? "\n\nРебёнка зовут " + a.user.child.name + ". Можно изредка обращаться по имени." : "") + (a ? childProfile(a.user) : "");
     const sid = crypto.randomBytes(16).toString("hex");
     voiceSessions.set(sid, { instructions, created: Date.now(), last: null, pending: [], turns: 0, ukey });
-    return send(res, 200, { sid });
+    return send(res, 200, { sid, fast: FAST_ON ? { clips: GENERAL_CLIPS } : null });
   }
 
   /* --- знакомство и разминка: только для вошедших в кабинет --- */
@@ -1227,7 +1252,7 @@ async function api(req, res, url) {
       st.attempts = 0;
       logEvent({ kind: "check", u: wlog, task: logTask(task), step: b.step, skill: step.skill, ok: true, ans: shown, att: st.errors + 1, ms, ch });
       if (!st.solved) { st.solved = true; if (a) { if (quiz) quizRecord(a.user, step, st); else recordSolved(a.user, task, ps, b.step, st); } }
-      return send(res, 200, { correct: true, ok: step.ok, note: step.note || null, col: step.col || null, quizDone: quiz && a ? quizDone(a.user, task, ps) : undefined });
+      return send(res, 200, { correct: true, ok: step.ok, say: [clipFor(step.ok)].filter(Boolean), note: step.note || null, col: step.col || null, quizDone: quiz && a ? quizDone(a.user, task, ps) : undefined });
     }
     st.errors++; st.attempts++;
     const trapInfo = judge ? null : findTrap(step, b.answer), code = trapInfo ? trapInfo.code : null;
@@ -1249,7 +1274,7 @@ async function api(req, res, url) {
         st.solved = true; st.failed = true; quizRecord(a.user, step, st);
         return send(res, 200, { correct: false, moveOn: true, attempts: st.attempts, locked: false, quizDone: quizDone(a.user, task, ps) });
       }
-      return send(res, 200, { correct: false, attempts: st.attempts, locked: false, rule, similar: null, tired: null });
+      return send(res, 200, { correct: false, attempts: st.attempts, locked: false, rule, similar: null, tired: null, say: [clipFor(rule)].filter(Boolean) });
     }
     /* усталость: 3 ошибки подряд (мягко упростить) или 5 из последних 6 (предложить перерыв), не чаще раза в 4 проверки */
     let tired = null;
@@ -1259,7 +1284,8 @@ async function api(req, res, url) {
       tired = tail.length >= 6 && bad >= 5 ? "break" : "ease"; ps.tiredAt = ps.nChecks;
       logEvent({ kind: "tired", u: wlog, task: logTask(task), level: tired });
     }
-    return send(res, 200, { correct: false, attempts: st.attempts, locked: st.locked, rule, similar: st.attempts >= 2 ? task.similar : null, tired });
+    const simTxt = st.attempts >= 2 ? task.similar : null;
+    return send(res, 200, { correct: false, attempts: st.attempts, locked: st.locked, rule, similar: simTxt, tired, say: st.locked ? [] : [clipFor(rule), clipFor(simTxt)].filter(Boolean) });
   }
   if (url === "/api/unlock") {
     if (!a) return send(res, 403, { error: "guest" });
@@ -1340,7 +1366,7 @@ function loadSnapshot() {
   const nLat = LAT.total.length;
   const nFirst = LAT.first.length;
   add("speed", "Скорость голоса", nFirst ? "до первого звука " + (latPct("first", 0.5) / 1000).toFixed(1) + " с" : "—",
-    nFirst ? "медиана по шагам (мс): распознавание " + latPct("stt", 0.5) + " · модель (до первой фразы) " + latPct("llm", 0.5) + " · озвучка первой фразы " + latPct("tts", 0.5) + " · до первого звука: 90% ответов быстрее " + latPct("first", 0.9) + " мс · ответов в выборке: " + nFirst : "пока нет ответов с озвучкой после запуска",
+    nFirst ? "медиана по шагам (мс): распознавание " + latPct("stt", 0.5) + " · модель (до первой фразы) " + latPct("llm", 0.5) + " · озвучка первой фразы " + latPct("tts", 0.5) + " · до первого звука: 90% ответов быстрее " + latPct("first", 0.9) + " мс · ответов в выборке: " + nFirst + (FAST_ON ? " · быстрый путь без модели: понято " + (M.fastHit || 0) + ", отдано модели " + (M.fastMiss || 0) : "") : "пока нет ответов с озвучкой после запуска" + (FAST_ON ? " · быстрый путь без модели: понято " + (M.fastHit || 0) + ", отдано модели " + (M.fastMiss || 0) : ""),
     nFirst < 5 ? "info" : st(latPct("first", 0.5), 3000, 5000),
     "Самый большой из трёх шагов и надо ускорять. Подробности по каждому ходу пишутся в журнал событий (kind: vlat). «На ответ» не включает время хода ребёнка и сети до браузера.");
 
@@ -1376,9 +1402,19 @@ const ADMIN = require("./admin_panel.js")({
   envDefaults: { study: Number(process.env.STUDY_DAY_MIN || 45), voice: Number(process.env.VOICE_DAY_MIN || 45) }
 });
 
+function serveClip(req, res, id) {
+  CLIPS.ensure(id).then(file => {
+    if (!file) { res.writeHead(404); return res.end(); }
+    const st = fs.statSync(file);
+    res.writeHead(200, { "Content-Type": "audio/mpeg", "Content-Length": st.size, "Cache-Control": "public, max-age=31536000, immutable" });
+    fs.createReadStream(file).pipe(res);
+  }).catch(e => { console.error("[клип]", e.message); if (!res.headersSent) { res.writeHead(502); res.end(); } });
+}
 http.createServer((req, res) => {
   const url = req.url.split("?")[0];
   if (url.startsWith("/api/")) return api(req, res, url).catch(e => { console.error(e); if (!res.headersSent) send(res, 500, { error: "server" }); });
+  const cm = /^\/clips\/([0-9a-f]{16})\.mp3$/.exec(url);
+  if (cm && req.method === "GET" && FAST_ON) return serveClip(req, res, cm[1]);
   let f = STATIC[url];
   const lm = /^\/img\/lessons\/([\w-]+)\.(png|jpg|webp|svg)$/.exec(url);
   if (!f && lm) f = ["img/lessons/" + lm[1] + "." + lm[2], { png: "image/png", jpg: "image/jpeg", webp: "image/webp", svg: "image/svg+xml" }[lm[2]]];
@@ -1393,6 +1429,7 @@ http.createServer((req, res) => {
 }).listen(PORT, () => {
   console.log("Листик: http://localhost:" + PORT);
   console.log(OPENAI_KEY ? "Голос: включён (дешёвая схема: " + STT_MODEL + " + " + LLM_MODEL + " + " + TTS_MODEL + ")" : "Голос: выключен (нет OPENAI_API_KEY в файле .env)");
+  console.log("Быстрый голос (готовые реплики): " + (FAST_ON ? "включён, известных текстов " + CLIPS.registry.size + ", готовых mp3 " + [...CLIPS.registry.keys()].filter(CLIPS.have).length : "выключен (VOICE_FAST=0)"));
   console.log("Чат на сайте: " + (SITECHAT.available() ? "включён (до " + (process.env.SITE_CHAT_GLOBAL_DAY || 3000) + " сообщений в сутки)" : "выключен (нет ключа OpenAI или SITE_CHAT=0)"));
   console.log("Кабинетов в базе: " + USERS.length + " (файл: " + USERS_FILE + ")");
   console.log(TRUST_PROXY ? "Прокси: TRUST_PROXY=1, TRUST_HOPS=" + TRUST_HOPS + " (DEBUG_IP=1 покажет, какой адрес выбирается)"

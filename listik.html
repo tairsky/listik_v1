@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<script>try{if(localStorage.getItem("listik_in")==="1"){var s=document.createElement("style");s.textContent='.sh-btn[href="/start.html"],.mh-btn[href="/start.html"]{display:none!important}';document.head.appendChild(s)}}catch(e){}</script>
+<script>try{if(localStorage.getItem("listik_in")==="1"){var s=document.createElement("style");s.textContent='.sh-btn[href="/listik.html#register"],.mh-btn[href="/listik.html#register"]{display:none!important}';document.head.appendChild(s)}}catch(e){}</script>
 
 <meta charset="utf-8">
 <meta name="format-detection" content="telephone=no">
@@ -546,7 +546,7 @@
 <header class="sh">
   <div class="sh-in">
     <a class="sh-logo" href="/" aria-label="Листик — на главную"><img src="/img/logo.png" alt="" width="49" height="44" style="height:44px;width:auto;display:block"><b>Листик</b></a>
-    <nav class="sh-nav" aria-label="Главное меню"><a href="/about.html">О программе</a><a href="/pricing.html">Тарифы</a><a href="/listik.html#cabinet" id="navCab"><span class="navcab-t">Войти</span></a><a class="sh-btn" href="/start.html">Попробовать бесплатно</a></nav>
+    <nav class="sh-nav" aria-label="Главное меню"><a href="/about.html">О программе</a><a href="/pricing.html">Тарифы</a><a href="/listik.html#cabinet" id="navCab"><span class="navcab-t">Войти</span></a><a class="sh-btn" href="/listik.html#register">Регистрация</a></nav>
   </div>
 </header>
 </div>
@@ -919,7 +919,7 @@ function render() {
   const lesson = S.view === "task" || S.view === "done";
   app.classList.toggle("wide", lesson);
   const navCab = document.getElementById("navCab");
-  document.querySelectorAll('.sh-btn[href="/start.html"]').forEach(a => { a.style.display = (typeof USER !== "undefined" && USER) ? "none" : ""; });
+  document.querySelectorAll('.sh-btn[href="/listik.html#register"]').forEach(a => { a.style.display = (typeof USER !== "undefined" && USER) ? "none" : ""; });
   if (navCab) { const nt = navCab.querySelector(".navcab-t"); if (nt) nt.textContent = (typeof USER !== "undefined" && USER) ? "Кабинет родителя" : "Войти"; }
   if (navCab) { const on = S.view === "auth" || S.view === "pin" || S.view === "pinreset" || S.view === "cabinet"; navCab.classList.toggle("is-active", on); if (on) navCab.setAttribute("aria-current", "page"); else navCab.removeAttribute("aria-current"); }
   document.body.classList.toggle("plain", lesson);
@@ -2639,6 +2639,11 @@ async function boot() {
       S = USER ? { view: "pin" } : { view: "auth", mode: "login", err: "" };
       return render();
     }
+    if (!USER) {                                // без регистрации внутрь не пускаем
+      history.replaceState(null, "", location.pathname);
+      S = { view: "auth", mode: "register", err: "" };
+      return render();
+    }
     buildQueue();
     if (QUEUE) {
       const want = PARAMS.get("task"), k = want ? TASKS.findIndex(t => t.id === want) : -1;
@@ -2654,10 +2659,10 @@ async function boot() {
 }
 boot();
 </script>
-<script>window.addEventListener("hashchange",function(){if(location.hash==="#cabinet")location.reload();});</script>
+<script>window.addEventListener("hashchange",function(){if(/^#(cabinet|register|login)$/.test(location.hash))location.reload();});</script>
 <script>
-/* Вошедшему родителю кнопка «Попробовать бесплатно» в шапке не нужна */
-(function(){try{fetch("/api/me",{cache:"no-store",credentials:"same-origin"}).then(function(r){return r.json()}).then(function(d){var u=d&&(d.user||(d.data&&d.data.user));try{if(u)localStorage.setItem("listik_in","1");else localStorage.removeItem("listik_in")}catch(e){}if(!u)return;document.querySelectorAll('.sh-btn[href="/start.html"],.mh-btn[href="/start.html"]').forEach(function(a){a.style.display="none"})}).catch(function(){})}catch(e){}})();
+/* Вошедшему родителю кнопка «Регистрация» в шапке не нужна */
+(function(){try{fetch("/api/me",{cache:"no-store",credentials:"same-origin"}).then(function(r){return r.json()}).then(function(d){var u=d&&(d.user||(d.data&&d.data.user));try{if(u)localStorage.setItem("listik_in","1");else localStorage.removeItem("listik_in")}catch(e){}if(!u)return;document.querySelectorAll('.sh-btn[href="/listik.html#register"],.mh-btn[href="/listik.html#register"]').forEach(function(a){a.style.display="none"})}).catch(function(){})}catch(e){}})();
 </script>
 </body>
 </html>
