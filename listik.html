@@ -732,7 +732,7 @@ function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").
 function voiceHTML() {
   const v = S.voice;
   let h = "";
-  if (v) h += '<div class="voice"><div class="bubble">' +
+  if (v && !VOICE.active) h += '<div class="voice"><div class="bubble">' +   // при включённом голосе текст не дублируем
     (v.loading ? '<span class="dots3" role="img" aria-label="Листик думает"><i></i><i></i><i></i></span>' : esc(v.text)) +
     '</div></div>';
   return h + voiceStatusHTML();
