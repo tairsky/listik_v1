@@ -970,17 +970,12 @@ function renderAuth() {
   h += '<div class="tabs"><button class="btn ghost' + (!reg ? ' on' : '') + '" data-action="auth" data-mode="login">Войти</button>' +
        '<button class="btn ghost' + (reg ? ' on' : '') + '" data-action="auth" data-mode="register">Регистрация</button></div>';
   h += '<div class="form">';
+  if (reg) h += '<label>Имя или псевдоним ребёнка <span class="hint">без фамилии, школы и адреса</span><input id="fChild" class="inp" maxlength="30" autocomplete="off" value="' + esc(f.childName || "") + '" data-enter="register"></label>';
   h += '<label>Почта<input id="fEmail" class="inp" type="email" autocomplete="username" autocapitalize="none" placeholder="name@mail.com" value="' + esc(f.email || "") + '" data-enter="' + en + '"></label>';
   h += '<label>Пароль' + (reg ? ' <span class="hint">не короче 8 символов</span>' : '') + '<input id="fPass" class="inp" type="password" autocomplete="' + (reg ? 'new-password' : 'current-password') + '" data-enter="' + en + '"></label>';
-  if (reg) {
-    h += '<label>Повторите пароль<input id="fPass2" class="inp" type="password" autocomplete="new-password" data-enter="register"></label>';
-  }
   h += '<label class="chk"><input type="checkbox" data-action="showpw"><span>Показать пароль</span></label>';
   if (reg) {
-    h += '<label>Имя или псевдоним ребёнка <span class="hint">без фамилии, школы и адреса</span><input id="fChild" class="inp" maxlength="30" autocomplete="off" value="' + esc(f.childName || "") + '"></label>';
     h += '<label>PIN-код из 4 цифр<span class="hint">Он открывает кабинет и подсказки для взрослого. Запомните его и не говорите ребёнку.</span>' + pinInput("fPin") + '</label>';
-    h += '<label>Повторите PIN-код' + pinInput("fPin2") + '</label>';
-    h += '<label class="chk"><input id="fAgree" type="checkbox"' + (f.agree ? ' checked' : '') + '><span>Согласен(на) на хранение адреса почты, имени ребёнка и результатов занятий для работы кабинета.</span></label>';
   }
   h += errBox(S.err);
   h += '<div class="row"><button class="btn" data-action="' + en + '">' + (reg ? 'Регистрация' : 'Войти') + '</button></div>';
@@ -1250,9 +1245,6 @@ async function doAuth(mode) {
   if (mode === "register") {
     const pin = val("fPin");
     if (!need("Введите имя или псевдоним ребёнка.", S.form.childName.trim())) return;
-    if (!need("Пароли не совпали. Проверьте раскладку клавиатуры.", password === val("fPass2"))) return;
-    if (!need("PIN-коды не совпали.", pin === val("fPin2"))) return;
-    if (!need("Нужно согласие на хранение данных.", S.form.agree)) return;
     payload = { email, password, pin, childName: S.form.childName };
   }
   const r = await call(mode === "register" ? "/api/register" : "/api/login", payload);
@@ -2620,7 +2612,10 @@ async function loadData() {
   try { const u = await api("/api/usage"); setUsage(u.data); } catch (e) {}
 }
 async function boot() {
-  app.innerHTML = '<div class="top"><div class="brand hand">' + LOGO + 'Листик</div></div><p class="lead">Загружаю задачи…</p>';
+  /* при переходе на «Регистрацию» или «Войти» не мигаем надписью про задачи */
+  let notIn = true; try { notIn = localStorage.getItem("listik_in") !== "1"; } catch (e) {}
+  const quiet = notIn || /^#(register|login|cabinet|reset=)/.test(location.hash);
+  app.innerHTML = quiet ? '' : '<div class="top"><div class="brand hand">' + LOGO + 'Листик</div></div><p class="lead">Загружаю задачи…</p>';
   try {
     await loadData();
     const rm = /^#reset=([A-Za-z0-9._-]+)$/.exec(location.hash), hm = /^#(register|login)$/.exec(location.hash);
