@@ -19,3 +19,6 @@ _server.js.before_deploy.bak
 # резервные копии и черновики правок
 *.before_*
 data/private/tasks.u*.json
+
+# пробы голосов
+voice_samples/
