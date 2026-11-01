@@ -77,6 +77,7 @@ const VOICE_PROMPT = `Ты — Листик, добрый голосовой п�
 - Сообщения с пометкой [Программа] приходят от программы: в них условие, вопрос текущего шага и события. Не зачитывай их дословно, говори своими словами.
 - Пока функция не вернула результат, не говори «верно» или «неверно» и не угадывай ответ.
 - Никогда не произноси и не пиши служебные пометки и комментарии в скобках, не упоминай слова «функция» и «инструмент». Ребёнок слышит только то, что ты говоришь ему лично.
+- Ребёнок может быть и мальчиком, и девочкой. Обращайся без родовых форм: не говори о нём глаголами прошедшего времени и краткими прилагательными мужского или женского рода («ты решил», «ты молодец, справилась», «готов»). Используй нейтральные обороты: «получилось», «у тебя получилось», «ответ верный», «начнём?». О себе, как о Листике, говори в мужском роде.
 
 ПРАВИЛО ТОЧНОСТИ (самое важное)
 - Все тексты для ребёнка (вопросы, правила, примеры, фразы «верно») написаны и проверены учителями. Ты берёшь их только из сообщений программы и результатов функции и произносишь ДОСЛОВНО.
@@ -427,12 +428,23 @@ const hasPlan = a => !!(a && a.user.plan && a.user.plan.until && Date.parse(a.us
 const taskLocked = (t, a) => !a || (isPaidTask(t) && !hasPlan(a));   // гостям задачи не отдаём: только после регистрации
 /* Список задач для страницы: только то, что нужно для каталога (номер, название, раздел, короткое условие, статус).
    При сотнях задач целиком каждую отдавать нельзя: шаги и урок приходят по запросу /api/task/<id> при открытии задачи. */
+/* Упражнения раздела открываются по очереди: следующее доступно, только когда предыдущее в этом же разделе решено.
+   Первое упражнение раздела открыто сразу. Уже начатые и решённые остаются открытыми (чтобы не закрыть то, что ребёнок уже проходил). */
+const PREV_IN_SECTION = (() => { const last = {}, m = new Map(); TASKS.forEach(t => { const k = t.section || "_other"; if (last[k]) m.set(t.id, last[k]); last[k] = t.id; }); return m; })();
+const seqClosed = (t, P) => {
+  if (!P) return false;
+  const prev = PREV_IN_SECTION.get(t.id); if (!prev) return false;
+  const x = P[t.id]; if (x && (x.completions || x.inProgress)) return false;
+  const y = P[prev]; return !(y && y.completions);
+};
+const seqPrevNo = t => { const p = taskById(PREV_IN_SECTION.get(t.id)); return p ? p.no : ""; };
 const shortCond = t => String(t.condition || "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim().slice(0, 110);
 const tasksFor = a => {
   const P = a && progress(a.user).tasks, R = a ? recommendations(a.user) : {};
   return TASKS.map(t => {
     const locked = taskLocked(t, a);
     const o = { id: t.id, no: t.no, title: t.title, section: t.section, cond: locked ? "" : shortCond(t), locked };
+    if (!locked && P && seqClosed(t, P)) { o.closed = true; o.after = seqPrevNo(t); }
     if (R[t.id]) { o.rec = R[t.id].kind; o.why = R[t.id].why; }
     if (P) { const x = P[t.id]; o.st = x && x.completions ? "done" : x && x.inProgress ? "progress" : "new"; }
     return o;
@@ -1034,6 +1046,7 @@ async function api(req, res, url) {
       const t = taskById(id);
       if (!t) return send(res, 404, { error: "not_found" });
       if (taskLocked(t, a)) return send(res, 403, { error: "paid_only" });
+      if (seqClosed(t, a && progress(a.user).tasks)) return send(res, 403, { error: "sequence", after: seqPrevNo(t) });
       return send(res, 200, { task: Object.assign({}, publicById.get(id), { locked: false }) });
     }
     if (url === "/api/me") return send(res, 200, { user: a ? publicUser(a) : null });
@@ -1216,6 +1229,7 @@ async function api(req, res, url) {
   const task = taskAny(ps, b.task);
   if (!task) return send(res, 400, { error: "bad_step" });
   if ((url === "/api/start" || url === "/api/check") && taskLocked(task, a)) return send(res, 403, { error: "paid_only" });
+  if ((url === "/api/start" || url === "/api/check") && !task.quiz && seqClosed(task, a && progress(a.user).tasks)) return send(res, 403, { error: "sequence", after: seqPrevNo(task) });
   if ((url === "/api/start" || url === "/api/check") && studyOver(usageKey(a, ip))) return send(res, 403, { error: "day_limit" });
   if (url === "/api/start") {
     /* новый заход в задачу: счётчики занятия обнуляются, блокировки шагов остаются */
