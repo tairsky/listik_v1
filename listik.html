@@ -1009,7 +1009,7 @@ function lvDoneHTML() {
   return h;
 }
 function lvTiles(list, onId) {
-  return '<div class="lvgrid">' + list.map(c => '<button class="lvtile' + (onId === c.id ? ' on' : '') + '" data-action="goal-pick" data-id="' + esc(c.id) + '"><span class="lvic">' + esc(c.icon || "🎁") + '</span><b>' + (c.parent ? 'От родителей: ' : '') + esc(c.title) + '</b></button>').join("") + '</div>';
+  return '<div class="lvgrid">' + list.map(c => '<button class="lvtile' + (onId === c.id ? ' on' : '') + '" data-action="goal-pick" data-id="' + esc(c.id) + '"><span class="lvic">' + esc(c.icon || "🎁") + '</span><b>' + esc(c.title) + '</b></button>').join("") + '</div>';
 }
 function renderGoal() {
   let h = '<div class="top">' + BRAND + '<div class="tools"><button class="back" data-action="goal-back">' + ARROW_L + 'Назад</button></div></div>';
@@ -1038,20 +1038,11 @@ function lvParentBlock() {
   let h = '<h2 class="sec">Листики</h2><div class="pc-card">';
   h += '<p><b>' + v.total + '</b> ' + lvWord(v.total) + ' всего. Сегодня: <b>' + v.today.earned + '</b>, упражнений за день: ' + v.today.exercises + '.</p>';
   h += '<p>Простой подарок: ' + (v.goalSmall ? '<b>' + esc(v.goalSmall.icon || "🎁") + ' ' + esc(v.goalSmall.title) + '</b>' : 'ещё не выбран') + '</p>' + lvSmallProgress(v);
-  h += '<p style="margin-top:10px">Большой подарок: ' + (v.goal ? '<b>' + esc(v.goal.icon || "🎁") + ' ' + esc(v.goal.title) + '</b>' + (v.goal.parent ? ' (ваша награда)' : '') : 'ещё не выбран') + '</p>' + lvProgress(v);
+  h += '<p style="margin-top:10px">Большой подарок: ' + (v.goal ? '<b>' + esc(v.goal.icon || "🎁") + ' ' + esc(v.goal.title) + '</b>' : 'ещё не выбран') + '</p>' + lvProgress(v);
   if (v.week && v.week.length) h += '<p style="margin-top:12px"><b>За что начислено на этой неделе</b></p><ul class="lvlist">' + v.week.map(x => '<li><span>' + esc(x.why) + '</span><b>+' + x.n + '</b></li>').join("") + '</ul>';
   if (v.rewards && v.rewards.length) h += '<p style="margin-top:12px"><b>Награды</b></p><ul class="lvlist">' + v.rewards.slice().reverse().map(r => '<li><span>' + (r.kind === "small" ? 'Простой подарок: ' : 'Большой подарок: ') + esc(r.title) + ' · ' + fmtDate(r.at) + '</span><b>' +
     (r.status === "ready" ? 'готов' : r.code ? 'промокод: ' + esc(r.code) : 'ждёт промокода') + '</b></li>').join("") + '</ul>';
-  h += '<label style="display:block;margin-top:14px">Своя большая награда <span class="hint">(например, «Кино с мамой»). Ребёнок увидит её среди больших подарков</span><input id="lvc" class="inp" maxlength="60" value="' + esc(v.custom || "") + '" data-enter="lv-custom"></label>';
-  h += '<div class="row"><button class="btn small" data-action="lv-custom">Сохранить награду</button></div></div>';
   return h;
-}
-async function saveCustom() {
-  const el = document.getElementById("lvc"), t = el ? el.value : "";
-  const r = await call("/api/leaves/custom", { title: t });
-  if (r.status === 403) { S = { view: "pin", err: "Введите PIN-код ещё раз." }; return render(); }
-  if (r.status !== 200) { S.flash = NET; return render(); }
-  S.lv = r.data; S.flash = t.trim() ? "Награда сохранена. Ребёнок увидит её среди больших подарков." : "Своя награда убрана."; render();
 }
 function render() {
   if (S.view === "loading") return;
@@ -2047,7 +2038,6 @@ app.addEventListener("click", e => {
   if (a === "goal-open") { S = { view: "goal" }; return render(); }
   if (a === "goal-back") { S = { view: "home" }; return render(); }
   if (a === "goal-pick") return pickGoal(b.dataset.id);
-  if (a === "lv-custom") return saveCustom();
   if (a === "next") return nextStep();
   if (a === "prev") return prevStep();
   if (a === "adult") return openAdult();

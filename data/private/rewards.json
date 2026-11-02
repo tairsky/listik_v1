@@ -1,0 +1,41 @@
+{
+  "small": [
+    {
+      "id": "pizza",
+      "title": "Пицца",
+      "icon": "🍕"
+    },
+    {
+      "id": "icecream",
+      "title": "Мороженое",
+      "icon": "🍦"
+    },
+    {
+      "id": "toy",
+      "title": "Игрушка",
+      "icon": "🧸"
+    }
+  ],
+  "big": [
+    {
+      "id": "gift1",
+      "title": "Подарок 1",
+      "icon": "🎁"
+    },
+    {
+      "id": "gift2",
+      "title": "Подарок 2",
+      "icon": "🎁"
+    },
+    {
+      "id": "gift3",
+      "title": "Подарок 3",
+      "icon": "🎁"
+    },
+    {
+      "id": "gift4",
+      "title": "Подарок 4",
+      "icon": "🎁"
+    }
+  ]
+}

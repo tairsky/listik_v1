@@ -113,14 +113,14 @@ async function runTask(c, id, opt) {
     ok((await call(c, "POST", "/api/leaves/goal", { id: "nonsense" })).code === 400, "чужая цель не принимается");
     const gp = await call(c, "POST", "/api/leaves/goal", { id: "icecream" });
     ok(gp.code === 200 && gp.j.goalSmall && gp.j.goalSmall.id === "icecream", "простой подарок меняется на «мороженое»");
-    ok((await call(c, "POST", "/api/leaves/custom", { title: "Кино с мамой" })).code === 403, "своя награда без PIN запрещена");
-    ok((await call(c, "POST", "/api/leaves/goal", { id: "custom" })).code === 400, "«своя» цель недоступна, пока родитель её не задал");
+    ok((await call(c, "POST", "/api/leaves/custom", { title: "Турция" })).code !== 200, "своей награды у родителя нет, адрес не работает (даже без PIN и с PIN подарки только из списка владельца)");
+    ok((await call(c, "POST", "/api/leaves/goal", { id: "custom" })).code === 400, "цель «custom» не принимается");
     ok((await call(c, "POST", "/api/parent/enter", { pin: "4827" })).code === 200, "вход родителя");
-    const cu = await call(c, "POST", "/api/leaves/custom", { title: "<b>Кино</b> с мамой" });
-    ok(cu.code === 200 && cu.j.goal && cu.j.goal.title === "bКино/b с мамой" && Array.isArray(cu.j.week), "своя награда очищена от <>: " + (cu.j.goal && cu.j.goal.title));
+    const pv = (await call(c, "GET", "/api/leaves")).j;
+    ok(Array.isArray(pv.week) && pv.week.length > 0 && pv.custom === undefined, "родитель видит разбивку недели");
     await call(c, "POST", "/api/parent/leave", {});
     const ch = (await call(c, "GET", "/api/leaves")).j;
-    ok(ch.week === undefined && ch.custom === undefined, "ребёнок не видит разбивку недели родителя");
+    ok(ch.week === undefined, "ребёнок не видит разбивку недели родителя");
   } catch (e) { fails++; console.log("СБОЙ ТЕСТА:", e); }
   srv.kill();
   console.log("\nПроверок: " + checks + ", ошибок: " + fails);

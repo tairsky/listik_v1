@@ -742,17 +742,33 @@ function quizDone(user, task, ps) {
 const LEAVES_CFG = { first: 2, helped: 1, explain: 5, done: 10, warm: 10, back: 5, fullEx: 5, halfEx: 10, repeatWeek: 2,
   smallEvery: Number(process.env.LEAVES_SMALL) || 1500, bigAt: Number(process.env.LEAVES_BIG) || 6000, bigSkills: Number(process.env.LEAVES_SKILLS) || 2, masteryMin: 0.85, masteryN: 3 };   // пороги можно менять без правки кода
 /* заглушки каталога: настоящие партнёры и промокоды появятся после договорённостей */
-const REWARD_CATALOG = {
-  small: [{ id: "pizza", title: "Пицца", icon: "🍕" }, { id: "icecream", title: "Мороженое", icon: "🍦" }, { id: "toy", title: "Игрушка", icon: "🧸" }],   // простые подарки: за каждые smallEvery листиков
-  big: [{ id: "gift1", title: "Подарок 1", icon: "🎁" }, { id: "gift2", title: "Подарок 2", icon: "🎁" }, { id: "gift3", title: "Подарок 3", icon: "🎁" }, { id: "gift4", title: "Подарок 4", icon: "🎁" }]   // большие: за bigAt листиков и освоенные навыки; названия заменить на настоящие
+const REWARD_DEFAULT = {
+  small: [{ id: "pizza", title: "Пицца", icon: "🍕" }, { id: "icecream", title: "Мороженое", icon: "🍦" }, { id: "toy", title: "Игрушка", icon: "🧸" }],
+  big: [{ id: "gift1", title: "Подарок 1", icon: "🎁" }, { id: "gift2", title: "Подарок 2", icon: "🎁" }, { id: "gift3", title: "Подарок 3", icon: "🎁" }, { id: "gift4", title: "Подарок 4", icon: "🎁" }]
 };
+/* Подарки задаёт владелец в файле data/private/rewards.json: простые (small) за каждые smallEvery листиков, большие (big) за bigAt листиков и освоенные навыки.
+   Родители подарки не придумывают, ребёнок выбирает только из этого списка. Если файл неверный, берётся запасной список и в журнале сервера остаётся предупреждение. */
+const REWARD_CATALOG = (() => {
+  try {
+    const j = readJSON("data/private/rewards.json"), seen = new Set(), out = {};
+    for (const k of ["small", "big"]) {
+      if (!Array.isArray(j[k]) || !j[k].length) throw new Error("список " + k + " пуст");
+      out[k] = j[k].map(x => {
+        const id = String(x && x.id || ""), title = String(x && x.title || "").trim(), icon = String(x && x.icon || "🎁").slice(0, 4);
+        if (!/^[a-z0-9_-]{1,24}$/.test(id) || !title || title.length > 40 || seen.has(id)) throw new Error("подарок «" + id + "» задан неверно");
+        seen.add(id); return { id, title, icon };
+      });
+    }
+    return out;
+  } catch (e) { console.log("[подарки] data/private/rewards.json не прочитан (" + e.message + "), взят запасной список"); return REWARD_DEFAULT; }
+})();
 const LEAF_WHY = { step: "Шаги с первой попытки", hint: "Шаги с подсказкой", explain: "Объяснил своими словами", done: "Упражнения до конца", warm: "Разминка", back: "Вернулся на следующий день" };
 const ymd = off => new Date(Date.now() + 5 * 3600 * 1000 + (off || 0) * DAY_MS).toISOString().slice(0, 10);
 const weekStart = () => { const t = Date.now() + 5 * 3600 * 1000, wd = (new Date(t).getUTCDay() + 6) % 7; return new Date(t - wd * DAY_MS).toISOString().slice(0, 10); };
 function leavesOf(user) {
   const P = progress(user);
   const L = P.leaves || (P.leaves = { total: 0, cyc: 0, cycSmall: 0, smalls: 0, bigs: 0, rn: 0, day: null, dayEx: 0, dayEarned: 0, lastEarnDay: null, backDay: null,
-    week: null, weekTasks: {}, weekWhy: {}, goal: null, goalSmall: null, custom: null, rewards: [], recent: [] });
+    week: null, weekTasks: {}, weekWhy: {}, goal: null, goalSmall: null, rewards: [], recent: [] });
   const d = ymd(0), w = weekStart();
   if (L.day !== d) { L.day = d; L.dayEx = 0; L.dayEarned = 0; }
   if (L.week !== w) { L.week = w; L.weekTasks = {}; L.weekWhy = {}; }
@@ -761,10 +777,9 @@ function leavesOf(user) {
 /* убывающая отдача за день: упражнения 1–5 полностью, 6–10 вполовину, дальше без листиков (учиться можно, листики не идут) */
 const exMult = L => { const n = L.dayEx + 1; return n <= LEAVES_CFG.fullEx ? 1 : n <= LEAVES_CFG.halfEx ? 0.5 : 0; };
 const masteredCount = user => Object.values(progress(user).skills).filter(sk => (sk.recent || []).length >= LEAVES_CFG.masteryN && mastery(sk) >= LEAVES_CFG.masteryMin).length;
-function goalOf(L) {      // большой подарок: из каталога или своя награда родителя
-  if (L.goal === "custom" && L.custom) return { id: "custom", title: L.custom, icon: "🎁", parent: true };
+function goalOf(L) {      // большой подарок из каталога
   const c = REWARD_CATALOG.big.find(x => x.id === L.goal);
-  return c ? { id: c.id, title: c.title, icon: c.icon, parent: false } : null;
+  return c ? { id: c.id, title: c.title, icon: c.icon } : null;
 }
 function goalSmallOf(L) {  // простой подарок
   const c = REWARD_CATALOG.small.find(x => x.id === L.goalSmall);
@@ -796,7 +811,7 @@ function leavesMilestones(user, L) {
   }
   if (L.cyc >= C.bigAt && masteredCount(user) >= C.bigSkills) {
     const g = goalOf(L); L.rn++;
-    L.rewards.push({ id: "r" + L.rn, kind: "big", at: now, goal: g ? g.id : null, title: g ? g.title : "Подарок на выбор", status: g && g.parent ? "ready" : "pending", code: null });
+    L.rewards.push({ id: "r" + L.rn, kind: "big", at: now, goal: g ? g.id : null, title: g ? g.title : "Подарок на выбор", status: "pending", code: null });
     L.bigs++; L.cyc -= C.bigAt; L.cycSmall = Math.min(Math.floor(L.cyc / C.smallEvery), maxSmall);
     logEvent({ kind: "reward", u: "u" + user.id, big: true, goal: g ? g.id : null });
   }
@@ -831,12 +846,11 @@ function leavesView(user, parent) {
     cycle: { have: L.cyc, big: C.bigAt, small: C.smallEvery, smallHave: L.cyc - L.cycSmall * C.smallEvery, toBig: Math.max(0, C.bigAt - L.cyc), toSmall: L.cycSmall < maxSmall ? (L.cycSmall + 1) * C.smallEvery - L.cyc : null,
       skillsHave: masteredCount(user), skillsNeed: C.bigSkills },
     goal: goalOf(L), goalSmall: goalSmallOf(L),
-    catalog: { small: REWARD_CATALOG.small, big: REWARD_CATALOG.big.concat(L.custom ? [{ id: "custom", title: L.custom, icon: "🎁", parent: true }] : []) },
+    catalog: { small: REWARD_CATALOG.small, big: REWARD_CATALOG.big },
     rewards: L.rewards.slice(-10).map(r => ({ id: r.id, kind: r.kind, at: r.at, title: r.title, status: r.status, code: parent ? r.code : undefined }))
   };
   if (parent) {
     out.week = Object.entries(L.weekWhy || {}).sort((a, b) => b[1] - a[1]).map(([k, n]) => ({ why: LEAF_WHY[k] || k, n }));
-    out.custom = L.custom;
   }
   return out;
 }
@@ -1246,28 +1260,17 @@ async function api(req, res, url) {
     a.s.parentUntil = Date.now() + PARENT_TTL;
     return send(res, 200, { ok: true, user: publicUser(a) });
   }
-  /* --- листики: цель (выбирает ребёнок) и своя награда (задаёт родитель) --- */
+  /* --- листики: цель выбирает ребёнок, только из списка подарков владельца --- */
   if (url === "/api/leaves/goal") {
     if (!a) return send(res, 401, { error: "login" });
     if (tooMany("leaf:" + who, 30, 60 * MIN)) return send(res, 429, { error: "too_many" });
     hit("leaf:" + who);
     const L = leavesOf(a.user), id = typeof b.id === "string" ? b.id : "";
-    const tier = id === "custom" ? (L.custom ? "big" : null) : REWARD_CATALOG.small.some(x => x.id === id) ? "small" : REWARD_CATALOG.big.some(x => x.id === id) ? "big" : null;
+    const tier = REWARD_CATALOG.small.some(x => x.id === id) ? "small" : REWARD_CATALOG.big.some(x => x.id === id) ? "big" : null;
     if (!tier) return send(res, 400, { error: "bad_goal" });
     if (tier === "small") L.goalSmall = id; else L.goal = id;
     scheduleSave();
     return send(res, 200, leavesView(a.user, isParent(a)));
-  }
-  if (url === "/api/leaves/custom") {
-    if (!isParent(a)) return send(res, 403, { error: "parent_required" });
-    if (tooMany("leaf:" + who, 30, 60 * MIN)) return send(res, 429, { error: "too_many" });
-    hit("leaf:" + who);
-    const t = typeof b.title === "string" ? b.title.replace(/[<>\u0000-\u001f]/g, "").trim().slice(0, 60) : "";
-    const L = leavesOf(a.user);
-    L.custom = t || null;
-    if (t) L.goal = "custom"; else if (L.goal === "custom") L.goal = null;
-    scheduleSave();
-    return send(res, 200, leavesView(a.user, true));
   }
   if (url === "/api/parent/leave") { if (a) a.s.parentUntil = 0; return send(res, 200, { ok: true }); }
   if (url === "/api/parent/child") {
