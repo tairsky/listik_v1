@@ -239,7 +239,8 @@ function paint() {
           const no = document.createElement("span"); no.className = "no"; no.textContent = t.no;
           const tx = document.createElement("span"); tx.className = "tx";
           const b = document.createElement("b"); b.textContent = t.title; tx.appendChild(b);
-          tx.appendChild(document.createTextNode(t.locked ? "по подписке" : (t.cond || "")));
+          tx.appendChild(document.createTextNode(t.closed ? "откроется после номера " + t.after : t.locked ? "по подписке" : (t.cond || "")));
+          if (t.closed) { a.removeAttribute("href"); a.setAttribute("aria-disabled", "true"); a.style.opacity = ".6"; a.style.cursor = "not-allowed"; }
           a.appendChild(no); a.appendChild(tx); li.appendChild(a); ul.appendChild(li);
         });
         sec.appendChild(ul);

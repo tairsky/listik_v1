@@ -67,7 +67,7 @@ const TTS_STYLE = CLIPS.config.style;
    Выключатель: VOICE_FAST=0 в Render возвращает прежнюю схему «распознавание -> модель -> озвучка» целиком. */
 const FAST_ON = process.env.VOICE_FAST !== "0";
 const clipFor = raw => { if (!FAST_ON || !raw) return null; try { return CLIPS.reg(raw); } catch (e) { return null; } };
-const VOICE_SERVER_MAX_MIN = Number(process.env.VOICE_MAX_MINUTES || 45);   // потолок одной голосовой сессии; дневной лимит голоса считается отдельно (VOICE_DAY_MIN)
+const VOICE_SERVER_MAX_MIN = Number(process.env.VOICE_MAX_MINUTES || 60);   // потолок одной голосовой сессии; дневной лимит голоса считается отдельно (VOICE_DAY_MIN)
 const VOICE_PROMPT = `Ты — Листик, добрый голосовой помощник-репетитор для ребёнка 8-9 лет (3 класс, Казахстан). Ты общаешься по-русски, голосом.
 
 КТО ЧТО ДЕЛАЕТ
@@ -729,12 +729,116 @@ function quizDone(user, task, ps) {
       P.diagAt = now;
       const by = {}; items.forEach(it => { (by[it.skill] = by[it.skill] || []).push(it.ok); });
       Object.entries(by).forEach(([n, arr]) => { if (arr.length >= 2 && arr.every(Boolean) && P.skills[n]) P.skills[n].placed = now; });
-    } else P.warmDay = dayStamp();
+    } else { P.warmDay = dayStamp(); if (items.filter(i => i.ok).length * 2 >= items.length) leafGive(user, ps, "warm", LEAVES_CFG.warm, true); }
     logEvent({ kind: "quizdone", u: "u" + user.id, quiz: task.quiz, ok: items.filter(i => i.ok).length, total: items.length });
     scheduleSave();
   }
   const weak = [...new Set(items.filter(i => !i.ok).map(i => i.skill))];
   return { kind: task.quiz, ok: items.filter(i => i.ok).length, total: items.length, weak, strong: [...new Set(items.filter(i => i.ok).map(i => i.skill))].filter(n => !weak.includes(n)) };
+}
+/* ---------- листики: баллы за учёбу (механика: док «Баллы и награды Листика», v0.4) ----------
+   Начисляет только сервер. Все числа — гипотезы: подстроить по данным теста на живых семьях.
+   Состояние лежит в user.progress.leaves (сохраняется вместе с кабинетом). Журнал начислений: kind "leaves" в attempts-*.jsonl. */
+const LEAVES_CFG = { first: 2, helped: 1, explain: 5, done: 10, warm: 10, back: 5, fullEx: 5, halfEx: 10, repeatWeek: 2,
+  smallEvery: Number(process.env.LEAVES_SMALL) || 1500, bigAt: Number(process.env.LEAVES_BIG) || 6000, bigSkills: Number(process.env.LEAVES_SKILLS) || 2, masteryMin: 0.85, masteryN: 3 };   // пороги можно менять без правки кода
+/* заглушки каталога: настоящие партнёры и промокоды появятся после договорённостей */
+const REWARD_CATALOG = {
+  small: [{ id: "pizza", title: "Пицца", icon: "🍕" }, { id: "icecream", title: "Мороженое", icon: "🍦" }, { id: "toy", title: "Игрушка", icon: "🧸" }],   // простые подарки: за каждые smallEvery листиков
+  big: [{ id: "gift1", title: "Подарок 1", icon: "🎁" }, { id: "gift2", title: "Подарок 2", icon: "🎁" }, { id: "gift3", title: "Подарок 3", icon: "🎁" }, { id: "gift4", title: "Подарок 4", icon: "🎁" }]   // большие: за bigAt листиков и освоенные навыки; названия заменить на настоящие
+};
+const LEAF_WHY = { step: "Шаги с первой попытки", hint: "Шаги с подсказкой", explain: "Объяснил своими словами", done: "Упражнения до конца", warm: "Разминка", back: "Вернулся на следующий день" };
+const ymd = off => new Date(Date.now() + 5 * 3600 * 1000 + (off || 0) * DAY_MS).toISOString().slice(0, 10);
+const weekStart = () => { const t = Date.now() + 5 * 3600 * 1000, wd = (new Date(t).getUTCDay() + 6) % 7; return new Date(t - wd * DAY_MS).toISOString().slice(0, 10); };
+function leavesOf(user) {
+  const P = progress(user);
+  const L = P.leaves || (P.leaves = { total: 0, cyc: 0, cycSmall: 0, smalls: 0, bigs: 0, rn: 0, day: null, dayEx: 0, dayEarned: 0, lastEarnDay: null, backDay: null,
+    week: null, weekTasks: {}, weekWhy: {}, goal: null, goalSmall: null, custom: null, rewards: [], recent: [] });
+  const d = ymd(0), w = weekStart();
+  if (L.day !== d) { L.day = d; L.dayEx = 0; L.dayEarned = 0; }
+  if (L.week !== w) { L.week = w; L.weekTasks = {}; L.weekWhy = {}; }
+  return L;
+}
+/* убывающая отдача за день: упражнения 1–5 полностью, 6–10 вполовину, дальше без листиков (учиться можно, листики не идут) */
+const exMult = L => { const n = L.dayEx + 1; return n <= LEAVES_CFG.fullEx ? 1 : n <= LEAVES_CFG.halfEx ? 0.5 : 0; };
+const masteredCount = user => Object.values(progress(user).skills).filter(sk => (sk.recent || []).length >= LEAVES_CFG.masteryN && mastery(sk) >= LEAVES_CFG.masteryMin).length;
+function goalOf(L) {      // большой подарок: из каталога или своя награда родителя
+  if (L.goal === "custom" && L.custom) return { id: "custom", title: L.custom, icon: "🎁", parent: true };
+  const c = REWARD_CATALOG.big.find(x => x.id === L.goal);
+  return c ? { id: c.id, title: c.title, icon: c.icon, parent: false } : null;
+}
+function goalSmallOf(L) {  // простой подарок
+  const c = REWARD_CATALOG.small.find(x => x.id === L.goalSmall);
+  return c ? { id: c.id, title: c.title, icon: c.icon } : null;
+}
+function leafAdd(user, L, ps, why, g) {
+  L.total += g; L.cyc += g; L.dayEarned += g; L.lastEarnDay = L.day;
+  L.weekWhy[why] = (L.weekWhy[why] || 0) + g;
+  L.recent.push({ at: new Date().toISOString(), n: g, why }); if (L.recent.length > 30) L.recent.splice(0, L.recent.length - 30);
+  if (ps) { const r = ps.lrun || (ps.lrun = { sum: 0, parts: {} }); r.sum += g; r.parts[why] = (r.parts[why] || 0) + g; }
+  logEvent({ kind: "leaves", u: "u" + user.id, why, n: g, total: L.total });
+}
+function leafGive(user, ps, why, base, noMult) {
+  const L = leavesOf(user), g = Math.round(base * (noMult ? 1 : exMult(L)));
+  if (g <= 0) return 0;
+  if (L.lastEarnDay === ymd(-1) && L.backDay !== L.day) { L.backDay = L.day; leafAdd(user, L, ps, "back", LEAVES_CFG.back); }   // вернулся на следующий день: раз в день
+  leafAdd(user, L, ps, why, g);
+  leavesMilestones(user, L);
+  scheduleSave();
+  return g;
+}
+function leavesMilestones(user, L) {
+  const C = LEAVES_CFG, maxSmall = Math.ceil(C.bigAt / C.smallEvery) - 1, now = new Date().toISOString();
+  while (L.cycSmall < maxSmall && L.cyc >= (L.cycSmall + 1) * C.smallEvery) {
+    L.cycSmall++; L.smalls++; L.rn++;
+    const gs = goalSmallOf(L);
+    L.rewards.push({ id: "r" + L.rn, kind: "small", at: now, goal: gs ? gs.id : null, title: gs ? gs.title : "Простой подарок на выбор", status: "pending", code: null });
+    logEvent({ kind: "reward", u: "u" + user.id, big: false, goal: gs ? gs.id : null });
+  }
+  if (L.cyc >= C.bigAt && masteredCount(user) >= C.bigSkills) {
+    const g = goalOf(L); L.rn++;
+    L.rewards.push({ id: "r" + L.rn, kind: "big", at: now, goal: g ? g.id : null, title: g ? g.title : "Подарок на выбор", status: g && g.parent ? "ready" : "pending", code: null });
+    L.bigs++; L.cyc -= C.bigAt; L.cycSmall = Math.min(Math.floor(L.cyc / C.smallEvery), maxSmall);
+    logEvent({ kind: "reward", u: "u" + user.id, big: true, goal: g ? g.id : null });
+  }
+  if (L.rewards.length > 40) L.rewards.splice(0, L.rewards.length - 40);
+}
+const leavesBlocked = (L, task) => (L.weekTasks[task.id] || 0) >= LEAVES_CFG.repeatWeek;   // одно упражнение даёт листики только первые 2 раза в неделю
+function leavesStep(user, ps, task, step, st) {
+  const L = leavesOf(user), C = LEAVES_CFG;
+  if (leavesBlocked(L, task)) return 0;
+  const rec = ps.recent || [];
+  if (rec.length >= 6 && rec.filter(x => x === 0).length >= 5) return 0;      // ответы наугад: 5 ошибок из последних 6
+  if (step.type === "explain") return leafGive(user, ps, "explain", C.explain);
+  const clean = st.errors === 0 && !st.helped;
+  return leafGive(user, ps, clean ? "step" : "hint", clean ? C.first : C.helped);
+}
+function leavesDone(user, task, ps) {
+  const L = leavesOf(user);
+  if (leavesBlocked(L, task)) return;
+  leafGive(user, ps, "done", LEAVES_CFG.done);
+  L.dayEx++; L.weekTasks[task.id] = (L.weekTasks[task.id] || 0) + 1;
+}
+function leavesBrief(user, ps, gain, completed) {
+  const L = leavesOf(user), C = LEAVES_CFG, r = ps.lrun || { sum: 0, parts: {} };
+  return { gain, total: L.total, toBig: Math.max(0, C.bigAt - L.cyc), capped: L.dayEx >= C.halfEx,
+    done: completed ? { sum: r.sum, parts: r.parts } : undefined };
+}
+function leavesView(user, parent) {
+  const L = leavesOf(user), C = LEAVES_CFG, maxSmall = Math.ceil(C.bigAt / C.smallEvery) - 1;
+  const out = {
+    total: L.total,
+    today: { earned: L.dayEarned, exercises: L.dayEx, capped: L.dayEx >= C.halfEx, half: L.dayEx >= C.fullEx && L.dayEx < C.halfEx },
+    cycle: { have: L.cyc, big: C.bigAt, small: C.smallEvery, smallHave: L.cyc - L.cycSmall * C.smallEvery, toBig: Math.max(0, C.bigAt - L.cyc), toSmall: L.cycSmall < maxSmall ? (L.cycSmall + 1) * C.smallEvery - L.cyc : null,
+      skillsHave: masteredCount(user), skillsNeed: C.bigSkills },
+    goal: goalOf(L), goalSmall: goalSmallOf(L),
+    catalog: { small: REWARD_CATALOG.small, big: REWARD_CATALOG.big.concat(L.custom ? [{ id: "custom", title: L.custom, icon: "🎁", parent: true }] : []) },
+    rewards: L.rewards.slice(-10).map(r => ({ id: r.id, kind: r.kind, at: r.at, title: r.title, status: r.status, code: parent ? r.code : undefined }))
+  };
+  if (parent) {
+    out.week = Object.entries(L.weekWhy || {}).sort((a, b) => b[1] - a[1]).map(([k, n]) => ({ why: LEAF_WHY[k] || k, n }));
+    out.custom = L.custom;
+  }
+  return out;
 }
 const logTask = t => t.quiz ? "quiz:" + t.quiz : t.id;
 const taskAny = (ps, id) => taskById(id) || (ps && ps.dyn && ps.dyn[id]) || null;
@@ -744,6 +848,7 @@ function progress(u) {
   return u.progress || (u.progress = { firstLessonAt: null, lastLessonAt: null, tasks: {}, skills: {}, lessons: [] });
 }
 function recordSolved(user, task, ps, i, st) {
+  let completed = false;
   const P = progress(user), now = new Date().toISOString();
   P.lastLessonAt = now; if (!P.firstLessonAt) P.firstLessonAt = now;
   const step = task.steps[i], clean = st.errors === 0 && !st.helped, name = step.skill || "без темы";
@@ -757,6 +862,7 @@ function recordSolved(user, task, ps, i, st) {
   if (solved < task.steps.length) { T.inProgress = { solved }; }
   else {
     const first = states.filter(x => !x.skipped && x.errors === 0 && !x.helped).length;
+    completed = true; leavesDone(user, task, ps);
     T.completions++; T.inProgress = null; T.lastFirstTry = first; T.bestFirstTry = Math.max(T.bestFirstTry, first);
     const hard = new Set(), repeat = new Set(), touched = new Set();
     task.steps.forEach((s, k) => { const x = states[k]; if (x.skipped) return; touched.add(s.skill); if (x.errors > 0) hard.add(s.skill); if (x.errors >= 2 || x.helped) repeat.add(s.skill); });
@@ -772,6 +878,7 @@ function recordSolved(user, task, ps, i, st) {
     if (P.lessons.length > 50) P.lessons.splice(0, P.lessons.length - 50);
   }
   scheduleSave();
+  return completed;
 }
 const LEVEL_ORDER = { repeat: 0, train: 1, good: 2 };
 /* Дополнительные сведения для кабинета родителя: время, серия, недели, разделы, история занятий, подписка. */
@@ -987,12 +1094,12 @@ async function verifyPassword(res, a, password) {
 }
 
 /* ---------- время занятий ----------
-   До 45 минут занятий в день (голос и программа вместе); голос может звучать все 45 минут; когда время вышло, «тихий режим».
+   До 60 минут занятий в день (голос и программа вместе); голос может звучать все 60 минут; когда время вышло, «тихий режим».
    Время считает сервер по сигналам страницы (раз в 15 секунд), а не браузер: перезагрузка страницы лимит не сбрасывает.
    Ключ: вошедший кабинет, иначе IP. Сутки по Казахстану (UTC+5). Переменные: STUDY_DAY_MIN, VOICE_DAY_MIN. */
 /* Настройки, которые владелец меняет в админ-панели (storage/settings.json). Значения по умолчанию берутся из переменных окружения. */
 const SETTINGS_FILE = path.join(STORE_DIR, "settings.json");
-const SETTINGS = { studyDayMin: Number(process.env.STUDY_DAY_MIN || 45), voiceDayMin: Number(process.env.VOICE_DAY_MIN || 45), registrationOpen: true, voiceEnabled: true };
+const SETTINGS = { studyDayMin: Number(process.env.STUDY_DAY_MIN || 60), voiceDayMin: Number(process.env.VOICE_DAY_MIN || 60), registrationOpen: true, voiceEnabled: true };
 try { Object.assign(SETTINGS, JSON.parse(fs.readFileSync(SETTINGS_FILE, "utf8"))); } catch (e) {}
 function saveSettings() { try { const tmp = SETTINGS_FILE + ".tmp"; fs.writeFileSync(tmp, JSON.stringify(SETTINGS, null, 2), { mode: 0o600 }); fs.renameSync(tmp, SETTINGS_FILE); } catch (e) { console.error(e); } }
 const USAGE_FILE = path.join(STORE_DIR, "usage.json");
@@ -1054,6 +1161,7 @@ async function api(req, res, url) {
     if (url === "/api/chat/available") return send(res, 200, { ok: SITECHAT.available() });
     if (url === "/api/voice/available") return send(res, 200, { ok: !!OPENAI_KEY && SETTINGS.voiceEnabled && (!!a || VOICE_GUESTS) });
     if (url === "/api/usage") return send(res, 200, usageView(usageKey(a, ip)));
+    if (url === "/api/leaves") return a ? send(res, 200, leavesView(a.user, isParent(a))) : send(res, 401, { error: "login" });
     if (url === "/api/cabinet") return isParent(a) ? send(res, 200, cabinetView(a.user)) : send(res, a ? 403 : 401, { error: "parent_required" });
     return send(res, 404, { error: "not_found" });
   }
@@ -1137,6 +1245,29 @@ async function api(req, res, url) {
     if (!(await verifyPin(res, a, b.pin))) return;
     a.s.parentUntil = Date.now() + PARENT_TTL;
     return send(res, 200, { ok: true, user: publicUser(a) });
+  }
+  /* --- листики: цель (выбирает ребёнок) и своя награда (задаёт родитель) --- */
+  if (url === "/api/leaves/goal") {
+    if (!a) return send(res, 401, { error: "login" });
+    if (tooMany("leaf:" + who, 30, 60 * MIN)) return send(res, 429, { error: "too_many" });
+    hit("leaf:" + who);
+    const L = leavesOf(a.user), id = typeof b.id === "string" ? b.id : "";
+    const tier = id === "custom" ? (L.custom ? "big" : null) : REWARD_CATALOG.small.some(x => x.id === id) ? "small" : REWARD_CATALOG.big.some(x => x.id === id) ? "big" : null;
+    if (!tier) return send(res, 400, { error: "bad_goal" });
+    if (tier === "small") L.goalSmall = id; else L.goal = id;
+    scheduleSave();
+    return send(res, 200, leavesView(a.user, isParent(a)));
+  }
+  if (url === "/api/leaves/custom") {
+    if (!isParent(a)) return send(res, 403, { error: "parent_required" });
+    if (tooMany("leaf:" + who, 30, 60 * MIN)) return send(res, 429, { error: "too_many" });
+    hit("leaf:" + who);
+    const t = typeof b.title === "string" ? b.title.replace(/[<>\u0000-\u001f]/g, "").trim().slice(0, 60) : "";
+    const L = leavesOf(a.user);
+    L.custom = t || null;
+    if (t) L.goal = "custom"; else if (L.goal === "custom") L.goal = null;
+    scheduleSave();
+    return send(res, 200, leavesView(a.user, true));
   }
   if (url === "/api/parent/leave") { if (a) a.s.parentUntil = 0; return send(res, 200, { ok: true }); }
   if (url === "/api/parent/child") {
@@ -1237,7 +1368,7 @@ async function api(req, res, url) {
     if (a) { const P = progress(a.user); if (!P.firstLessonAt) P.firstLessonAt = new Date().toISOString(); scheduleSave(); }
     const skip = skipFor(a && a.user, task);
     skip.forEach(i => { const x = stepState(ps, task.id, i); x.solved = true; x.skipped = true; });
-    ps.lastAt = Date.now(); ps.recent = [];
+    ps.lastAt = Date.now(); ps.recent = []; ps.lrun = null;
     logEvent({ kind: "start", u: logWho(a, stateKey), task: logTask(task), skip });
     return send(res, 200, { ok: true, skip });
   }
@@ -1265,8 +1396,9 @@ async function api(req, res, url) {
     if (good) {
       st.attempts = 0;
       logEvent({ kind: "check", u: wlog, task: logTask(task), step: b.step, skill: step.skill, ok: true, ans: shown, att: st.errors + 1, ms, ch });
-      if (!st.solved) { st.solved = true; if (a) { if (quiz) quizRecord(a.user, step, st); else recordSolved(a.user, task, ps, b.step, st); } }
-      return send(res, 200, { correct: true, ok: step.ok, say: [clipFor(step.ok)].filter(Boolean), note: step.note || null, col: step.col || null, quizDone: quiz && a ? quizDone(a.user, task, ps) : undefined });
+      let lv;
+      if (!st.solved) { st.solved = true; if (a) { if (quiz) quizRecord(a.user, step, st); else { const s0 = ps.lrun ? ps.lrun.sum : 0; leavesStep(a.user, ps, task, step, st); const fin = recordSolved(a.user, task, ps, b.step, st); lv = leavesBrief(a.user, ps, (ps.lrun ? ps.lrun.sum : 0) - s0, fin); } } }
+      return send(res, 200, { correct: true, leaves: lv, ok: step.ok, say: [clipFor(step.ok)].filter(Boolean), note: step.note || null, col: step.col || null, quizDone: quiz && a ? quizDone(a.user, task, ps) : undefined });
     }
     st.errors++; st.attempts++;
     const trapInfo = judge ? null : findTrap(step, b.answer), code = trapInfo ? trapInfo.code : null;
@@ -1413,7 +1545,7 @@ const SITECHAT = require("./sitechat.js")({ modelCall, outputText, Upstream, too
 const ADMIN = require("./admin_panel.js")({
   users: () => USERS, metrics: loadSnapshot, saveUsers, usage: () => USAGE, usageOf, flushUsage, dayStamp, limitsFor, SETTINGS, saveSettings,
   cabinetView, hasPlan, hashSecret, TASKS, SECTIONS: () => TASKS_FILE.sections || [], SUBJECT, EMAIL_RE, auth, tooMany, hit, buckets, send, STORE_DIR, COOKIE_SECURE, parseCookies, voiceSessions,
-  envDefaults: { study: Number(process.env.STUDY_DAY_MIN || 45), voice: Number(process.env.VOICE_DAY_MIN || 45) }
+  envDefaults: { study: Number(process.env.STUDY_DAY_MIN || 60), voice: Number(process.env.VOICE_DAY_MIN || 60) }
 });
 
 function serveClip(req, res, id) {

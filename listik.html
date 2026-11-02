@@ -115,6 +115,7 @@
   .row-btn .rtx b { color: var(--ink); font-weight: 700; margin-right: 6px; }
   .row-btn .rst { flex: none; font-size: 15px; color: var(--green); font-weight: 800; }
   .row-btn.lock { background: #F6F4EA; }
+  .tile.seq, .row-btn.seq { cursor: not-allowed; opacity: .7; }
   .cat-empty { padding: 18px 4px; font-size: 17px; color: var(--muted); }
   .tasks { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
   .task-btn {
@@ -523,6 +524,28 @@
 .vbtn{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 16px;border:2px solid var(--line);border-radius:14px;background:#fff;font:inherit;font-weight:700;font-size:16px;color:var(--ink);cursor:pointer}
 .vbtn:hover{border-color:var(--ink)}
 .vbtn.on{background:var(--green);border-color:var(--green);color:#fff}
+.lvpill{display:inline-flex;align-items:center;gap:6px;position:relative;font-size:15px;color:var(--ink);background:var(--mark-bg);border:2px solid #BFE6CE;border-radius:999px;padding:3px 12px}
+.lvpop{position:absolute;right:-6px;top:-18px;font-weight:800;color:var(--green);animation:lvup 1.4s ease-out forwards}
+@keyframes lvup{0%{opacity:0;transform:translateY(8px)}20%{opacity:1}100%{opacity:0;transform:translateY(-10px)}}
+.lvcard,.lvdone{background:var(--mark-bg);border:2px solid #BFE6CE;border-radius:18px;padding:14px 18px;margin:12px 0}
+.lvtop{display:flex;align-items:baseline;gap:8px}
+.lvnum{font-size:30px;font-weight:800;color:var(--green)}
+.lvlbl{font-size:18px;font-weight:700}
+.lvgoal{font-size:18px;margin:6px 0}
+.lvbar{height:12px;border-radius:999px;background:#fff;overflow:hidden;margin:8px 0}
+.pc-card .lvbar{background:#E3E8DC}
+.lvbar i{display:block;height:100%;background:var(--green);border-radius:999px;transition:width .6s}
+.lvtx{font-size:16px}
+.lvnote{font-size:15px;color:var(--muted);margin-top:6px}
+.lvdone ul,.lvlist{list-style:none;margin:8px 0;padding:0}
+.lvdone li,.lvlist li{display:flex;justify-content:space-between;gap:12px;padding:3px 0;font-size:16px}
+.lvrew{margin:12px 0}
+.lvgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:14px 0}
+.lvtile{display:flex;flex-direction:column;align-items:center;gap:8px;padding:18px 10px;border:2px solid #DDE3D6;border-radius:18px;background:#fff;cursor:pointer;font:inherit;font-size:18px;color:var(--ink);min-height:44px}
+.lvtile.on{border-color:var(--green);background:var(--mark-bg)}
+.lvtile:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+.lvic{font-size:40px;line-height:1}
+@media (prefers-reduced-motion: reduce){.lvpop{animation:none;opacity:1}.lvbar i{transition:none}}
 .meters{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
 .meter{display:flex;align-items:center;gap:7px;font-size:14px;font-weight:600;color:var(--muted)}
 .meter .mbar{width:72px;height:8px;border-radius:999px;background:#E3E8DC;overflow:hidden}
@@ -789,17 +812,20 @@ async function ensureTask(i) {
   let r;
   try { r = await api("/api/task/" + encodeURIComponent(t.id)); } catch (e) { r = { status: 0 }; }
   if (r.status === 200 && r.data && r.data.task) { TASKS[i] = Object.assign({}, t, r.data.task); return true; }
+  if (r.status === 403 && r.data && r.data.error === "sequence") { TASKS[i].closed = true; TASKS[i].after = r.data.after; S = { view: "home", flash: seqMsg(r.data.after) }; render(); return false; }
   if (r.status === 403) { TASKS[i].locked = true; S = { view: "paywall", t: i }; render(); return false; }
   S = { view: "home", flash: "Не получилось открыть задачу. Проверьте интернет и попробуйте ещё раз." }; render();
   return false;
 }
+function seqMsg(after) { return "Сначала реши номер " + after + ", тогда откроется следующий."; }
 async function startTask(i) {
   if (TASKS[i].locked) { S = { view: "paywall", t: i }; return render(); }
+  if (TASKS[i].closed) { S = { view: "home", flash: seqMsg(TASKS[i].after) }; return render(); }
   if (USAGE.studyLeft === 0) { S = { view: "rest" }; return render(); }
   if (!(await ensureTask(i))) return;
   QPOS = QUEUE ? QUEUE.indexOf(i) : -1;
   let skip = [];
-  try { const sr = await api("/api/start", { task: TASKS[i].id }); if (sr.status === 200 && sr.data && Array.isArray(sr.data.skip)) skip = sr.data.skip; } catch (e) {}
+  try { const sr = await api("/api/start", { task: TASKS[i].id }); if (sr.status === 403 && sr.data && sr.data.error === "sequence") { await refreshLocks(); S = { view: "home", flash: seqMsg(sr.data.after) }; return render(); } if (sr.status === 200 && sr.data && Array.isArray(sr.data.skip)) skip = sr.data.skip; } catch (e) {}
   applySkip(TASKS[i], skip);
   const first = Math.max(0, vnext(TASKS[i], -1));
   const st0 = TASKS[i].steps[first];
@@ -837,7 +863,7 @@ function header(backBtn) {
 function lessonHeader(T, n, done) {
   const cur = done ? n : S.s + 1;
   return '<div class="top lhead">' + backHTML() + '<div class="hright">' + voiceBtn() + sndBtn() + '</div></div>' +
-    '<div class="lmeta"><div class="meters" id="limbox">' + limHTML() + '</div></div>';
+    '<div class="lmeta"><div class="meters" id="limbox">' + limHTML() + '</div>' + lvPill() + '</div>';
 }
 /* столбик на листочке: числа берём из условия, цифры и переносы появляются по мере верных шагов (их присылает сервер в ответе, поле col) */
 function colHTML(T) {
@@ -914,6 +940,119 @@ function cabIdleLeave() {
   S = { view: "home", flash: "Кабинет родителя закрылся, потому что им долго не пользовались." };
   render();
 }
+/* ---------- листики (баллы за учёбу): считает и хранит сервер, здесь только показываем ---------- */
+let LEAVES = null;   // { total, today, cycle, goal, catalog, rewards } только для вошедшего кабинета
+async function leavesLoad() {
+  if (!USER) { LEAVES = null; return; }
+  const r = await call("/api/leaves");
+  LEAVES = r.status === 200 && r.data && typeof r.data.total === "number" ? r.data : null;
+}
+function leavesApply(l) {
+  if (!LEAVES || !l) return;
+  LEAVES.total = l.total; LEAVES.cycle.toBig = l.toBig; LEAVES.cycle.have = Math.max(0, LEAVES.cycle.big - l.toBig); LEAVES.today.capped = !!l.capped;
+  S.lvPop = l.gain > 0 ? l.gain : 0;
+  if (l.done) { S.lvDone = l.done; const my = S; leavesLoad().then(() => { if (S === my && S.view === "done") render(); }); }   // награды могли появиться: берём свежие данные
+}
+const LV_WHY = { step: "Шаги с первой попытки", hint: "Шаги с подсказкой", explain: "Объяснение своими словами", done: "За законченное упражнение", warm: "Разминка", back: "Бонус за возвращение" };
+const lvWord = n => plural(n, "листик", "листика", "листиков");
+function lvProgress(v) {
+  v = v || LEAVES;
+  const c = v.cycle, pct = Math.max(0, Math.min(100, Math.round(100 * c.have / c.big))), lack = Math.max(0, c.skillsNeed - c.skillsHave);
+  let tx;
+  if (c.toBig > 0) tx = 'До большого подарка осталось <b>' + c.toBig + '</b> ' + lvWord(c.toBig) + '.';
+  else if (lack > 0) tx = 'Листиков хватает. Осталось освоить ещё ' + lack + ' ' + plural(lack, "навык", "навыка", "навыков") + ': Листик подскажет, что повторить.';
+  else tx = 'Большой подарок уже твой!';
+  return '<div class="lvbar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '"><i style="width:' + pct + '%"></i></div><div class="lvtx">' + tx + '</div>';
+}
+function lvSmallProgress(v) {
+  v = v || LEAVES;
+  const c = v.cycle;
+  if (c.toSmall === null || c.toSmall === undefined) return '<div class="lvtx">Простые подарки в этом круге получены. Дальше большой!</div>';
+  const pct = Math.max(0, Math.min(100, Math.round(100 * c.smallHave / c.small)));
+  return '<div class="lvbar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '"><i style="width:' + pct + '%"></i></div><div class="lvtx">До простого подарка осталось <b>' + c.toSmall + '</b> ' + lvWord(c.toSmall) + '.</div>';
+}
+function lvReward() {
+  if (!LEAVES) return "";
+  const list = (LEAVES.rewards || []).filter(x => Date.now() - Date.parse(x.at) < 7 * 86400000).reverse();
+  const r = list.find(x => x.kind === "big") || list[0];
+  if (!r) return "";
+  return '<div class="mark lvrew">🎁 <b>' + (r.kind === "big" ? 'Большой подарок заработан: ' : 'Подарок заработан: ') + esc(r.title) + '!</b> ' + (r.status === "ready" ? 'Скажи об этом маме или папе.' : 'Родители получат промокод.') + '</div>';
+}
+function lvGoalLine(label, g, none) {
+  return '<div class="lvgoal">' + (g ? label + ': <b>' + esc(g.icon || "🎁") + ' ' + esc(g.title) + '</b>' : none) + '</div>';
+}
+function leavesCard() {
+  if (!LEAVES) return "";
+  const g = LEAVES.goal, gs = LEAVES.goalSmall;
+  let h = lvReward();
+  h += '<div class="lvcard"><div class="lvtop"><span class="lvnum">🍃 ' + LEAVES.total + '</span><span class="lvlbl">' + lvWord(LEAVES.total) + '</span></div>';
+  h += lvGoalLine("Простой подарок", gs, "Выбери простой подарок.") + lvSmallProgress();
+  h += lvGoalLine("Большой подарок", g, "Выбери большой подарок.") + lvProgress();
+  if (LEAVES.today.capped) h += '<div class="lvnote">Сегодня уже набрано много листиков. Завтра они пойдут снова, а учиться можно хоть сейчас.</div>';
+  h += '<div class="row"><button class="btn ghost small" data-action="goal-open">' + (g || gs ? 'Сменить подарки' : 'Выбрать подарки') + '</button></div></div>';
+  return h;
+}
+function lvPill() {
+  if (!LEAVES) return "";
+  const pop = S.lvPop || 0; S.lvPop = 0;
+  return '<div class="lvpill" id="lvpill" aria-label="Листиков: ' + LEAVES.total + '">🍃 <b>' + LEAVES.total + '</b>' + (pop ? '<span class="lvpop">+' + pop + '</span>' : '') + '</div>';
+}
+function lvDoneHTML() {
+  if (!LEAVES || !S.lvDone) return "";
+  const d = S.lvDone, parts = d.parts || {};
+  const rows = Object.keys(parts).filter(k => parts[k] > 0).map(k => '<li><span>' + esc(LV_WHY[k] || k) + '</span><b>+' + parts[k] + '</b></li>').join("");
+  let h = lvReward() + '<div class="lvdone"><div class="lvnum">+' + d.sum + ' 🍃</div>';
+  h += rows ? '<ul>' + rows + '</ul>' : '<p>В этот раз листики не пошли: на сегодня их уже набрано достаточно или это упражнение недавно решали. Но ты потренировался, и это важно.</p>';
+  h += lvProgress();
+  const g = LEAVES.goal;
+  h += '<div class="row"><button class="btn ghost small" data-action="goal-open">' + (g || LEAVES.goalSmall ? 'Сменить подарки' : 'Выбрать подарки') + '</button></div></div>';
+  return h;
+}
+function lvTiles(list, onId) {
+  return '<div class="lvgrid">' + list.map(c => '<button class="lvtile' + (onId === c.id ? ' on' : '') + '" data-action="goal-pick" data-id="' + esc(c.id) + '"><span class="lvic">' + esc(c.icon || "🎁") + '</span><b>' + (c.parent ? 'От родителей: ' : '') + esc(c.title) + '</b></button>').join("") + '</div>';
+}
+function renderGoal() {
+  let h = '<div class="top">' + BRAND + '<div class="tools"><button class="back" data-action="goal-back">' + ARROW_L + 'Назад</button></div></div>';
+  h += '<div class="cat-title"><h1>Выбери подарки</h1></div>';
+  h += '<p class="lead">Набирай листики за учёбу. Когда дойдёшь до цели, родители получат для тебя подарок.</p>';
+  if (LEAVES) {
+    h += '<h2 class="sec">Простые подарки</h2><p class="lvnote">Каждые ' + LEAVES.cycle.small + ' ' + lvWord(LEAVES.cycle.small) + '.</p>' + lvTiles(LEAVES.catalog.small, LEAVES.goalSmall && LEAVES.goalSmall.id);
+    h += '<h2 class="sec">Большие подарки</h2><p class="lvnote">Нужны листики и освоенные навыки.</p>' + lvTiles(LEAVES.catalog.big, LEAVES.goal && LEAVES.goal.id);
+  }
+  if (S.flash) { h += '<div class="fb ok">' + esc(S.flash) + '</div>'; S.flash = ""; }
+  h += '<div class="row"><button class="btn" data-action="goal-back">Готово</button></div>';
+  app.innerHTML = h;
+  window.scrollTo(0, 0);
+}
+async function pickGoal(id) {
+  const r = await call("/api/leaves/goal", { id });
+  if (r.status !== 200) { S.flash = "Не получилось выбрать. Попробуй ещё раз."; return render(); }
+  LEAVES = r.data;
+  const all = LEAVES.catalog.small.concat(LEAVES.catalog.big), c = all.find(x => x.id === id);
+  S = { view: "goal", flash: "Выбрано: " + (c ? c.title : "") };
+  render();
+}
+function lvParentBlock() {
+  const v = S.lv;
+  if (!v) return "";
+  let h = '<h2 class="sec">Листики</h2><div class="pc-card">';
+  h += '<p><b>' + v.total + '</b> ' + lvWord(v.total) + ' всего. Сегодня: <b>' + v.today.earned + '</b>, упражнений за день: ' + v.today.exercises + '.</p>';
+  h += '<p>Простой подарок: ' + (v.goalSmall ? '<b>' + esc(v.goalSmall.icon || "🎁") + ' ' + esc(v.goalSmall.title) + '</b>' : 'ещё не выбран') + '</p>' + lvSmallProgress(v);
+  h += '<p style="margin-top:10px">Большой подарок: ' + (v.goal ? '<b>' + esc(v.goal.icon || "🎁") + ' ' + esc(v.goal.title) + '</b>' + (v.goal.parent ? ' (ваша награда)' : '') : 'ещё не выбран') + '</p>' + lvProgress(v);
+  if (v.week && v.week.length) h += '<p style="margin-top:12px"><b>За что начислено на этой неделе</b></p><ul class="lvlist">' + v.week.map(x => '<li><span>' + esc(x.why) + '</span><b>+' + x.n + '</b></li>').join("") + '</ul>';
+  if (v.rewards && v.rewards.length) h += '<p style="margin-top:12px"><b>Награды</b></p><ul class="lvlist">' + v.rewards.slice().reverse().map(r => '<li><span>' + (r.kind === "small" ? 'Простой подарок: ' : 'Большой подарок: ') + esc(r.title) + ' · ' + fmtDate(r.at) + '</span><b>' +
+    (r.status === "ready" ? 'готов' : r.code ? 'промокод: ' + esc(r.code) : 'ждёт промокода') + '</b></li>').join("") + '</ul>';
+  h += '<label style="display:block;margin-top:14px">Своя большая награда <span class="hint">(например, «Кино с мамой»). Ребёнок увидит её среди больших подарков</span><input id="lvc" class="inp" maxlength="60" value="' + esc(v.custom || "") + '" data-enter="lv-custom"></label>';
+  h += '<div class="row"><button class="btn small" data-action="lv-custom">Сохранить награду</button></div></div>';
+  return h;
+}
+async function saveCustom() {
+  const el = document.getElementById("lvc"), t = el ? el.value : "";
+  const r = await call("/api/leaves/custom", { title: t });
+  if (r.status === 403) { S = { view: "pin", err: "Введите PIN-код ещё раз." }; return render(); }
+  if (r.status !== 200) { S.flash = NET; return render(); }
+  S.lv = r.data; S.flash = t.trim() ? "Награда сохранена. Ребёнок увидит её среди больших подарков." : "Своя награда убрана."; render();
+}
 function render() {
   if (S.view === "loading") return;
   const lesson = S.view === "task" || S.view === "done";
@@ -934,6 +1073,7 @@ function render() {
     else if (a.dataset.href !== undefined) { a.setAttribute("href", a.dataset.href); delete a.dataset.href; a.removeAttribute("aria-disabled"); a.style.cursor = ""; }
   });
   cabIdleSet(S.view === "cabinet" || S.view === "pinreset");
+  if (S.view === "goal") return renderGoal();
   if (S.view === "home") return renderHome();
   if (S.view === "auth") return renderAuth();
   if (S.view === "forgot") return renderForgot();
@@ -1115,6 +1255,7 @@ function renderCabinet() {
     h += '<h2 class="sec">Сегодня</h2>';
     h += meter('Время занятий', c.today.studyUsed, c.today.studyMax, fmtMin(Math.round(c.today.studyUsed / 60)) + ' из ' + fmtMin(Math.round(c.today.studyMax / 60)));
     h += meter('Голос Листика', c.today.voiceUsed, c.today.voiceMax, fmtMin(Math.round(c.today.voiceUsed / 60)) + ' из ' + fmtMin(Math.round(c.today.voiceMax / 60)));
+    h += lvParentBlock();
     if (!started) {
       h += '<p style="margin-top:16px">Занятий пока не было. Когда ребёнок начнёт решать задачи, здесь появятся результаты, графики и рекомендации.</p>';
     } else {
@@ -1224,7 +1365,7 @@ function renderCabinet() {
 
 async function openCabinet(tab, flash) {
   const r = await call("/api/cabinet");
-  if (r.status === 200) { S = { view: "cabinet", tab: tab || "progress", cab: r.data, flash: flash || "" }; return render(); }
+  if (r.status === 200) { const lv = await call("/api/leaves"); S = { view: "cabinet", tab: tab || "progress", cab: r.data, lv: lv.status === 200 ? lv.data : null, flash: flash || "" }; return render(); }
   if (r.status === 401) { USER = null; S = { view: "auth", mode: "login", err: "Войдите заново." }; return render(); }
   if (r.status === 403) { S = { view: "pin", err: "Введите PIN-код ещё раз." }; return render(); }
   S.err = NET; render();
@@ -1327,15 +1468,15 @@ let SECTIONS = [];
 const ST_MARK = { done: "✓", progress: "…" };
 const REC_TXT = { review: "пора повторить", harder: "можно потруднее", easier: "лучше полегче" };
 function catItem(t, i) {
-  const lock = !!t.locked, cls = (lock ? " lock" : "") + (t.st === "done" ? " done" : t.st === "progress" ? " progress" : "");
+  const closed = !!t.closed, lock = !!t.locked || closed, cls = (lock ? " lock" : "") + (closed ? " seq" : "") + (t.st === "done" ? " done" : t.st === "progress" ? " progress" : "");
   const mk = lock ? "🔒" : (ST_MARK[t.st] || "");
-  const label = "Номер " + t.no + (lock ? ", по подписке" : t.st === "done" ? ", решено" : t.st === "progress" ? ", начато" : "") + (t.rec ? ", рекомендуем: " + REC_TXT[t.rec] : "");
+  const label = "Номер " + t.no + (closed ? ", откроется после номера " + t.after : lock ? ", по подписке" : t.st === "done" ? ", решено" : t.st === "progress" ? ", начато" : "") + (t.rec ? ", рекомендуем: " + REC_TXT[t.rec] : "");
   if (HOME.view === "list") {
     return '<li><button class="row-btn' + cls + (t.title === "Задача" ? " word" : "") + '" data-action="start" data-i="' + i + '" aria-label="' + label + '">' +
       '<span class="rno">' + esc(t.no) + '</span><span class="rtx">' + (t.title !== "Задача" ? '<b>' + esc(t.title) + '</b>' : '') +
-      (t.rec ? ' <em class="recm">★ ' + REC_TXT[t.rec] + '</em> ' : '') + (lock ? 'по подписке' : esc(t.cond || "")) + '</span><span class="rst">' + mk + '</span></button></li>';
+      (t.rec ? ' <em class="recm">★ ' + REC_TXT[t.rec] + '</em> ' : '') + (closed ? 'откроется после номера ' + esc(t.after) : lock ? 'по подписке' : esc(t.cond || "")) + '</span><span class="rst">' + mk + '</span></button></li>';
   }
-  return '<li><button class="tile' + cls + '" data-action="start" data-i="' + i + '" aria-label="' + label + '" title="' + esc(lock ? t.title : (t.cond || t.title)) + '">' +
+  return '<li><button class="tile' + cls + '" data-action="start" data-i="' + i + '" aria-label="' + label + '" title="' + esc(closed ? "Откроется после номера " + t.after : lock ? t.title : (t.cond || t.title)) + '">' +
     esc(t.no) + (mk ? '<span class="mk" aria-hidden="true">' + mk + '</span>' : '') + (t.rec ? '<span class="rc" title="Рекомендуем: ' + REC_TXT[t.rec] + '" aria-hidden="true">★</span>' : '') + '</button></li>';
 }
 function catItems(idx) {
@@ -1391,6 +1532,7 @@ async function startQuiz(kind) {
 function renderHome() {
   let h = header(false);
   h += quizCard();
+  h += leavesCard();
   h += '<div class="cat-title"><h1>' + (USER && USER.child && USER.child.name ? 'Привет, ' + esc(USER.child.name) + '! ' : '') + 'Выбери упражнение</h1></div>';
   h += '<div class="cat-tools"><label class="cat-search"><input id="catq" type="search" inputmode="search" autocomplete="off" placeholder="Номер или слово, например 245" aria-label="Найти задачу" value="' + esc(HOME.q) + '"></label>' +
     '<div class="seg" role="group" aria-label="Вид списка"><button data-action="view" data-v="tiles" aria-pressed="' + (HOME.view === "tiles") + '">▦ Плитки</button>' +
@@ -1522,7 +1664,7 @@ function lessonVisual(v) {
 function renderLesson(T) {
   const L = T.lesson, n = L.cards.length;
   let h = '<div class="top lhead">' + backHTML() + '<div class="hright">' + voiceBtn() + sndBtn() + '</div></div>' +
-    '<div class="lmeta"><div class="meters" id="limbox">' + limHTML() + '</div></div>';
+    '<div class="lmeta"><div class="meters" id="limbox">' + limHTML() + '</div>' + lvPill() + '</div>';
   h += '<div class="lpage"><div id="voiceslot">' + voiceHTML() + '</div>';
   h += '<div class="lhd"><h2 class="ltitle">' + esc(L.title) + '</h2>' +
     (L.board ? '<button class="speak" data-action="lplay" aria-label="Показать и рассказать по шагам">▶ Показать по шагам</button>'
@@ -1687,7 +1829,8 @@ async function submit(answer, pickedIndex, ch) {
   if (r.status === 429) { my.netMsg = "Слишком много попыток. Подожди минуту."; VOICE.onResult({ kind: "error", msg: "слишком много попыток, нужно подождать минуту" }); return render(); }
   if (r.status !== 200 && r.status !== 423) { my.netMsg = "Что-то пошло не так. Обнови страницу."; VOICE.onResult({ kind: "error", msg: "ошибка сервера" }); return render(); }
   const d = r.data;
-  if (d.quizDone) S.quizSum = d.quizDone;
+  if (d.quizDone) { S.quizSum = d.quizDone; if (!S.lvQz) { S.lvQz = 1; const myq = S; leavesLoad().then(() => { if (S === myq && S.view === "done") render(); }); } }
+  if (d.leaves) leavesApply(d.leaves);
   if (d.correct) {
     S.stage = "right"; S.okText = d.ok || "";
     (S.oks = S.oks || {})[S.s] = S.okText;      // запоминаем, чтобы можно было вернуться на этот шаг
@@ -1764,6 +1907,7 @@ function nextStep() {
   const T = TASKS[S.t];
   if (vnext(T, S.s) < 0) {
     S.view = "done"; S.voice = null;
+    refreshLocks();   // задача решена: обновляем замки, чтобы следующее упражнение раздела открылось
     render();
     say("done");
     paintVoice();
@@ -1830,6 +1974,7 @@ function renderDone() {
   h += '<p><b>Получилось сам:</b> ' + (clean.size ? list(clean) : 'в этот раз всё давалось с трудом, и это нормально') + '.</p>';
   h += '<p><b>Было трудно:</b> ' + (hard.size ? list(hard) : 'ничего, шаги шли гладко') + '.</p>';
   h += '<p><b>Стоит повторить:</b> ' + (repeat.size ? list(repeat) : 'пока ничего, можно брать следующую задачу') + '.</p>';
+  h += lvDoneHTML();
   h += '<div class="row">' +
     (QPOS >= 0 && QPOS < QUEUE.length - 1
       ? '<button class="btn" data-action="start" data-i="' + QUEUE[QPOS + 1] + '">Следующая задача</button>'
@@ -1857,7 +2002,7 @@ app.addEventListener("click", e => {
   if (a === "sec") { HOME.open[b.dataset.s] = !HOME.open[b.dataset.s]; return paintCat(); }
   if (a === "view") { HOME.view = b.dataset.v; try { localStorage.setItem("lk_view2", HOME.view); } catch (e) {} return paintCat(); }
   if (a === "list" && listHref()) { stopSpeech(); VOICE.stop(null, true); location.href = listHref(); return; }
-  if (a === "home" || a === "list") { stopSpeech(); VOICE.stop(null, true); if (S.view === "cabinet" && USER) call("/api/parent/leave", {}); S = { view: "home" }; render(); loadOffer().then(() => { if (S.view === "home") render(); }); return; }
+  if (a === "home" || a === "list") { leavesLoad().then(() => { if (S && S.view === "home") render(); }); stopSpeech(); VOICE.stop(null, true); if (S.view === "cabinet" && USER) call("/api/parent/leave", {}); S = { view: "home" }; render(); loadOffer().then(() => { if (S.view === "home") render(); }); return; }
   if (a === "auth") { S = { view: "auth", mode: b.dataset.mode || "login", err: "", form: S.form }; return render(); }
   if (a === "showpw") { ["fPass", "fPass2"].forEach(id => { const el = document.getElementById(id); if (el) el.type = b.checked ? "text" : "password"; }); return; }
   if (a === "cab-tab") { S.tab = b.dataset.tab; S.err = ""; return render(); }
@@ -1899,6 +2044,10 @@ app.addEventListener("click", e => {
     if (VOICE.active) { VOICE.interrupt(); return VOICE.tell("[Программа] Ребёнок просит прочитать урок ещё раз. Прочитай весь урок вслух дословно, подряд, без пауз и вопросов: " + cards.map(c => vsay(c.text)).join(" ")); }
     return speak(spokenMath(cards.map(c => plain(c.text)).join(" ")), true);
   }
+  if (a === "goal-open") { S = { view: "goal" }; return render(); }
+  if (a === "goal-back") { S = { view: "home" }; return render(); }
+  if (a === "goal-pick") return pickGoal(b.dataset.id);
+  if (a === "lv-custom") return saveCustom();
   if (a === "next") return nextStep();
   if (a === "prev") return prevStep();
   if (a === "adult") return openAdult();
@@ -2593,6 +2742,14 @@ function usageTick() {
 ["pointerdown", "keydown", "touchstart"].forEach(ev => addEventListener(ev, () => { USAGE.lastInput = Date.now(); }, { passive: true }));
 setInterval(usageTick, 15000);
 
+/* Обновляет только статусы и замки у уже загруженных задач (шаги и урок не трогает) */
+async function refreshLocks() {
+  try {
+    const t = await api("/api/tasks"); if (t.status !== 200 || !Array.isArray(t.data.tasks)) return;
+    const by = new Map(t.data.tasks.map(x => [x.id, x]));
+    TASKS.forEach(x => { const n = by.get(x.id); if (!n) return; x.st = n.st; x.rec = n.rec; x.why = n.why; x.closed = !!n.closed; x.after = n.after; });
+  } catch (e) {}
+}
 async function reloadTasks() {
   try { const t = await api("/api/tasks"); if (t.status === 200 && Array.isArray(t.data.tasks) && t.data.tasks.length === TASKS.filter(x => !x.quiz).length) TASKS = t.data.tasks; } catch (e) {}
   await loadOffer();
@@ -2608,6 +2765,7 @@ async function loadData() {
   BANNED = new RegExp(prompts.ai_voice.banned_pattern, prompts.ai_voice.banned_flags);
   try { const me = await api("/api/me"); USER = me.data.user || null; } catch (e) { USER = null; }
   await loadOffer();
+  await leavesLoad();
   try { const v = await api("/api/voice/available"); VOICE.available = !!(v.data && v.data.ok) && !!((window.AudioContext || window.webkitAudioContext) && window.AudioWorkletNode && navigator.mediaDevices && navigator.mediaDevices.getUserMedia); } catch (e) { VOICE.available = false; }
   try { const u = await api("/api/usage"); setUsage(u.data); } catch (e) {}
 }
@@ -2642,7 +2800,9 @@ async function boot() {
     buildQueue();
     if (QUEUE) {
       const want = PARAMS.get("task"), k = want ? TASKS.findIndex(t => t.id === want) : -1;
-      return startTask(k >= 0 && QUEUE.indexOf(k) >= 0 ? k : QUEUE[0]);
+      let go = k >= 0 && QUEUE.indexOf(k) >= 0 ? k : QUEUE[0];
+      if (TASKS[go].closed) go = QUEUE.find(i => !TASKS[i].closed && TASKS[i].st !== "done") ?? QUEUE.find(i => !TASKS[i].closed) ?? go;   // закрытое упражнение не открываем: ведём к первому доступному
+      return startTask(go);
     }
     S = { view: "home" };
     render();
