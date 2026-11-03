@@ -7,6 +7,7 @@
 <meta name="format-detection" content="telephone=no">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Листик — репетитор по математике</title>
+<meta name="description" content="Листик — ИИ-репетитор по математике для 3 класса: ведёт ребёнка по шагам, не решает за него. Создайте кабинет родителя за минуту.">
 <style>
 @font-face { font-family: "Manrope"; src: url("fonts/Manrope-cyrillic-ext.woff2") format("woff2"); font-weight: 200 800; font-display: swap; unicode-range: U+0460-052F,U+1C80-1C8A,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F; }
 @font-face { font-family: "Manrope"; src: url("fonts/Manrope-cyrillic.woff2") format("woff2"); font-weight: 200 800; font-display: swap; unicode-range: U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116; }
@@ -824,10 +825,11 @@ async function startTask(i) {
   if (USAGE.studyLeft === 0) { S = { view: "rest" }; return render(); }
   if (!(await ensureTask(i))) return;
   QPOS = QUEUE ? QUEUE.indexOf(i) : -1;
-  let skip = [];
-  try { const sr = await api("/api/start", { task: TASKS[i].id }); if (sr.status === 403 && sr.data && sr.data.error === "sequence") { await refreshLocks(); S = { view: "home", flash: seqMsg(sr.data.after) }; return render(); } if (sr.status === 200 && sr.data && Array.isArray(sr.data.skip)) skip = sr.data.skip; } catch (e) {}
+  let skip = [], resume = -1;
+  try { const sr = await api("/api/start", { task: TASKS[i].id }); if (sr.status === 403 && sr.data && sr.data.error === "sequence") { await refreshLocks(); S = { view: "home", flash: seqMsg(sr.data.after) }; return render(); } if (sr.status === 200 && sr.data && Array.isArray(sr.data.skip)) skip = sr.data.skip; if (sr.status === 200 && sr.data && Number.isInteger(sr.data.resume)) resume = sr.data.resume; } catch (e) {}
   applySkip(TASKS[i], skip);
-  const first = Math.max(0, vnext(TASKS[i], -1));
+  let first = Math.max(0, vnext(TASKS[i], -1));
+  if (resume > 0) { const nx = vnext(TASKS[i], resume - 1); if (nx >= 0) first = nx; else resume = -1; }
   const st0 = TASKS[i].steps[first];
   S = {
     view: "task", t: i, s: first, attempts: 0, stage: "ask",
@@ -837,7 +839,7 @@ async function startTask(i) {
     rule: null, similar: null, okText: "", netMsg: "", adultAnswer: null, busy: false
   };
   const LS = TASKS[i].lesson;
-  if (LS && LS.cards && LS.cards.length) { S.stage = "lesson"; S.lc = 0; }
+  if (LS && LS.cards && LS.cards.length && resume <= 0) { S.stage = "lesson"; S.lc = 0; }
   say("start");
   render();
   VOICE.announce();
@@ -1103,11 +1105,12 @@ function renderAuth() {
   h += '<div class="form">';
   if (reg) h += '<label>Имя или псевдоним ребёнка <span class="hint">без фамилии, школы и адреса</span><input id="fChild" class="inp" maxlength="30" autocomplete="off" value="' + esc(f.childName || "") + '" data-enter="register"></label>';
   h += '<label>Почта<input id="fEmail" class="inp" type="email" autocomplete="username" autocapitalize="none" placeholder="name@mail.com" value="' + esc(f.email || "") + '" data-enter="' + en + '"></label>';
-  h += '<label>Пароль' + (reg ? ' <span class="hint">не короче 8 символов</span>' : '') + '<input id="fPass" class="inp" type="password" autocomplete="' + (reg ? 'new-password' : 'current-password') + '" data-enter="' + en + '"></label>';
+  h += '<label>Пароль' + (reg ? ' <span class="hint">не короче 8 символов</span>' : '') + '<input id="fPass" class="inp" type="password" value="' + esc(f.pass || '') + '" autocomplete="' + (reg ? 'new-password' : 'current-password') + '" data-enter="' + en + '"></label>';
   h += '<label class="chk"><input type="checkbox" data-action="showpw"><span>Показать пароль</span></label>';
   if (reg) {
-    h += '<label>PIN-код из 4 цифр<span class="hint">Он открывает кабинет и подсказки для взрослого. Запомните его и не говорите ребёнку.</span>' + pinInput("fPin") + '</label>';
+    h += '<label>PIN-код из 4 цифр<span class="hint">Он открывает кабинет и подсказки для взрослого. Запомните его и не говорите ребёнку.</span>' + pinInput("fPin").replace('placeholder=', 'value="' + esc(f.pin || '') + '" placeholder=') + '</label>';
   }
+  if (reg) h += '<label class="chk"><input type="checkbox" id="fAgree"' + (f.agree ? ' checked' : '') + '><span>Я согласен(на) с политикой конфиденциальности и пользовательским соглашением</span></label>';
   h += errBox(S.err);
   h += '<div class="row"><button class="btn" data-action="' + en + '">' + (reg ? 'Регистрация' : 'Войти') + '</button></div>';
   if (!reg) h += '<p class="hint" style="margin-top:16px">Забыли пароль? <button class="btn ghost small" data-action="forgot">Получить ссылку на почту</button></p>';
@@ -1371,13 +1374,14 @@ function need(v, x) { if (!x) { S.err = v; render(); return false; } return true
 
 async function doAuth(mode) {
   const email = val("fEmail").trim(), password = val("fPass");
-  S.form = { email, childName: val("fChild"), agree: !!(document.getElementById("fAgree") || {}).checked };
+  S.form = { email, childName: val("fChild"), agree: !!(document.getElementById("fAgree") || {}).checked, pass: password, pin: (document.getElementById("fPin") || {}).value || "" };   /* пароль и PIN держим только в памяти страницы, чтобы не вводить заново после ошибки */
   S.err = "";
   let payload = { email, password };
   if (mode === "register") {
     const pin = val("fPin");
     if (!need("Введите имя или псевдоним ребёнка.", S.form.childName.trim())) return;
-    payload = { email, password, pin, childName: S.form.childName };
+    if (!need("Нужно согласиться с политикой конфиденциальности и пользовательским соглашением.", S.form.agree)) return;
+    payload = { email, password, pin, childName: S.form.childName, agree: true };
   }
   const r = await call(mode === "register" ? "/api/register" : "/api/login", payload);
   if (r.status === 200) { USER = r.data.user; await reloadTasks(); S = { view: "home", flash: mode === "register" ? "Кабинет создан. Запомните PIN-код: он нужен для подсказок и входа в кабинет." : "" }; return render(); }
@@ -1593,7 +1597,7 @@ function renderTask() {
         : 'Ты стараешься, и это самое главное. Давай глубоко вдохнём и посмотрим на правило ещё раз. Так бывает у всех.') + '</div>';
     }
     if (S.attempts >= 1) {
-      h += '<div class="mark hint"><b>Правило:</b> ' + (S.rule || '') + '</div>';
+      h += '<div class="mark hint"><b>Подсказка:</b> ' + (S.rule || '') + '</div>';
     }
     if (S.attempts >= 2 && S.similar) {
       h += '<div class="mark similar"><b>Похожий пример:</b> ' + S.similar + '</div>';

@@ -13,6 +13,7 @@
    нужно войти заново. */
 "use strict";
 const http = require("http");
+const zlib = require("zlib"); const GZ_CACHE = new Map();
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
@@ -771,7 +772,7 @@ function leavesOf(user) {
     week: null, weekTasks: {}, weekWhy: {}, goal: null, goalSmall: null, rewards: [], recent: [] });
   const d = ymd(0), w = weekStart();
   if (L.day !== d) { L.day = d; L.dayEx = 0; L.dayEarned = 0; }
-  if (L.week !== w) { L.week = w; L.weekTasks = {}; L.weekWhy = {}; }
+  if (L.week !== w) { L.week = w; L.weekTasks = {}; L.weekWhy = {}; L.weekSteps = {}; }
   return L;
 }
 /* убывающая отдача за день: упражнения 1–5 полностью, 6–10 вполовину, дальше без листиков (учиться можно, листики не идут) */
@@ -818,9 +819,13 @@ function leavesMilestones(user, L) {
   if (L.rewards.length > 40) L.rewards.splice(0, L.rewards.length - 40);
 }
 const leavesBlocked = (L, task) => (L.weekTasks[task.id] || 0) >= LEAVES_CFG.repeatWeek;   // одно упражнение даёт листики только первые 2 раза в неделю
-function leavesStep(user, ps, task, step, st) {
+function leavesStep(user, ps, task, step, st, idx) {
   const L = leavesOf(user), C = LEAVES_CFG;
   if (leavesBlocked(L, task)) return 0;
+  /* защита от накрутки: один и тот же шаг даёт листики только первые repeatWeek раз в неделю, даже если упражнение бросили и начали заново */
+  const sk = task.id + ":" + idx; L.weekSteps = L.weekSteps || {};
+  if ((L.weekSteps[sk] || 0) >= C.repeatWeek) return 0;
+  L.weekSteps[sk] = (L.weekSteps[sk] || 0) + 1;
   const rec = ps.recent || [];
   if (rec.length >= 6 && rec.filter(x => x === 0).length >= 5) return 0;      // ответы наугад: 5 ошибок из последних 6
   if (step.type === "explain") return leafGive(user, ps, "explain", C.explain);
@@ -1202,11 +1207,12 @@ async function api(req, res, url) {
     if (pp) return send(res, 400, { error: "pin", message: pp });
     const name = cleanName(b.childName);
     if (!name) return send(res, 400, { error: "child", message: "Введите имя или псевдоним ребёнка (без фамилии)." });
+    if (b.agree !== true) return send(res, 400, { error: "agree", message: "Нужно согласиться с политикой конфиденциальности и пользовательским соглашением." });
     if (USERS.some(u => u.email === email)) return send(res, 409, { error: "exists", message: "Не получилось создать кабинет. Возможно, этот адрес уже занят: попробуйте войти." });
     const user = {
       id: crypto.randomBytes(8).toString("hex"), email,
       pass: await hashSecret(b.password, "pass"), pin: await hashSecret(b.pin, "pin"),
-      child: { name, grade: 3 }, createdAt: new Date().toISOString(), progress: null
+      child: { name, grade: 3 }, createdAt: new Date().toISOString(), agreedAt: new Date().toISOString(), progress: null
     };
     USERS.push(user); saveUsers();
     MAIL.welcome(email, name, siteUrl(req)).catch(mailFail);      // письмо не задерживает ответ и не ломает регистрацию, если почта недоступна
@@ -1366,6 +1372,20 @@ async function api(req, res, url) {
   if ((url === "/api/start" || url === "/api/check") && !task.quiz && seqClosed(task, a && progress(a.user).tasks)) return send(res, 403, { error: "sequence", after: seqPrevNo(task) });
   if ((url === "/api/start" || url === "/api/check") && studyOver(usageKey(a, ip))) return send(res, 403, { error: "day_limit" });
   if (url === "/api/start") {
+    /* продолжение прерванного упражнения: если ребёнок недавно (до 3 часов) вышел посреди него, возвращаем на первый нерешённый шаг и ничего не обнуляем */
+    if (a) {
+      const T0 = progress(a.user).tasks[task.id], skip0 = skipFor(a.user, task);
+      if (T0 && T0.inProgress && ps.lastAt && Date.now() - ps.lastAt < 3 * 60 * 60 * 1000) {
+        const sts = task.steps.map((_, k) => ps.steps.get(task.id + ":" + k));
+        const solvedN = sts.filter(x => x && x.solved && !x.skipped).length;
+        const open = sts.findIndex((x, k) => !(x && x.solved) && !skip0.includes(k));
+        if (solvedN > 0 && open > 0) {
+          ps.lastAt = Date.now();
+          logEvent({ kind: "start", u: logWho(a, stateKey), task: logTask(task), skip: skip0, resume: open });
+          return send(res, 200, { ok: true, skip: skip0, resume: open });
+        }
+      }
+    }
     /* новый заход в задачу: счётчики занятия обнуляются, блокировки шагов остаются */
     for (const [k, v] of ps.steps) if (k.startsWith(task.id + ":")) { v.errors = 0; v.helped = false; v.solved = false; v.skipped = false; v.failRec = false; v.codes = null; }
     if (a) { const P = progress(a.user); if (!P.firstLessonAt) P.firstLessonAt = new Date().toISOString(); scheduleSave(); }
@@ -1400,7 +1420,7 @@ async function api(req, res, url) {
       st.attempts = 0;
       logEvent({ kind: "check", u: wlog, task: logTask(task), step: b.step, skill: step.skill, ok: true, ans: shown, att: st.errors + 1, ms, ch });
       let lv;
-      if (!st.solved) { st.solved = true; if (a) { if (quiz) quizRecord(a.user, step, st); else { const s0 = ps.lrun ? ps.lrun.sum : 0; leavesStep(a.user, ps, task, step, st); const fin = recordSolved(a.user, task, ps, b.step, st); lv = leavesBrief(a.user, ps, (ps.lrun ? ps.lrun.sum : 0) - s0, fin); } } }
+      if (!st.solved) { st.solved = true; if (a) { if (quiz) quizRecord(a.user, step, st); else { const s0 = ps.lrun ? ps.lrun.sum : 0; leavesStep(a.user, ps, task, step, st, b.step); const fin = recordSolved(a.user, task, ps, b.step, st); lv = leavesBrief(a.user, ps, (ps.lrun ? ps.lrun.sum : 0) - s0, fin); } } }
       return send(res, 200, { correct: true, leaves: lv, ok: step.ok, say: [clipFor(step.ok)].filter(Boolean), note: step.note || null, col: step.col || null, quizDone: quiz && a ? quizDone(a.user, task, ps) : undefined });
     }
     st.errors++; st.attempts++;
@@ -1559,7 +1579,9 @@ function serveClip(req, res, id) {
     fs.createReadStream(file).pipe(res);
   }).catch(e => { console.error("[клип]", e.message); if (!res.headersSent) { res.writeHead(502); res.end(); } });
 }
+const NOT_FOUND_HTML = '<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>Страница не найдена — Листик</title></head><body style="margin:0;font-family:system-ui,sans-serif;background:#FBF9F2;color:#1B2A20;display:flex;min-height:100vh;align-items:center;justify-content:center;text-align:center;padding:24px"><div><h1 style="margin:0 0 12px;font-size:32px">Такой страницы нет</h1><p style="margin:0 0 24px;color:#4B5A50">Возможно, ссылка устарела или в адресе опечатка.</p><a href="/" style="display:inline-block;background:#1F7A45;color:#fff;padding:14px 28px;border-radius:999px;text-decoration:none;font-weight:700">На главную</a></div></body></html>';
 http.createServer((req, res) => {
+  res.setHeader("X-Content-Type-Options", "nosniff"); res.setHeader("X-Frame-Options", "SAMEORIGIN"); res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   const url = req.url.split("?")[0];
   if (url.startsWith("/api/")) return api(req, res, url).catch(e => { console.error(e); if (!res.headersSent) send(res, 500, { error: "server" }); });
   const cm = /^\/clips\/([0-9a-f]{16})\.mp3$/.exec(url);
@@ -1567,11 +1589,16 @@ http.createServer((req, res) => {
   let f = STATIC[url];
   const lm = /^\/img\/lessons\/([\w-]+)\.(png|jpg|webp|svg)$/.exec(url);
   if (!f && lm) f = ["img/lessons/" + lm[1] + "." + lm[2], { png: "image/png", jpg: "image/jpeg", webp: "image/webp", svg: "image/svg+xml" }[lm[2]]];
-  if (!f || req.method !== "GET") { res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" }); return res.end("Не найдено"); }
+  if (!f || req.method !== "GET") { res.writeHead(404, { "Content-Type": "text/html; charset=utf-8" }); return res.end(NOT_FOUND_HTML); }
   fs.readFile(path.join(ROOT, f[0]), (err, data) => {
-    if (err) { res.writeHead(404); return res.end("Не найдено"); }
+    if (err) { res.writeHead(404, { "Content-Type": "text/html; charset=utf-8" }); return res.end(NOT_FOUND_HTML); }
     const hdr = { "Content-Type": f[1], "Cache-Control": f[0] === "admin.html" ? "no-store" : "no-cache" };
     if (f[0] === "admin.html") hdr["X-Robots-Tag"] = "noindex, nofollow";
+    if (/^(text\/|application\/javascript)/.test(f[1]) && data.length > 1024 && /\bgzip\b/.test(req.headers["accept-encoding"] || "")) {
+      const ck = f[0] + ":" + data.length; let z = GZ_CACHE.get(ck);
+      if (!z) { z = zlib.gzipSync(data, { level: 6 }); if (GZ_CACHE.size > 60) GZ_CACHE.clear(); GZ_CACHE.set(ck, z); }
+      hdr["Content-Encoding"] = "gzip"; hdr["Vary"] = "Accept-Encoding"; res.writeHead(200, hdr); return res.end(z);
+    }
     res.writeHead(200, hdr);
     res.end(data);
   });

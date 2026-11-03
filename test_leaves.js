@@ -19,7 +19,7 @@ const right = s => s.type === "choice" ? s.correct : s.type === "number" ? s.ans
 const wrong = s => s.type === "choice" ? (s.correct + 1) % s.options.length : s.type === "number" ? s.answer + 1 : s.answer.map(v => v + 1);
 async function register(email) {
   const c = { v: "" };
-  const r = await call(c, "POST", "/api/register", { email, password: "parol12345", pin: "4827", childName: "Тест" });
+  const r = await call(c, "POST", "/api/register", { email, password: "parol12345", pin: "4827", childName: "Тест", agree: true });
   ok(r.code === 200, "регистрация " + email + ": " + r.code);
   return c;
 }
