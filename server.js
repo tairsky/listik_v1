@@ -740,7 +740,7 @@ function quizDone(user, task, ps) {
 /* ---------- листики: баллы за учёбу (механика: док «Баллы и награды Листика», v0.4) ----------
    Начисляет только сервер. Все числа — гипотезы: подстроить по данным теста на живых семьях.
    Состояние лежит в user.progress.leaves (сохраняется вместе с кабинетом). Журнал начислений: kind "leaves" в attempts-*.jsonl. */
-const LEAVES_CFG = { first: 2, helped: 1, explain: 5, done: 10, warm: 10, back: 5, fullEx: 5, halfEx: 10, repeatWeek: 2,
+const LEAVES_CFG = { first: 2, helped: 1, explain: 5, done: 10, warm: 10, back: 5, fullEx: 5, halfEx: 10, repeatWeek: 1,
   smallEvery: Number(process.env.LEAVES_SMALL) || 1500, bigAt: Number(process.env.LEAVES_BIG) || 6000, bigSkills: Number(process.env.LEAVES_SKILLS) || 2, masteryMin: 0.85, masteryN: 3 };   // пороги можно менять без правки кода
 /* заглушки каталога: настоящие партнёры и промокоды появятся после договорённостей */
 const REWARD_DEFAULT = {
@@ -818,11 +818,11 @@ function leavesMilestones(user, L) {
   }
   if (L.rewards.length > 40) L.rewards.splice(0, L.rewards.length - 40);
 }
-const leavesBlocked = (L, task) => (L.weekTasks[task.id] || 0) >= LEAVES_CFG.repeatWeek;   // одно упражнение даёт листики только первые 2 раза в неделю
+const leavesBlocked = (L, task) => (L.weekTasks[task.id] || 0) >= LEAVES_CFG.repeatWeek;   // одно упражнение даёт листики только один раз в неделю
 function leavesStep(user, ps, task, step, st, idx) {
   const L = leavesOf(user), C = LEAVES_CFG;
   if (leavesBlocked(L, task)) return 0;
-  /* защита от накрутки: один и тот же шаг даёт листики только первые repeatWeek раз в неделю, даже если упражнение бросили и начали заново */
+  /* защита от накрутки: один и тот же шаг даёт листики только repeatWeek раз в неделю (сейчас один), даже если упражнение бросили и начали заново */
   const sk = task.id + ":" + idx; L.weekSteps = L.weekSteps || {};
   if ((L.weekSteps[sk] || 0) >= C.repeatWeek) return 0;
   L.weekSteps[sk] = (L.weekSteps[sk] || 0) + 1;

@@ -1004,7 +1004,7 @@ function lvDoneHTML() {
   const d = S.lvDone, parts = d.parts || {};
   const rows = Object.keys(parts).filter(k => parts[k] > 0).map(k => '<li><span>' + esc(LV_WHY[k] || k) + '</span><b>+' + parts[k] + '</b></li>').join("");
   let h = lvReward() + '<div class="lvdone"><div class="lvnum">+' + d.sum + ' 🍃</div>';
-  h += rows ? '<ul>' + rows + '</ul>' : '<p>В этот раз листики не пошли: на сегодня их уже набрано достаточно или это упражнение недавно решали. Но ты потренировался, и это важно.</p>';
+  h += rows ? '<ul>' + rows + '</ul>' : '<p>' + (LEAVES.today && LEAVES.today.capped ? 'В этот раз листики не пошли: на сегодня их уже набрано достаточно. Но ты потренировался, и это важно.' : 'За это упражнение листики уже получены. Повторять полезно, это тренировка.') + '</p>';
   h += lvProgress();
   const g = LEAVES.goal;
   h += '<div class="row"><button class="btn ghost small" data-action="goal-open">' + (g || LEAVES.goalSmall ? 'Сменить подарки' : 'Выбрать подарки') + '</button></div></div>';
