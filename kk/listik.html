@@ -1,0 +1,2847 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+<script src="/lang.js"></script>
+<script>try{if(localStorage.getItem("listik_in")==="1"){var s=document.createElement("style");s.textContent='.sh-btn[href="/kk/listik.html#register"],.mh-btn[href="/kk/listik.html#register"]{display:none!important}';document.head.appendChild(s)}}catch(e){}</script>
+
+<meta charset="utf-8">
+<meta name="format-detection" content="telephone=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Листик: математика бойынша репетитор</title>
+<meta name="description" content="Листик — 3-сыныпқа арналған математика бойынша ЖИ-репетитор: баланы қадамдап жетелейді, оның орнына шешпейді. Ата-ана кабинетін бір минутта жасаңыз.">
+<style>
+@font-face { font-family: "Manrope"; src: url("/fonts/Manrope-cyrillic-ext.woff2") format("woff2"); font-weight: 200 800; font-display: swap; unicode-range: U+0460-052F,U+1C80-1C8A,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F; }
+@font-face { font-family: "Manrope"; src: url("/fonts/Manrope-cyrillic.woff2") format("woff2"); font-weight: 200 800; font-display: swap; unicode-range: U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116; }
+@font-face { font-family: "Manrope"; src: url("/fonts/Manrope-latin.woff2") format("woff2"); font-weight: 200 800; font-display: swap; unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: "Onest"; src: url("/fonts/Onest.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: "Caveat"; src: url("/fonts/Caveat.woff2") format("woff2"); font-weight: 400 700; font-display: swap; }
+  :root {
+    --paper: #FBFAF4;
+    --grid: rgba(27,36,64,.055);
+    --ink: #1E2A22;
+    --pen: #2B4BC4;
+    --red: #C2620A;
+    --green: #1F7A45;
+    --green-d: #17653A;
+    --tint: #E5F3E9;
+    --sun: #F2C14E;
+    --text: #1E2A22;
+    --muted: #4B5575;
+    --card: #FFFFFF;
+    --line: #DDE3D6;
+    --ok-bg: #E5F3E9;
+    --bad-bg: #FFF0DB;
+    --mark-bg: #E5F3E9;
+    --btn-text: #FFFFFF;
+    --head:"Nunito",system-ui,sans-serif;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  *, *::before, *::after { box-sizing: inherit; }
+  body {
+    margin: 0;
+    background-color: var(--paper);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 24px 24px;
+    background-position: -1px -1px;
+    color: var(--text);
+    font-family:"Nunito",system-ui, sans-serif;
+    font-size: 18px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  body::before {
+    content: ""; position: fixed; top: 0; bottom: 0; left: 14px; width: 2px;
+    background: var(--red); opacity: .55; pointer-events: none;
+  }
+  .sheet { max-width: 640px; margin: 0 auto; padding: 20px 16px 48px 32px; }
+  @media (min-width: 700px) {
+    body::before { left: calc(50% - 320px + 14px); }
+    .sheet { padding-left: 34px; }
+  }
+
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+  .brand { display: flex; align-items: center; gap: 8px; font-size: 32px; color: var(--ink); line-height: 1; }
+  .brand svg { width: 34px; height: 34px; }
+  .back {
+    font: inherit; font-size: 16px; font-weight: 700; background: none; border: 0; color: var(--ink);
+    padding: 10px 6px; min-height: 44px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
+  }
+  h1, h2 { margin: 0; line-height: 1.2; }
+  .lead { font-size: 20px; margin: 0 0 22px; max-width: 34ch; }
+
+  /* каталог задач: сотни номеров на одной странице */
+  .cat-title { display: flex; align-items: center; gap: 12px; margin: 0 0 14px; }
+  .cat-title .lf { width: 40px; height: 40px; flex: none; }
+  .cat-title h1 { font-size: clamp(22px, 3vw, 30px); font-weight: 800; }
+  .cat-tools { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 0 0 14px; }
+  .cat-search { flex: 1 1 240px; min-width: 0; }
+  .cat-search input { width: 100%; box-sizing: border-box; min-height: 46px; padding: 0 16px; font: inherit; font-size: 17px; color: var(--ink); background: #fff; border: 2px solid var(--line); border-radius: 14px; }
+  .cat-search input:focus { outline: none; border-color: var(--green); }
+  .seg { display: inline-flex; border: 2px solid var(--line); border-radius: 14px; overflow: hidden; background: #fff; }
+  .seg button { font: inherit; font-size: 15px; font-weight: 700; min-height: 42px; padding: 0 14px; border: 0; background: none; color: var(--muted); cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--green); color: #fff; }
+  .cat-meta { font-size: 15px; font-weight: 600; color: var(--muted); margin: 0 0 10px; }
+  .cat-meta a { color: var(--green); }
+  .grp { border: 2px solid var(--line); border-radius: 18px; background: #fff; margin: 0 0 10px; overflow: hidden; }
+  .grp-h { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 56px; padding: 8px 16px; font: inherit; font-size: 17px; font-weight: 800; color: var(--ink); background: none; border: 0; cursor: pointer; text-align: left; }
+  .grp-h .gt { flex: 1 1 auto; min-width: 0; }
+  .grp-h .gc { flex: none; font-size: 14px; font-weight: 700; color: var(--muted); }
+  .grp-h .gc b { color: var(--green); }
+  .grp-h .chev { flex: none; transition: transform .18s ease; }
+  .grp-h[aria-expanded="true"] .chev { transform: rotate(180deg); }
+  .grp-b { padding: 4px 14px 16px; }
+  .grp2 { margin: 0 0 26px; }
+  .grp2-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 10px; font-size: 20px; font-weight: 800; line-height: 1.3; color: var(--ink); }
+  .grp2-h .gc { flex: none; font-size: 14px; font-weight: 700; color: var(--muted); }
+  .grp2-h .gc b { color: var(--green); }
+  .grp2-empty { margin: 0; padding: 6px 2px; font-size: 16px; color: var(--muted); }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(66px, 1fr)); gap: 8px; list-style: none; margin: 0; padding: 0; }
+  .tile { position: relative; width: 100%; min-height: 54px; padding: 0 4px; font: inherit; font-size: 20px; font-weight: 800; color: var(--ink); background: #fff; border: 2px solid var(--line); border-radius: 14px; cursor: pointer; }
+  .tile:hover { border-color: var(--green); }
+  .tile.done { background: var(--tint); color: var(--green); border-color: #BFE3C8; }
+  .tile.progress { border-color: var(--sun); box-shadow: inset 0 0 0 2px var(--sun); }
+  .tile.lock { color: var(--muted); background: #F6F4EA; }
+  .tile .mk { position: absolute; top: 2px; right: 5px; font-size: 11px; line-height: 1; }
+  .rows { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .rows li, .tiles li { min-width: 0; }
+  .row-btn { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px; padding: 6px 12px; font: inherit; color: var(--ink); background: #fff; border: 2px solid var(--line); border-radius: 14px; cursor: pointer; text-align: left; }
+  .row-btn:hover { border-color: var(--green); }
+  .row-btn .rno { flex: none; min-width: 44px; text-align: center; padding: 4px 8px; font-size: 17px; font-weight: 800; color: var(--green); background: var(--tint); border-radius: 10px; }
+  .row-btn.word .rno { background: #FFF1C2; color: var(--ink); }
+  .row-btn .rtx { flex: 1 1 auto; min-width: 0; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--muted); }
+  .row-btn .rtx b { color: var(--ink); font-weight: 700; margin-right: 6px; }
+  .row-btn .rst { flex: none; font-size: 15px; color: var(--green); font-weight: 800; }
+  .row-btn.lock { background: #F6F4EA; }
+  .tile.seq, .row-btn.seq { cursor: not-allowed; opacity: .7; }
+  .cat-empty { padding: 18px 4px; font-size: 17px; color: var(--muted); }
+  .tasks { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+  .task-btn {
+    width: 100%; text-align: left; font: inherit; color: var(--text);
+    background: var(--card); border: 2px solid var(--ink); border-radius: 4px 14px 4px 14px;
+    padding: 14px 16px; cursor: pointer; display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; align-items: baseline;
+  }
+  .task-btn:hover { background: var(--mark-bg); }
+  .task-no { font-size: 30px; color: var(--ink); grid-row: span 2; }
+  .task-title { font-weight: 800; }
+  .task-cond { font-size: 16px; color: var(--muted); }
+
+  .condition { background: var(--card); border: 2px solid var(--line); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; }
+  .condition .no { font-size: 15px; color: var(--muted); font-weight: 700; }
+  .condition .txt { font-size: 28px; color: var(--ink); line-height: 1.3; margin-top: 2px; }
+  .condition .txt.long { font-size: 24px; }
+
+  .notebook { margin: 0 0 16px; min-height: 8px; }
+  .nline { font-size: 24px; color: var(--ink); line-height: 1.35; padding-left: 6px; border-left: 3px solid var(--ink); margin-bottom: 4px; }
+
+  .dots { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 12px; }
+  .dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--ink); background: transparent; }
+  .dot.done { background: var(--ink); }
+  .dot.cur { background: var(--mark-bg); box-shadow: 0 0 0 3px var(--mark-bg); }
+
+  .step { background: var(--card); border: 2px solid var(--ink); border-radius: 14px 4px 14px 4px; padding: 16px; }
+  .step .meta { font-size: 15px; color: var(--muted); font-weight: 700; margin-bottom: 6px; }
+  .q { font-size: 21px; font-weight: 700; line-height: 1.4; margin: 0 0 14px; }
+
+  /* голос Листика */
+  .voice { display: flex; gap: 10px; align-items: flex-end; margin: 0 0 14px; }
+  .bubble {
+    background: var(--paper); border: 2px solid var(--ink); border-radius: 14px 14px 14px 2px;
+    padding: 8px 14px; font-size: 17px; line-height: 1.4; min-height: 42px; display: flex; align-items: center;
+  }
+  .dots3 { display: inline-flex; gap: 5px; }
+  .dots3 i { width: 8px; height: 8px; border-radius: 50%; background: var(--ink); opacity: .35; animation: bob 1s infinite; }
+  .dots3 i:nth-child(2) { animation-delay: .15s; }
+  .dots3 i:nth-child(3) { animation-delay: .3s; }
+  @keyframes bob { 0%, 100% { opacity: .25; } 40% { opacity: 1; } }
+
+  .opts { display: grid; gap: 10px; }
+  .opt {
+    font: inherit; font-weight: 700; text-align: left; color: var(--text);
+    background: var(--paper); border: 2px solid var(--line); border-radius: 10px;
+    padding: 12px 14px; min-height: 56px; cursor: pointer; touch-action: manipulation;
+  }
+  .opt:hover:not(:disabled) { border-color: var(--ink); background: var(--mark-bg); }
+  .opt.wrong { border-color: var(--red); background: var(--bad-bg); text-decoration: line-through; cursor: default; }
+
+  /* поля ответа и клавиатура */
+  .fields { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
+  .field { display: grid; gap: 4px; font-weight: 700; font-size: 16px; }
+  .disp {
+    font: inherit; font-size: 34px; font-weight: 800; color: var(--ink); text-align: center;
+    min-width: 120px; height: 64px; padding: 0 16px; background: var(--paper);
+    border: 3px solid var(--line); border-radius: 12px; cursor: pointer; touch-action: manipulation;
+  }
+  .disp.active { border-color: var(--ink); background: var(--mark-bg); }
+  .disp.active .val::after { content: ""; display: inline-block; height: 1em; border-right: 3px solid var(--ink); margin-left: 2px; vertical-align: -0.12em; animation: blink 1s steps(1) infinite; }
+  .disp .ph { color: var(--muted); opacity: .6; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; max-width: 340px; margin-top: 14px; user-select: none; -webkit-user-select: none; }
+  .key {
+    font: inherit; font-size: 28px; font-weight: 800; color: var(--text);
+    background: var(--paper); border: 2px solid var(--line); border-radius: 12px;
+    height: 62px; cursor: pointer; touch-action: manipulation;
+  }
+  .key:active { background: var(--mark-bg); border-color: var(--ink); }
+  .key.go { background: var(--ink); border-color: var(--ink); color: var(--btn-text); font-size: 16px; }
+  .key.erase { font-size: 24px; }
+
+  input.num {
+    font: inherit; font-size: 26px; font-weight: 800; color: var(--ink);
+    width: 132px; padding: 8px 12px; border: 2px solid var(--ink); border-radius: 10px; background: var(--paper);
+  }
+  input.inp {
+    font: inherit; font-size: 18px; color: var(--text); width: 100%; max-width: 360px;
+    padding: 10px 12px; border: 2px solid var(--line); border-radius: 10px; background: var(--card);
+  }
+  input.pin { font-size: 26px; font-weight: 800; letter-spacing: 8px; width: 150px; text-align: center; color: var(--ink); border-color: var(--ink); }
+  .form label { display: grid; gap: 4px; font-weight: 700; font-size: 16px; margin-bottom: 12px; }
+  .form .hint { font-weight: 400; font-size: 14px; color: var(--muted); max-width: 46ch; }
+  .form .chk { display: flex; gap: 10px; align-items: flex-start; font-weight: 400; font-size: 15px; }
+  .form .chk input { width: 22px; height: 22px; margin-top: 2px; flex: none; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .tabs .btn { min-height: 44px; padding: 6px 16px; font-size: 16px; }
+  .tabs .btn.on { background: var(--ink); color: var(--btn-text); }
+  .bar { height: 10px; background: var(--line); border-radius: 6px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--green); }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 8px 0 16px; }
+  .stat { border: 2px solid var(--line); border-radius: 12px; padding: 10px 14px; background: var(--card); }
+  .stat b { display: block; font-size: 26px; color: var(--ink); line-height: 1.2; }
+  .stat span { font-size: 14px; color: var(--muted); }
+  .cabinfo { display: grid; gap: 4px; }
+  .rowitem { border: 2px solid var(--line); border-radius: 12px; padding: 10px 14px; background: var(--card); margin-bottom: 10px; }
+  .rowitem .top2 { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-weight: 700; margin-bottom: 6px; }
+  .rowitem .sub { font-size: 14px; color: var(--muted); margin-top: 4px; }
+  .tag { display: inline-block; font-size: 14px; font-weight: 700; border-radius: 8px; padding: 2px 8px; border: 2px solid var(--line); }
+  .tag.good { border-color: var(--green); color: var(--green); }
+  .tag.train { border-color: var(--ink); color: var(--ink); }
+  .tag.repeat { border-color: var(--red); color: var(--red); }
+  .tabs { flex-wrap: wrap; }
+  .pc-card { border: 2px solid var(--line); border-radius: 14px; padding: 12px 14px; background: var(--card); margin-bottom: 12px; }
+  .pc-hero { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: flex-start; background: var(--tint); border-color: #BFE6CE; }
+  .pc-hero .nm { display: block; font-size: 24px; line-height: 1.2; }
+  .pc-hero span { color: var(--muted); }
+  .pc-meta { font-size: 15px; color: var(--muted); }
+  .pc-plan { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+  .pc-plan span { flex: 1; min-width: 200px; color: var(--muted); }
+  .pc-plan.on { border-color: var(--green); }
+  .pc-meter { margin-bottom: 12px; }
+  .pc-meter .top2 { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-weight: 700; margin-bottom: 6px; }
+  .pc-tip2 { border-left: 5px solid var(--line); background: var(--card); border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; box-shadow: 0 0 0 2px var(--line) inset; }
+  .pc-tip2 b { display: block; margin-bottom: 4px; }
+  .pc-tip2.warn { border-left-color: var(--red); }
+  .pc-tip2.ok { border-left-color: var(--green); }
+  .pc-tip2 .tag { margin: 2px 4px 2px 0; }
+  .pc-trend { display: grid; gap: 2px; background: var(--tint); border-color: #BFE6CE; }
+  .pc-trend span { color: var(--muted); }
+  .pc-chart svg { width: 100%; height: auto; display: block; overflow: visible; }
+  .pc-gl { stroke: var(--line); stroke-width: 1; }
+  .pc-ax { font-size: 12px; fill: #4B5575; }
+  .pc-dt { margin-top: 8px; font-size: 15px; }
+  .pc-dt summary { cursor: pointer; color: var(--muted); font-weight: 700; }
+  .pc-scroll { overflow-x: auto; }
+  .pc-dt table, .pc-tbl { width: 100%; border-collapse: collapse; }
+  .pc-dt td, .pc-dt th, .pc-tbl td, .pc-tbl th { text-align: left; padding: 6px 8px; border-top: 1px solid var(--line); }
+  .pc-tbl th { font-size: 14px; color: var(--muted); }
+  .pc-tip { position: fixed; z-index: 90; background: var(--ink); color: #fff; border-radius: 10px; padding: 8px 12px; font-size: 15px; pointer-events: none; max-width: 260px; }
+  .pc-tip b { display: block; }
+  h2.sec { font-size: 19.8px; margin: 26px 0 10px; }
+  input.inp:focus-visible, input.pin:focus-visible { outline: 3px solid var(--red); outline-offset: 2px; }
+  input.num:focus-visible, .btn:focus-visible, .opt:focus-visible, .task-btn:focus-visible, .back:focus-visible,
+  .key:focus-visible, .disp:focus-visible {
+    outline: 3px solid var(--red); outline-offset: 2px;
+  }
+
+  .btn {
+    font: inherit; font-weight: 800; font-size: 18px;
+    background: var(--ink); color: var(--btn-text); border: 2px solid var(--ink);
+    border-radius: 10px; padding: 10px 20px; min-height: 48px; cursor: pointer;
+  }
+  .btn.ghost { background: transparent; color: var(--ink); }
+  .btn.small { font-size: 15px; min-height: 40px; padding: 6px 14px; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+
+  .fb { border-radius: 10px; padding: 12px 14px; margin-top: 12px; font-size: 18px; }
+  .fb.ok { background: var(--ok-bg); border: 2px solid var(--green); }
+  .fb.bad { background: var(--bad-bg); border: 2px solid var(--red); }
+  .fb strong.g { color: var(--green); }
+  .fb strong.r { color: var(--red); }
+  .mark { background: var(--mark-bg); border-radius: 10px; padding: 12px 14px; margin-top: 12px; }
+  .mark b { font-weight: 800; }
+  textarea.ex { width: 100%; min-height: 110px; font: inherit; font-size: 20px; padding: 12px 14px; border-radius: 12px; border: 2px solid var(--line, #cfd8d2); resize: vertical; box-sizing: border-box; }
+  .quizc { margin-bottom: 14px; }
+  .quizc .row { margin-top: 10px; gap: 8px; }
+  .fb.calm { background: var(--mark-bg); border: 2px solid #BFE6CE; }
+  .tile .rc { position: absolute; top: 2px; right: 6px; font-size: 14px; color: #E0A800; }
+  .recm { font-style: normal; font-weight: 700; color: #B07F00; white-space: nowrap; }
+  .pop { animation: pop .25s ease-out; }
+  @keyframes pop { from { transform: scale(.96); } to { transform: scale(1); } }
+  @media (prefers-reduced-motion: reduce) {
+    .pop, .dots3 i, .disp.active .val::after { animation: none; }
+    .dots3 i { opacity: .8; }
+  }
+
+  .sum { background: var(--card); border: 2px solid var(--ink); border-radius: 14px 4px 14px 4px; padding: 18px; }
+  .sum h2 { font-size: 23.4px; color: var(--ink); margin-bottom: 10px; }
+  .sum p { margin: 0 0 10px; }
+  .foot { margin-top: 28px; font-size: 14px; color: var(--muted); max-width: 52ch; }
+  .foot p { margin: 0 0 8px; }
+  .top { flex-wrap: wrap; }
+  .tools { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .snd, .speak {
+    font: inherit; font-size: 15px; font-weight: 700; background: transparent; color: var(--ink);
+    border: 2px solid var(--line); border-radius: 10px; padding: 4px 12px; min-height: 40px; cursor: pointer; touch-action: manipulation;
+  }
+  .snd:hover, .speak:hover { border-color: var(--ink); background: var(--mark-bg); }
+  .snd:focus-visible, .speak:focus-visible { outline: 3px solid var(--red); outline-offset: 2px; }
+  .meta-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .meta-row .meta { margin: 0; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  .qline { font-size: 15px; font-weight: 600; color: var(--muted); margin: 0 0 14px; }
+  .qline a { color: var(--green); }
+
+  /* ===== Дизайн «Тетрадь» (из Claude Design) ===== */
+  body { background-size: 28px 28px; background-position: 0 0; background-image: linear-gradient(to right, var(--grid) 1px, transparent 1px), linear-gradient(to bottom, var(--grid) 1px, transparent 1px); }
+  body.plain { background-image: none; }
+  body::before { display: none; }
+  .sheet { max-width: 820px; margin: 0 auto; padding: 24px 24px 72px; }
+  .sheet.wide { max-width: 1120px; }
+  @media (min-width: 700px) { .sheet { padding-left: 24px; } }
+  .hand { font-family: "Caveat", "Segoe Script", cursive; font-weight: 600; }
+  h1,h2 { font-family:var(--head); font-weight:800; letter-spacing:-0.025em; }
+  a:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid var(--pen) !important; outline-offset: 3px !important; }
+
+  .top { margin-bottom: 28px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-family: "Nunito", var(--head); font-weight: 800; font-size: 26px; letter-spacing: 0; color: #006429; text-decoration: none; line-height: 1; }
+  .brand svg { width: 36px; height: 36px; }
+  .back, .snd, .speak {
+    display: inline-flex; align-items: center; gap: 10px; font: inherit; font-size: 16px; font-weight: 600; color: var(--ink);
+    background: #fff; border: 2px solid var(--line); border-radius: 14px; min-height: 48px; padding: 0 18px 0 14px; cursor: pointer; text-decoration: none;
+    transition: background .15s ease;
+  }
+  .snd { padding: 0 18px; }
+  .speak { min-height: 40px; padding: 0 14px; font-size: 15px; }
+  .back:hover, .snd:hover, .speak:hover { background: var(--tint); border-color: var(--line); }
+  .back svg, .snd svg { flex: none; }
+  .lead { max-width: none; }
+
+  .say { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 32px; }
+  .say .bb { background: #fff; border: 1.5px solid var(--line); border-radius: 8px 24px 24px 24px; padding: 20px 24px; box-shadow: 0 16px 32px -24px rgba(27,36,64,.3); }
+  .say .bb p { margin: 0; font-size: 22px; line-height: 1.5; font-weight: 500; }
+  .hl { background: linear-gradient(transparent 62%, var(--sun) 62%); font-weight: 600; }
+
+  .tasks { grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr)); gap: 18px; }
+  .task-btn {
+    display: flex; flex-direction: column; gap: 18px; padding: 22px 24px 26px; background: #fff; color: var(--ink);
+    border: 2px solid var(--line); border-radius: 24px; transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  }
+  .task-btn:hover { background: #fff; transform: translateY(-3px); border-color: var(--green); box-shadow: 0 22px 40px -26px rgba(27,36,64,.4); }
+  .tb-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .tb-left { display: flex; align-items: center; gap: 12px; }
+  .task-no { display: inline-flex; align-items: center; height: 44px; padding: 0 16px; background: var(--tint); color: var(--green); border-radius: 14px; font-size: 28px; line-height: 1; grid-row: auto; }
+  .task-btn.word .task-no { background: #FFF1C2; color: var(--ink); }
+  .task-title { font-size: 15px; font-weight: 600; color: var(--muted); }
+  .task-cond { font-size: 26px; font-weight: 500; letter-spacing: .01em; color: var(--ink); line-height: 1.3; }
+  .task-btn.word .task-cond { font-size: 20px; line-height: 1.45; }
+
+  /* урок: слева Листик, справа тетрадь */
+  .lhead { align-items: center; }
+  .lprog { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: flex-end; }
+  .lno { font-size: 28px; color: var(--green); line-height: 1; }
+  .pills { display: flex; gap: 6px; }
+  .pills span { width: 34px; height: 10px; border-radius: 999px; background: #E4E8DD; }
+  .pills span.done { background: var(--green); }
+  .pills span.cur { background: var(--sun); box-shadow: 0 0 0 2px var(--ink); }
+  .lstep { font-size: 15px; font-weight: 600; color: var(--muted); }
+  .lvis { display: flex; flex-wrap: wrap; gap: 10px; margin: 6px 0 14px; }
+  .lg { display: grid; gap: 5px; padding: 8px; border: 2px solid var(--ink); border-radius: 12px; background: var(--paper); }
+  .ld { width: 13px; height: 13px; border-radius: 50%; background: var(--green); display: block; }
+  .ld.b { background: var(--sun); box-shadow: 0 0 0 1.5px var(--ink); }
+  .lpage { max-width: 760px; margin: 0 auto; }
+  .lhd { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 18px 0 8px; }
+  .ltitle { margin: 0; font-size: 23.4px; }
+  .lscene { display: flex; gap: 16px; align-items: flex-start; background: #fff; border: 1.5px solid #E4E8DD; border-radius: 22px; padding: 20px 22px; margin: 14px 0; box-shadow: 0 6px 20px rgba(30,60,40,.06); }
+  .lnum { flex: none; width: 36px; height: 36px; border-radius: 50%; background: var(--green); color: #fff; font-weight: 800; display: grid; place-items: center; }
+  .lbody { flex: 1; min-width: 0; }
+  .limg { display: block; width: 100%; max-width: 560px; height: auto; border-radius: 16px; margin: 6px 0 0; }
+  .lgo { margin: 22px 0 40px; }
+  /* доска с корзинами в мини-уроке: закреплена сверху, карточки идут под ней */
+  .lboard { position: sticky; top: 0; z-index: 5; background: var(--paper); border: 2px solid var(--ink); border-radius: 16px; padding: 6px 10px 10px; margin: 10px 0; }
+  .lboard svg { display: block; width: 100%; height: auto; max-height: 32vh; }
+  .lb-eq { font-weight: 800; font-size: 28px; text-align: center; min-height: 36px; font-variant-numeric: tabular-nums; }
+  .lb-leg { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; min-height: 4px; }
+  .lb-chip { font-size: 14px; font-weight: 700; padding: 4px 12px; border-radius: 999px; background: var(--tint); }
+  .lb-chip b { color: var(--red); font-size: 17px; margin-right: 4px; }
+  .lb-chip.g b { color: var(--green); }
+  .lb-tag { font-weight: 800; font-size: 15px; fill: #fff; text-anchor: middle; font-family: inherit; }
+  .lb-badge-bg { fill: var(--green); }
+  .lb-badge-tx { fill: #fff; font-weight: 800; font-size: 17px; text-anchor: middle; font-family: inherit; }
+  .lb-apple-in { animation: lbdrop .45s cubic-bezier(.3,1.4,.5,1) both; transform-box: fill-box; transform-origin: center; }
+  .lb-badge { animation: lbpop .45s ease-out both; transform-box: fill-box; transform-origin: center; }
+  @keyframes lbdrop { from { transform: translateY(-46px) scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
+  @keyframes lbpop { from { transform: scale(.3); opacity: 0; } to { transform: none; opacity: 1; } }
+  .lscene.cur { border-color: var(--green); box-shadow: 0 0 0 3px var(--tint), 0 6px 20px rgba(30,60,40,.06); }
+  .lcbtns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  @media (prefers-reduced-motion: reduce) { .lb-apple-in, .lb-badge { animation: none; } }
+  .q.lq { font-weight: 600; font-size: 22px; line-height: 1.5; }
+  .lesson { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(460px, 100%), 1fr)); gap: 40px; align-items: start; }
+  .lcol { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+  .voice { display: flex; align-items: flex-start; gap: 16px; margin: 0; }
+  .bubble { background: #fff; border: 1.5px solid var(--line); border-radius: 8px 24px 24px 24px; padding: 18px 24px; font-size: 21px; line-height: 1.5; font-weight: 500; min-height: 62px; box-shadow: 0 16px 32px -24px rgba(27,36,64,.3); }
+  .step { background: #fff; border: 1px solid var(--line); border-radius: 28px; padding: 24px; box-shadow: 0 28px 56px -28px rgba(27,36,64,.25); }
+  .step .meta { font-size: 14px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+  .q { font-size: 22px; font-weight: 600; line-height: 1.45; }
+  .opts { gap: 12px; }
+  .opt { display: flex; align-items: center; gap: 16px; min-height: 64px; padding: 10px 20px 10px 12px; font-size: 20px; font-weight: 600; background: #fff; border: 2px solid #D3DDE4; border-radius: 18px; transition: transform .15s ease, border-color .15s ease, background .15s ease; }
+  .opt:hover:not(:disabled) { transform: translateY(-2px); border-color: var(--green); background: #fff; }
+  .opt .let { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; flex: none; border-radius: 12px; background: #fff; border: 2px solid #D3DDE4; font-size: 26px; line-height: 1; }
+  .opt.wrong { background: var(--bad-bg); border-color: var(--red); text-decoration: none; opacity: .75; }
+  .opt.wrong .let { border-color: var(--red); }
+
+  .fb { border-radius: 18px; padding: 14px 18px; font-size: 18px; }
+  .fb.ok { background: var(--ok-bg); border: 2px solid var(--green); }
+  .fb.bad { background: var(--bad-bg); border: 2px solid var(--red); }
+  .fb strong.r { color: var(--red); }
+  .mark { background: var(--mark-bg); border: 2px solid #BFE6CE; border-radius: 18px; padding: 14px 18px; font-size: 18px; }
+  .mark b { font-weight: 700; }
+  /* подсказка после ошибки — красная, верный ответ (.fb.ok) — зелёный */
+  .mark.hint { background: #FDECEC; border: 2px solid #D64545; }
+  .mark.hint b { color: #C62828; }
+  .mark.similar { background: #EAF1FB; border: 2px solid #8FB0E0; }
+  .mark.similar b { color: #2F5FA8; }
+  .disp { border-radius: 16px; border: 3px solid var(--line); background: #fff; color: var(--ink); }
+  .disp.active { border-color: var(--green); background: var(--tint); }
+  .disp.active .val::after { border-right-color: var(--green); }
+  .key { border-radius: 16px; background: #fff; border-color: var(--line); height: 64px; }
+  .key:active { background: var(--tint); border-color: var(--green); }
+  .key.go { background: var(--green); border-color: var(--green); color: #fff; }
+  input.num, input.inp { border-radius: 14px; border-color: var(--line); background: #fff; }
+  input.pin { border-color: var(--green); color: var(--ink); }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; font-weight: 600; font-size: 18px; min-height: 54px; padding: 0 28px; border-radius: 16px; background: var(--green); border: 2px solid var(--green); color: #fff; text-decoration: none; transition: background .15s ease, transform .15s ease; }
+  .btn:hover { background: var(--green-d); border-color: var(--green-d); transform: translateY(-1px); }
+  .btn.ghost { background: transparent; color: var(--ink); border-color: var(--ink); }
+  .btn.ghost:hover { background: var(--tint); }
+  .btn.small { min-height: 44px; padding: 0 18px; font-size: 16px; border-radius: 14px; }
+  .tabs .btn.on { background: var(--green); color: #fff; }
+
+  .nbcol { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .nbno { font-size: 28px; color: var(--green); line-height: 1; }
+  .nb { position: relative; background-color: #fff; border: 1px solid var(--line); border-radius: 28px; padding: 20px 24px 20px 68px; box-shadow: 0 28px 56px -28px rgba(27,36,64,.3);
+    background-image: linear-gradient(to bottom, transparent 39px, #D6E2F3 39px); background-size: 100% 40px; background-position: 0 20px; min-height: 360px; }
+  .nb::before { content: ""; position: absolute; top: 0; bottom: 0; left: 50px; width: 2px; background: #F0A9A3; }
+  .nb.grid { background-image: linear-gradient(to right, #D6E2F3 1px, transparent 1px), linear-gradient(to bottom, #D6E2F3 1px, transparent 1px);
+    background-size: 20px 20px; background-position: 10px 0; }
+  .nb .ln { min-height: 40px; line-height: 40px; font-family: "Caveat", cursive; font-weight: 600; font-size: clamp(26px, 3.4vw, 34px); color: var(--pen); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .nb.long .ln { font-size: 28px; }
+  .nb .ln.cond { color: var(--ink); }
+  .nb .ln.cur { color: var(--ink); }
+  /* сложение и вычитание столбиком на листочке */
+  .colm { display: grid; grid-template-columns: 28px repeat(var(--k), 40px); width: max-content; margin: 4px 0 12px; font-family: "Caveat", "Segoe Script", cursive; font-weight: 600; font-size: 34px; color: var(--ink); }
+  .colm .cc { position: relative; height: 40px; line-height: 40px; text-align: center; }
+  .colm .sg { height: 40px; line-height: 40px; text-align: center; }
+  .colm .rl { border-bottom: 3px solid var(--ink); }
+  .colm .pen { color: var(--pen); }
+  .colm .cr { position: absolute; top: 1px; left: 3px; font-size: 19px; line-height: 1; color: var(--pen); }
+  .colm .old { position: absolute; top: 0; left: 2px; font-size: 22px; line-height: 1.1; color: var(--muted); text-decoration: line-through; text-decoration-thickness: 2px; }
+  .colm .nw { color: var(--pen); }
+  .colm .nw.two { font-size: 27px; letter-spacing: -1px; }
+  .colm .pop { animation: colpop .35s ease; }
+  @keyframes colpop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  @media (max-width: 380px) { .colm { font-size: 30px; grid-template-columns: 24px repeat(var(--k), 34px); } }
+  .nbcap { margin: 0; font-size: 15px; color: var(--muted); }
+
+  .sum { background: #fff; border: 1px solid var(--line); border-radius: 28px; padding: 28px; box-shadow: 0 28px 56px -28px rgba(27,36,64,.25); }
+  .sum h2 { font-size: 19.8px; font-weight: 500; color: var(--ink); }
+  .rowitem, .stat { border-radius: 18px; }
+  .tag.train { border-color: var(--green); color: var(--green); }
+  .foot { max-width: none; }
+  .lprog { flex: 1 1 auto; min-width: 0; }
+  .pills { flex: 1 1 auto; min-width: 0; max-width: 100%; }
+  .pills span { flex: 1 1 34px; min-width: 6px; max-width: 34px; }
+  @media (max-width: 1007px) {
+    .nbcol { display: none; }   /* на телефоне и планшете тетрадь скрыта — только на компьютере */
+    .nb { min-height: 200px; }
+    .lprog { justify-content: flex-start; width: 100%; }
+    .lhead .pills { flex-basis: 100%; order: 5; }
+    .lstep { order: 6; }
+  }
+  @media (max-width: 520px) {
+    .sheet { padding: 16px 16px 56px; }
+    .say .bb p { font-size: 19px; }
+    .step { padding: 18px; border-radius: 24px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .task-btn, .opt, .btn { transition: none; } }
+
+
+  /* общая шапка уже содержит логотип: убираем второй, подвал прижимаем к низу */
+  #app .brand { display:none; }
+  #app .top { justify-content:flex-end; }
+  body { display:flex; flex-direction:column; }
+  #app { width:100%; flex:1 0 auto; }
+  .sheet.wide { max-width:1160px; }  /* левый край урока совпадает с шапкой */
+  .sf { margin-top:auto; }
+</style>
+<link rel="stylesheet" href="/kk/site.css">
+<style>
+/* --- вход / регистрация --- */
+.sheet:has(.auth){max-width:1160px}
+.auth .tabs .btn{white-space:nowrap}
+.auth{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:28px;max-width:1040px;margin:12px auto 0;align-items:stretch}
+.auth-card{background:#fff;border:2px solid #E3E8DC;border-radius:32px;padding:40px 40px 36px;box-shadow:0 30px 60px -44px rgba(30,42,34,.45)}
+.auth-h{margin:0 0 8px;font-size:31px;line-height:1.15;color:#1E2A22}
+.auth-sub{margin:0 0 24px;font-size:18px;line-height:1.5;color:#4E5D52}
+.auth .tabs{display:flex;gap:4px;padding:5px;margin:0 0 24px;background:#EEF3EA;border-radius:999px}
+.auth .tabs .btn{flex:1;min-height:46px;border:0;background:transparent;color:#4E5D52;padding:0 12px;font-size:16px;transform:none}
+.auth .tabs .btn:hover{background:rgba(31,122,69,.08);transform:none}
+.auth .tabs .btn.on{background:#1F7A45;color:#fff;box-shadow:0 8px 18px -10px rgba(31,122,69,.9)}
+.auth .form label{font-size:15px;margin-bottom:16px;color:#1E2A22}
+.auth input.inp:not(.pin){max-width:none;width:100%;box-sizing:border-box;min-height:54px;padding:0 16px;font-size:18px;border:2px solid #DDE3D6;border-radius:16px;background:#FBFAF4}
+.auth input.inp:not(.pin):focus{border-color:#1F7A45;background:#fff;outline:0;box-shadow:0 0 0 4px rgba(31,122,69,.15)}
+.auth input.pin{border-radius:16px;border-color:#1F7A45}
+.auth .row .btn{width:100%;min-height:58px;font-size:19px;border-radius:999px}
+.auth .hint a{color:#1F7A45;font-weight:700}
+.auth-side{position:sticky;top:20px;align-self:start;overflow:hidden;display:flex;flex-direction:column;gap:20px;padding:32px 32px 0;border-radius:32px;background:linear-gradient(160deg,#E9F5EC 0%,#CDE8D3 100%)}
+.auth-bubble{align-self:flex-start;max-width:92%;background:#fff;border-radius:6px 22px 22px 22px;padding:16px 20px;font-size:19px;line-height:1.45;font-weight:600;color:#14532D;box-shadow:0 16px 30px -22px rgba(20,83,45,.6)}
+.auth-points{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.auth-points li{display:flex;align-items:flex-start;gap:12px;font-size:17px;line-height:1.4;font-weight:600;color:#1E2A22}
+.auth-points svg{flex:none;margin-top:1px}
+.auth-photo{position:relative;margin-top:4px;width:min(300px,78%);align-self:center;aspect-ratio:1/1}
+.auth-blob{position:absolute;left:-6%;right:-6%;bottom:0;height:62%;background:#F2C14E;border-radius:999px 999px 0 0}
+.auth-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:50% 100%;display:block}
+@media (max-width:860px){.auth{grid-template-columns:1fr}.auth-side{position:relative;top:auto}.auth-card{padding:28px 22px}.auth-h{font-size:28px}.auth-side{padding:24px 22px 0}.auth-photo{width:min(240px,70%)}}
+</style>
+<style>
+.vpill{display:inline-flex;align-items:center;gap:8px;margin:10px 0 0;padding:8px 14px;border-radius:999px;background:#E5F3E9;color:#14532D;font-weight:700;font-size:15px;line-height:1.3}
+.vpill.quiet{display:flex;border-radius:16px;background:#F3EFE0;color:#4B5A50;font-weight:600}
+#app .top.lhead{justify-content:space-between;flex-wrap:nowrap;gap:10px}
+.hright{display:flex;align-items:center;gap:10px}
+.lmeta{display:flex;align-items:center;justify-content:flex-start;gap:8px 16px;flex-wrap:wrap;margin:-6px 0 14px}
+.vbtn{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 16px;border:2px solid var(--line);border-radius:14px;background:#fff;font:inherit;font-weight:700;font-size:16px;color:var(--ink);cursor:pointer}
+.vbtn:hover{border-color:var(--ink)}
+.vbtn.on{background:var(--green);border-color:var(--green);color:#fff}
+.lvpill{display:inline-flex;align-items:center;gap:6px;position:relative;font-size:15px;color:var(--ink);background:var(--mark-bg);border:2px solid #BFE6CE;border-radius:999px;padding:3px 12px}
+.lvpop{position:absolute;right:-6px;top:-18px;font-weight:800;color:var(--green);animation:lvup 1.4s ease-out forwards}
+@keyframes lvup{0%{opacity:0;transform:translateY(8px)}20%{opacity:1}100%{opacity:0;transform:translateY(-10px)}}
+.lvcard,.lvdone{background:var(--mark-bg);border:2px solid #BFE6CE;border-radius:18px;padding:14px 18px;margin:12px 0}
+.lvtop{display:flex;align-items:baseline;gap:8px}
+.lvnum{font-size:30px;font-weight:800;color:var(--green)}
+.lvlbl{font-size:18px;font-weight:700}
+.lvgoal{font-size:18px;margin:6px 0}
+.lvbar{height:12px;border-radius:999px;background:#fff;overflow:hidden;margin:8px 0}
+.pc-card .lvbar{background:#E3E8DC}
+.lvbar i{display:block;height:100%;background:var(--green);border-radius:999px;transition:width .6s}
+.lvtx{font-size:16px}
+.lvnote{font-size:15px;color:var(--muted);margin-top:6px}
+.lvdone ul,.lvlist{list-style:none;margin:8px 0;padding:0}
+.lvdone li,.lvlist li{display:flex;justify-content:space-between;gap:12px;padding:3px 0;font-size:16px}
+.lvrew{margin:12px 0}
+.lvgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:14px 0}
+.lvtile{display:flex;flex-direction:column;align-items:center;gap:8px;padding:18px 10px;border:2px solid #DDE3D6;border-radius:18px;background:#fff;cursor:pointer;font:inherit;font-size:18px;color:var(--ink);min-height:44px}
+.lvtile.on{border-color:var(--green);background:var(--mark-bg)}
+.lvtile:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+.lvic{font-size:40px;line-height:1}
+@media (prefers-reduced-motion: reduce){.lvpop{animation:none;opacity:1}.lvbar i{transition:none}}
+.meters{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.meter{display:flex;align-items:center;gap:7px;font-size:14px;font-weight:600;color:var(--muted)}
+.meter .mbar{width:72px;height:8px;border-radius:999px;background:#E3E8DC;overflow:hidden}
+.meter .mbar i{display:block;height:100%;border-radius:999px;background:var(--green);transition:width .6s}
+.meter.warn .mbar i{background:#E08A1E}
+.meter.warn .mtx{color:#B45309}
+.meter.off{opacity:.65}
+.vpill.bad{background:#FBE9E7;color:#8A2A1F}
+.vdot{flex:none;width:10px;height:10px;border-radius:50%;background:#1F7A45}
+.vpill.listen .vdot{animation:vpulse 1.2s ease-in-out infinite}
+.vpill.speak .vdot{animation:vpulse .55s ease-in-out infinite}
+@keyframes vpulse{50%{transform:scale(1.7);opacity:.6}}
+/* --- */
+.vstart{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:12px 0 4px}
+.vstart span{font-size:15px;opacity:.75}
+</style>
+<link rel="icon" type="image/png" href="/img/logo.png">
+</head>
+<body>
+<div class="sh-band">
+<header class="sh">
+  <div class="sh-in">
+    <a class="sh-logo" href="/kk/" aria-label="Листик — басты бетке"><img src="/img/logo.png" alt="" width="49" height="44" style="height:44px;width:auto;display:block"><b>Листик</b></a>
+    <nav class="sh-nav" aria-label="Басты мәзір"><a href="/kk/about.html">Бағдарлама туралы</a><a href="/kk/pricing.html">Тарифтер</a><a href="/kk/listik.html#cabinet" id="navCab"><span class="navcab-t">Кіру</span></a><a class="sh-btn" href="/kk/listik.html#register">Тіркелу</a><a class="lang-sw" href="/listik.html" hreflang="ru" lang="ru" data-lang="ru" aria-label="Русский" title="Русский">РУС</a></nav>
+  </div>
+</header>
+</div>
+<div class="sheet" id="app"></div>
+
+<footer class="sf">
+  <div class="sf-in">
+    <div class="sf-top">
+      <div class="sf-col">
+        <div class="sf-logo"><img src="/img/logo.png" alt="" width="48" height="44" style="height:44px;width:auto;display:block"><b>Листик</b></div>
+        <p>Мектеп оқушыларына арналған ЖИ-репетитор</p>
+      </div>
+      <div class="sf-col">
+        <h4>Бізбен байланысыңыз</h4>
+        <a class="sf-tel" href="tel:+77759714163">+7 (775) 971-41-63</a>
+        <a class="sf-wa" href="https://wa.me/77759714163">WhatsApp-қа жазу</a>
+      </div>
+      <div class="sf-col">
+        <h4>Құжаттар</h4>
+        <a href="#">Құпиялылық саясаты</a>
+        <a href="#">Пайдаланушы келісімі</a>
+        <a href="#">Жария оферта</a>
+      </div>
+    </div>
+    <div class="sf-copy">© 2026 «Листик» ЖШС. Барлық құқықтары қорғалған.</div>
+  </div>
+</footer>
+
+<script>
+/* ============================================================
+   БАНК ЗАДАЧ. Браузер получает от сервера только условия и варианты (GET /api/tasks).
+   Ответы, правила и фразы «верно» хранятся на сервере и приходят после проверки.
+   Правильность ответа проверяет сервер, не нейросеть.
+   Типы шагов:
+     choice — выбор из вариантов (correct — номер верного, с нуля)
+     number — одно число (answer)
+     pair   — два числа по порядку полей (fields, answer)
+   q — вопрос, rule — правило при ошибке, ok — фраза при верном ответе,
+   note — строка в тетрадь, skill — тема шага (единственное, что знает ИИ).
+   ============================================================ */
+let TASKS = [];        // с сервера, без ответов
+let USER = null;       // вошедший кабинет: { email, child, parent } или null
+let OFFER = { diag: false, warm: 0 };   // что предложить ребёнку: знакомство или разминка (только после входа)
+async function loadOffer() {
+  if (!USER) { OFFER = { diag: false, warm: 0 }; return; }
+  try { const r = await api("/api/quiz/offer"); if (r.status === 200 && r.data) OFFER = { diag: !!r.data.diag, warm: r.data.warm || 0 }; } catch (e) {}
+}
+
+/* ============================================================
+   ГОЛОС ЛИСТИКА.
+   ИИ здесь только подбадривает. Он НЕ проверяет ответы, НЕ видит
+   вопросов, ответов и того, что набрал ребёнок. Ему передаётся
+   лишь тип события («ребёнок ошибся второй раз») и название темы.
+   Ответ ИИ проходит проверку; если что-то не так или ИИ недоступен,
+   показывается заготовленная фраза.
+   ============================================================ */
+let CANNED = {};     // из data/public/phrases.json
+let SITUATION = {};  // из data/public/phrases.json
+
+let BANNED = /(?!)/;   // из data/prompts.json (до загрузки ничего не совпадает)
+let PROMPT_TEMPLATE = "";  // из data/prompts.json
+
+function cleanVoice(t) {
+  if (typeof t !== "string") return null;
+  t = t.trim().replace(/^["«“]+|["»”]+$/g, "").trim();
+  if (t.length < 8 || t.length > 220) return null;
+  if (/\d/.test(t)) return null;
+  if (/\?/.test(t)) return null;
+  if (/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(t)) return null;
+  if (BANNED.test(t)) return null;
+  if (!/[а-яё]/i.test(t)) return null;
+  return t;
+}
+
+let SAMPLE = null;
+let SAMPLE_STATE = "pending";   // pending | ok | none
+const AI = { on: true, denied: false };
+let voiceSeq = 0;
+const lastPick = {};
+
+if (window.claude && typeof window.claude.use === "function") {
+  window.claude.use("sample").then(fn => {
+    SAMPLE = fn || null;
+    SAMPLE_STATE = fn ? "ok" : "none";
+    if (S && S.view === "home") render();
+  }).catch(() => { SAMPLE_STATE = "none"; if (S && S.view === "home") render(); });
+} else {
+  SAMPLE_STATE = "none";
+}
+
+function pickCanned(ev) {
+  const arr = CANNED[ev];
+  let i = Math.floor(Math.random() * arr.length);
+  if (arr.length > 1 && i === lastPick[ev]) i = (i + 1) % arr.length;
+  lastPick[ev] = i;
+  return arr[i];
+}
+
+async function askVoice(ev, skill) {
+  if (!SAMPLE || !AI.on) return null;
+  const prompt = PROMPT_TEMPLATE.replace("{situation}", SITUATION[ev].replace("{skill}", skill || "математика"));
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 12000);
+  try {
+    const res = await SAMPLE(prompt, { modelTier: "quick", cache: false, signal: ctl.signal });
+    return cleanVoice(res && res.text);
+  } catch (e) {
+    if (e && e.code === "not_granted") { AI.on = false; AI.denied = true; }
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function say(ev, skill) {
+  if (ev !== "locked") return;   // болтливые фразы («ты молодец», «ничего страшного», «попробуем ещё раз») не показываем; оставлена только пауза при блокировке шага
+  if (VOICE.active) return;   // в режиме живого голоса говорит Листик из голосовой связи
+  const id = ++voiceSeq;
+  const canned = pickCanned(ev);
+  const useAI = !!(SAMPLE && AI.on);
+  S.voice = { id, text: useAI ? "" : canned, loading: useAI };
+  if (!useAI) { speak(canned); return; }
+  setTimeout(() => {
+    if (S.voice && S.voice.id === id && S.voice.loading) {
+      S.voice = { id, text: canned, loading: false };
+      paintVoice();
+      speak(canned);
+    }
+  }, 6000);
+  askVoice(ev, skill).then(v => {
+    if (!S.voice || S.voice.id !== id || !S.voice.loading) return;
+    S.voice = { id, text: v || canned, loading: false };
+    paintVoice();
+    speak(S.voice.text);
+  });
+}
+
+/* ---------- озвучка (встроенный голос браузера) ---------- */
+const TTS = { on: true, ok: !!(window.speechSynthesis && window.SpeechSynthesisUtterance), voice: null };
+function pickRuVoice() {
+  if (!TTS.ok) return;
+  try { TTS.voice = speechSynthesis.getVoices().find(v => /^ru/i.test(v.lang)) || null; } catch (e) {}
+}
+if (TTS.ok) {
+  pickRuVoice();
+  try { speechSynthesis.addEventListener("voiceschanged", () => { pickRuVoice(); if (S && S.view === "home") render(); }); } catch (e) {}
+}
+function spokenMath(s) {
+  return String(s)
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\(/g, " в скобках ").replace(/\)/g, " ")
+    .replace(/\s:\s/g, " разделить на ")
+    .replace(/[·×]/g, " умножить на ")
+    .replace(/−/g, " минус ")
+    .replace(/\+/g, " плюс ")
+    .replace(/=/g, " равно ")
+    .replace(/\bx\b/gi, " икс ")
+    .replace(/ост\./g, "остаток")
+    .replace(/\s+/g, " ").trim();
+}
+const LB = { token: 0, st: null, counts: [], cur: -1 };   // доска мини-урока
+function stopSpeech() { LB.token++; try { VOICE.interrupt(); } catch (e) {} if (TTS.ok) { try { speechSynthesis.cancel(); } catch (e) {} } }
+function speak(text, force) {
+  if (VOICE.quiet || VOICE.active || (VOICE.available && !VOICE.err)) return;   // говорит живой Листик, а не голос браузера; в тихом режиме молчим
+  if (!TTS.ok || (!TTS.on && !force) || !text) return;
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "ru-RU";
+    if (TTS.voice) u.voice = TTS.voice;
+    u.rate = 0.95; u.pitch = 1.1;
+    speechSynthesis.speak(u);
+  } catch (e) {}
+}
+function ttsNote() {
+  if (!TTS.ok) return "<p>Бұл браузерде дыбыстау қолдау таппайды, Листик тек жазады.</p>";
+  if (!TTS.voice) return "<p>Бұл құрылғыда орыс тілді дауыс табылмады. Оны телефонның немесе компьютердің сөйлеу баптауларынан орнатыңыз (Android-та бұл «Google сөйлеу синтезі», iPhone-да «Универсалды қолжетімділік → Айтылатын мазмұн»).</p>";
+  return "<p>Листик өз сөздерін құрылғы дауысымен дауыстап оқиды. Ол робот сияқты естіледі, бірақ интернетсіз жұмыс істейді. Сұрақтың жанындағы 🔊 түймесі сұрақты оқиды.</p>";
+}
+
+function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+
+function voiceHTML() {
+  const v = S.voice;
+  let h = "";
+  if (v && !VOICE.active) h += '<div class="voice"><div class="bubble">' +   // при включённом голосе текст не дублируем
+    (v.loading ? '<span class="dots3" role="img" aria-label="Листик ойланып жатыр"><i></i><i></i><i></i></span>' : esc(v.text)) +
+    '</div></div>';
+  return h + voiceStatusHTML();
+}
+function paintVoice() {
+  const slot = document.getElementById("voiceslot");
+  if (slot) slot.innerHTML = voiceHTML();
+}
+
+/* ------------------------------------------------------------ */
+const app = document.getElementById("app");
+const LOGO = '<img src="/img/logo.png" alt="" width="38" height="34" style="height:34px;width:auto;display:block">';
+const BRAND = '<a class="brand" href="/kk/">' + LOGO + '<span>Листик</span></a>';
+const ARROW_R = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1F7A45" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>';
+const ARROW_L = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1E2A22" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M11 6l-6 6 6 6"/></svg>';
+const SND_ON = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1E2A22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 9a4 4 0 010 6"/><path d="M19 6.5a8 8 0 010 11"/></svg>';
+const SND_OFF = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1E2A22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9.5l4 5"/><path d="M21 9.5l-4 5"/></svg>';
+const LETTERS = ["А", "Б", "В", "Г", "Д"];
+
+let S = { view: "loading" };   // пока boot() грузит данные, список упражнений не рисуем (иначе он мигает перед уроком)
+
+/* Выбор из мастера (start.html): ?lang=ru&subject=math&grade=3&section=equations.
+   Если раздел выбран, задачи идут по очереди, одна за другой. */
+const PARAMS = new URLSearchParams(location.search);
+if (PARAMS.get("lang") === "kk") document.documentElement.lang = "kk";
+let QUEUE = null;   // номера задач выбранного раздела по порядку
+let QPOS = -1;      // место текущей задачи в очереди
+function buildQueue() {
+  const sec = PARAMS.get("section");
+  if (!sec) return;
+  const q = [];
+  TASKS.forEach((t, i) => { if (t.section === sec) q.push(i); });
+  QUEUE = q.length ? q : null;
+}
+
+/* Шаги-опоры (scaf), которые сервер решил не показывать, потому что ребёнок уверенно владеет навыком */
+const visIdx = T => T.steps.map((x, i) => x.skip ? -1 : i).filter(i => i >= 0);
+const vpos = (T, i) => visIdx(T).indexOf(i) + 1;
+const vnext = (T, i) => { for (let k = i + 1; k < T.steps.length; k++) if (!T.steps[k].skip) return k; return -1; };
+const vprev = (T, i) => { for (let k = i - 1; k >= 0; k--) if (!T.steps[k].skip) return k; return -1; };
+function applySkip(T, skip) {
+  T.steps.forEach((x, j) => {
+    if (x.q0 === undefined) x.q0 = x.q;
+    x.skip = skip.indexOf(j) >= 0;
+    x.q = (skip.length && x.qs) ? x.qs : x.q0;
+  });
+}
+function freshEntry(st) { return st.type === "pair" ? st.fields.map(() => "") : [""]; }
+
+/* список задач лёгкий; шаги и урок приходят по запросу, когда задачу открывают */
+async function ensureTask(i) {
+  const t = TASKS[i];
+  if (t.steps && t.steps.length) return true;
+  let r;
+  try { r = await api("/api/task/" + encodeURIComponent(t.id)); } catch (e) { r = { status: 0 }; }
+  if (r.status === 200 && r.data && r.data.task) { TASKS[i] = Object.assign({}, t, r.data.task); return true; }
+  if (r.status === 403 && r.data && r.data.error === "sequence") { TASKS[i].closed = true; TASKS[i].after = r.data.after; S = { view: "home", flash: seqMsg(r.data.after) }; render(); return false; }
+  if (r.status === 403) { TASKS[i].locked = true; S = { view: "paywall", t: i }; render(); return false; }
+  S = { view: "home", flash: "Есепті ашу мүмкін болмады. Интернетті тексеріп, қайта көріңіз." }; render();
+  return false;
+}
+function seqMsg(after) { return "Алдымен № " + after + " есепті шеш, сонда келесісі ашылады."; }
+async function startTask(i) {
+  if (TASKS[i].locked) { S = { view: "paywall", t: i }; return render(); }
+  if (TASKS[i].closed) { S = { view: "home", flash: seqMsg(TASKS[i].after) }; return render(); }
+  if (USAGE.studyLeft === 0) { S = { view: "rest" }; return render(); }
+  if (!(await ensureTask(i))) return;
+  QPOS = QUEUE ? QUEUE.indexOf(i) : -1;
+  let skip = [], resume = -1;
+  try { const sr = await api("/api/start", { task: TASKS[i].id }); if (sr.status === 403 && sr.data && sr.data.error === "sequence") { await refreshLocks(); S = { view: "home", flash: seqMsg(sr.data.after) }; return render(); } if (sr.status === 200 && sr.data && Array.isArray(sr.data.skip)) skip = sr.data.skip; if (sr.status === 200 && sr.data && Number.isInteger(sr.data.resume)) resume = sr.data.resume; } catch (e) {}
+  applySkip(TASKS[i], skip);
+  let first = Math.max(0, vnext(TASKS[i], -1));
+  if (resume > 0) { const nx = vnext(TASKS[i], resume - 1); if (nx >= 0) first = nx; else resume = -1; }
+  const st0 = TASKS[i].steps[first];
+  S = {
+    view: "task", t: i, s: first, attempts: 0, stage: "ask",
+    wrong: [], errors: {}, helped: {}, notes: [],
+    entry: freshEntry(st0), active: 0,
+    adultOpen: false, adultPassed: false, adultErr: false, emptyMsg: false, voice: null,
+    rule: null, similar: null, okText: "", netMsg: "", adultAnswer: null, busy: false
+  };
+  const LS = TASKS[i].lesson;
+  if (LS && LS.cards && LS.cards.length && resume <= 0) { S.stage = "lesson"; S.lc = 0; }
+  say("start");
+  render();
+  VOICE.announce();
+}
+
+function sndBtn() {
+  if (VOICE.available && !VOICE.err) return '';   // говорит живой Листик: переключатель голоса браузера не нужен
+  return TTS.ok ? '<button class="snd" data-action="ttstoggle" aria-pressed="' + TTS.on + '">' + (TTS.on ? SND_ON + 'Дыбыс қосулы' : SND_OFF + 'Дыбыс өшірулі') + '</button>' : '';
+}
+/* адрес списка упражнений (start.html на последнем шаге), если урок открыт оттуда */
+function listHref() {
+  const l = PARAMS.get("lang") || "ru", g = PARAMS.get("grade"), sj = PARAMS.get("subject");
+  return (g && sj) ? "start.html?" + new URLSearchParams({ lang: l, grade: g, subject: sj }).toString() : "";
+}
+function backHTML() { return '<button class="back" data-action="' + (listHref() ? 'list' : 'home') + '">' + ARROW_L + 'Барлық нөмірлер</button>'; }
+function header(backBtn) {
+  return '<div class="top">' + BRAND + '<div class="tools">' + sndBtn() +
+    (backBtn ? backHTML()
+             : (S.view === "home" ? (USER ? '<button class="back" data-action="cab-open" aria-label="Ата-аналарға арналған, PIN-код керек">🔒 Ата-аналарға</button>'
+                                          : '<button class="back" data-action="auth" data-mode="login">Кабинетке кіру</button>') : '')) +
+    '</div></div>';
+}
+function lessonHeader(T, n, done) {
+  const cur = done ? n : S.s + 1;
+  return '<div class="top lhead">' + backHTML() + '<div class="hright">' + voiceBtn() + sndBtn() + '</div></div>' +
+    '<div class="lmeta"><div class="meters" id="limbox">' + limHTML() + '</div>' + lvPill() + '</div>';
+}
+/* столбик на листочке: числа берём из условия, цифры и переносы появляются по мере верных шагов (их присылает сервер в ответе, поле col) */
+function colHTML(T) {
+  const m = /(\d+)\s*([+−])\s*(\d+)/.exec(T.condition || "");
+  if (!m) return "";
+  const add = m[2] === "+", A = m[1], B = m[3];
+  const k = Math.max(A.length, B.length) + (add ? 1 : 0);
+  const top = {}, dig = {}, car = {}, fresh = S.colNew || {};
+  let all = null;
+  Object.keys(S.cols || {}).map(Number).sort((x, y) => x - y).forEach(i => (S.cols[i] || []).forEach(o => {
+    if (o.d) dig[o.d[0]] = o.d[1];
+    if (o.c) car[o.c[0]] = o.c[1];
+    if (o.t) top[o.t[0]] = o.t[1];
+    if (o.all) all = String(o.all);
+  }));
+  const dgt = (str, p) => (p < str.length ? str[str.length - 1 - p] : "");
+  const pos = j => k - 1 - j;            // j — столбец слева направо, p — разряд справа налево (0 — единицы)
+  let r1 = '<span class="sg"></span>', r2 = '<span class="sg rl">' + (add ? "+" : "−") + '</span>', r3 = '<span class="sg"></span>';
+  for (let j = 0; j < k; j++) {
+    const p = pos(j), a0 = dgt(A, p), b0 = dgt(B, p);
+    let c1 = "";
+    if (car[p] !== undefined) c1 += '<i class="cr' + (fresh["c" + p] ? " pop" : "") + '">' + car[p] + "</i>";
+    if (top[p] !== undefined && top[p] !== Number(a0)) {
+      const v = String(top[p]);
+      c1 += '<s class="old">' + a0 + "</s>" + '<b class="nw' + (v.length > 1 ? " two" : "") + (fresh["t" + p] ? " pop" : "") + '">' + v + "</b>";
+    } else c1 += a0;
+    r1 += '<span class="cc">' + c1 + "</span>";
+    r2 += '<span class="cc rl">' + b0 + "</span>";
+    let res = "";
+    if (all !== null) res = dgt(all, p);
+    else if (dig[p] !== undefined) res = String(dig[p]);
+    r3 += '<span class="cc pen' + (fresh["d" + p] ? " pop" : "") + '">' + res + "</span>";
+  }
+  return '<div class="colm" style="--k:' + k + '" role="img" aria-label="Бағанмен жазу: ' + A + " " + m[2] + " " + B + '">' + r1 + r2 + r3 + "</div>";
+}
+function notebookAside(T, done) {
+  if (T.quiz) return '';
+  let h = '<aside class="nbcol" aria-label="Дәптер"><div class="nbno hand">№ ' + T.no +
+    (QPOS >= 0 ? ' · ' + (QPOS + 1) + ' / ' + QUEUE.length : '') + (done ? ' · шешілді' : '') + '</div>';
+  const grid = (PARAMS.get("subject") || "math") === "math";   // математика — в клетку, остальное — в линейку
+  const acts = T.steps.filter(x => x.type !== "choice" && x.skill !== "проверка ответа").length;
+  h += '<div class="nb' + (grid ? ' grid' : '') + (T.long ? ' long' : '') + '"><div class="ln cond">' + T.condition + '</div>';
+  if (T.column) h += colHTML(T);
+  const cur = (!done && S.stage !== "right" && T.steps[S.s]) ? T.steps[S.s].cond : "";   // пример текущего шага: тот же, что в вопросе слева
+  if (S.notes.length) h += '<div class="ln">Шешуі.</div>';
+  let k = 0;
+  S.notes.forEach(x => {
+    const solution = !/^(Ответ|Проверка)/.test(x);
+    h += '<div class="ln">' + (solution && acts > 1 ? (++k) + ') ' : '') + x + '</div>';
+  });
+  if (cur) h += '<div class="ln cur">' + cur + '</div>';
+  h += '</div><p class="nbcap">Өзің шеш те, өз дәптеріңе көшіріп жаз: жазба әр дұрыс қадамнан кейін пайда болады.</p></aside>';
+  return h;
+}
+
+/* родительский режим сам закрывается после 10 минут без действий (как и на сервере) */
+let CAB_IDLE = null;
+function cabIdleKick() { if (!CAB_IDLE) return; clearTimeout(CAB_IDLE.t); CAB_IDLE.t = setTimeout(cabIdleLeave, 10 * 60 * 1000); }
+function cabIdleSet(on) {
+  if (on && !CAB_IDLE) {
+    CAB_IDLE = { t: null, fn: cabIdleKick };
+    ["pointerdown", "keydown", "scroll"].forEach(e => window.addEventListener(e, CAB_IDLE.fn, { passive: true }));
+    cabIdleKick();
+  } else if (!on && CAB_IDLE) {
+    clearTimeout(CAB_IDLE.t);
+    ["pointerdown", "keydown", "scroll"].forEach(e => window.removeEventListener(e, CAB_IDLE.fn));
+    CAB_IDLE = null;
+  }
+}
+function cabIdleLeave() {
+  cabIdleSet(false);
+  if (USER) call("/api/parent/leave", {});
+  if (USER) USER.parent = false;
+  S = { view: "home", flash: "Ата-ана кабинеті ұзақ уақыт пайдаланылмағандықтан жабылды." };
+  render();
+}
+/* ---------- листики (баллы за учёбу): считает и хранит сервер, здесь только показываем ---------- */
+let LEAVES = null;   // { total, today, cycle, goal, catalog, rewards } только для вошедшего кабинета
+async function leavesLoad() {
+  if (!USER) { LEAVES = null; return; }
+  const r = await call("/api/leaves");
+  LEAVES = r.status === 200 && r.data && typeof r.data.total === "number" ? r.data : null;
+}
+function leavesApply(l) {
+  if (!LEAVES || !l) return;
+  LEAVES.total = l.total; LEAVES.cycle.toBig = l.toBig; LEAVES.cycle.have = Math.max(0, LEAVES.cycle.big - l.toBig); LEAVES.today.capped = !!l.capped;
+  S.lvPop = l.gain > 0 ? l.gain : 0;
+  if (l.done) { S.lvDone = l.done; const my = S; leavesLoad().then(() => { if (S === my && S.view === "done") render(); }); }   // награды могли появиться: берём свежие данные
+}
+const LV_WHY = { step: "Бірінші әрекеттен дұрыс қадамдар", hint: "Кеңеспен жасалған қадамдар", explain: "Өз сөзімен түсіндіру", done: "Аяқталған жаттығу үшін", warm: "Жылыту", back: "Қайтып келгені үшін бонус" };
+const lvWord = n => plural(n, "жапырақ", "жапырақ", "жапырақ");
+function lvProgress(v) {
+  v = v || LEAVES;
+  const c = v.cycle, pct = Math.max(0, Math.min(100, Math.round(100 * c.have / c.big))), lack = Math.max(0, c.skillsNeed - c.skillsHave);
+  let tx;
+  if (c.toBig > 0) tx = 'Үлкен сыйлыққа дейін: <b>' + c.toBig + '</b> ' + lvWord(c.toBig) + '.';
+  else if (lack > 0) tx = 'Жапырақ жеткілікті. Тағы меңгеру керек: ' + lack + ' ' + plural(lack, "дағды", "дағды", "дағды") + '. Листик нені қайталау керегін айтып береді.';
+  else tx = 'Үлкен сыйлық енді сенікі!';
+  return '<div class="lvbar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '"><i style="width:' + pct + '%"></i></div><div class="lvtx">' + tx + '</div>';
+}
+function lvSmallProgress(v) {
+  v = v || LEAVES;
+  const c = v.cycle;
+  if (c.toSmall === null || c.toSmall === undefined) return '<div class="lvtx">Қарапайым сыйлықтар осы айналымда алынды. Енді үлкені!</div>';
+  const pct = Math.max(0, Math.min(100, Math.round(100 * c.smallHave / c.small)));
+  return '<div class="lvbar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '"><i style="width:' + pct + '%"></i></div><div class="lvtx">Қарапайым сыйлыққа дейін: <b>' + c.toSmall + '</b> ' + lvWord(c.toSmall) + '.</div>';
+}
+function lvReward() {
+  if (!LEAVES) return "";
+  const list = (LEAVES.rewards || []).filter(x => Date.now() - Date.parse(x.at) < 7 * 86400000).reverse();
+  const r = list.find(x => x.kind === "big") || list[0];
+  if (!r) return "";
+  return '<div class="mark lvrew">🎁 <b>' + (r.kind === "big" ? 'Үлкен сыйлық жиналды: ' : 'Сыйлық жиналды: ') + esc(r.title) + '!</b> ' + (r.status === "ready" ? 'Бұл туралы анаңа немесе әкеңе айт.' : 'Ата-анаң промокод алады.') + '</div>';
+}
+function lvGoalLine(label, g, none) {
+  return '<div class="lvgoal">' + (g ? label + ': <b>' + esc(g.icon || "🎁") + ' ' + esc(g.title) + '</b>' : none) + '</div>';
+}
+function leavesCard() {
+  if (!LEAVES) return "";
+  const g = LEAVES.goal, gs = LEAVES.goalSmall;
+  let h = lvReward();
+  h += '<div class="lvcard"><div class="lvtop"><span class="lvnum">🍃 ' + LEAVES.total + '</span><span class="lvlbl">' + lvWord(LEAVES.total) + '</span></div>';
+  h += lvGoalLine("Қарапайым сыйлық", gs, "Қарапайым сыйлықты таңда.") + lvSmallProgress();
+  h += lvGoalLine("Үлкен сыйлық", g, "Үлкен сыйлықты таңда.") + lvProgress();
+  if (LEAVES.today.capped) h += '<div class="lvnote">Бүгін жапырақ көп жиналды. Ертең олар қайта түседі, ал оқуды қазір де жалғастыруға болады.</div>';
+  h += '<div class="row"><button class="btn ghost small" data-action="goal-open">' + (g || gs ? 'Сыйлықтарды ауыстыру' : 'Сыйлықтарды таңдау') + '</button></div></div>';
+  return h;
+}
+function lvPill() {
+  if (!LEAVES) return "";
+  const pop = S.lvPop || 0; S.lvPop = 0;
+  return '<div class="lvpill" id="lvpill" aria-label="Жапырақ: ' + LEAVES.total + '">🍃 <b>' + LEAVES.total + '</b>' + (pop ? '<span class="lvpop">+' + pop + '</span>' : '') + '</div>';
+}
+function lvDoneHTML() {
+  if (!LEAVES || !S.lvDone) return "";
+  const d = S.lvDone, parts = d.parts || {};
+  const rows = Object.keys(parts).filter(k => parts[k] > 0).map(k => '<li><span>' + esc(LV_WHY[k] || k) + '</span><b>+' + parts[k] + '</b></li>').join("");
+  let h = lvReward() + '<div class="lvdone"><div class="lvnum">+' + d.sum + ' 🍃</div>';
+  h += rows ? '<ul>' + rows + '</ul>' : '<p>' + (LEAVES.today && LEAVES.today.capped ? 'Бұл жолы жапырақ қосылмады: бүгінге жеткілікті жиналған. Бірақ сен жаттықтың, бұл маңызды.' : 'Бұл жаттығу үшін жапырақ бұрын алынған. Қайталау пайдалы, бұл — жаттығу.') + '</p>';
+  h += lvProgress();
+  const g = LEAVES.goal;
+  h += '<div class="row"><button class="btn ghost small" data-action="goal-open">' + (g || LEAVES.goalSmall ? 'Сыйлықтарды ауыстыру' : 'Сыйлықтарды таңдау') + '</button></div></div>';
+  return h;
+}
+function lvTiles(list, onId) {
+  return '<div class="lvgrid">' + list.map(c => '<button class="lvtile' + (onId === c.id ? ' on' : '') + '" data-action="goal-pick" data-id="' + esc(c.id) + '"><span class="lvic">' + esc(c.icon || "🎁") + '</span><b>' + esc(c.title) + '</b></button>').join("") + '</div>';
+}
+function renderGoal() {
+  let h = '<div class="top">' + BRAND + '<div class="tools"><button class="back" data-action="goal-back">' + ARROW_L + 'Артқа</button></div></div>';
+  h += '<div class="cat-title"><h1>Сыйлықтарды таңда</h1></div>';
+  h += '<p class="lead">Оқығаның үшін жапырақ жина. Мақсатқа жеткенде ата-анаң саған сыйлық алады.</p>';
+  if (LEAVES) {
+    h += '<h2 class="sec">Қарапайым сыйлықтар</h2><p class="lvnote">Әр ' + LEAVES.cycle.small + ' ' + lvWord(LEAVES.cycle.small) + '.</p>' + lvTiles(LEAVES.catalog.small, LEAVES.goalSmall && LEAVES.goalSmall.id);
+    h += '<h2 class="sec">Үлкен сыйлықтар</h2><p class="lvnote">Жапырақ та, меңгерілген дағдылар да керек.</p>' + lvTiles(LEAVES.catalog.big, LEAVES.goal && LEAVES.goal.id);
+  }
+  if (S.flash) { h += '<div class="fb ok">' + esc(S.flash) + '</div>'; S.flash = ""; }
+  h += '<div class="row"><button class="btn" data-action="goal-back">Дайын</button></div>';
+  app.innerHTML = h;
+  window.scrollTo(0, 0);
+}
+async function pickGoal(id) {
+  const r = await call("/api/leaves/goal", { id });
+  if (r.status !== 200) { S.flash = "Таңдау мүмкін болмады. Қайта көр."; return render(); }
+  LEAVES = r.data;
+  const all = LEAVES.catalog.small.concat(LEAVES.catalog.big), c = all.find(x => x.id === id);
+  S = { view: "goal", flash: "Таңдалды: " + (c ? c.title : "") };
+  render();
+}
+function lvParentBlock() {
+  const v = S.lv;
+  if (!v) return "";
+  let h = '<h2 class="sec">Жапырақтар</h2><div class="pc-card">';
+  h += '<p><b>' + v.total + '</b> ' + lvWord(v.total) + ' барлығы. Бүгін: <b>' + v.today.earned + '</b>, күндегі жаттығулар: ' + v.today.exercises + '.</p>';
+  h += '<p>Қарапайым сыйлық: ' + (v.goalSmall ? '<b>' + esc(v.goalSmall.icon || "🎁") + ' ' + esc(v.goalSmall.title) + '</b>' : 'әлі таңдалмаған') + '</p>' + lvSmallProgress(v);
+  h += '<p style="margin-top:10px">Үлкен сыйлық: ' + (v.goal ? '<b>' + esc(v.goal.icon || "🎁") + ' ' + esc(v.goal.title) + '</b>' : 'әлі таңдалмаған') + '</p>' + lvProgress(v);
+  if (v.week && v.week.length) h += '<p style="margin-top:12px"><b>Осы аптада нені үшін қосылды</b></p><ul class="lvlist">' + v.week.map(x => '<li><span>' + esc(x.why) + '</span><b>+' + x.n + '</b></li>').join("") + '</ul>';
+  if (v.rewards && v.rewards.length) h += '<p style="margin-top:12px"><b>Сыйлықтар</b></p><ul class="lvlist">' + v.rewards.slice().reverse().map(r => '<li><span>' + (r.kind === "small" ? 'Қарапайым сыйлық: ' : 'Үлкен сыйлық: ') + esc(r.title) + ' · ' + fmtDate(r.at) + '</span><b>' +
+    (r.status === "ready" ? 'дайын' : r.code ? 'промокод: ' + esc(r.code) : 'промокодты күтуде') + '</b></li>').join("") + '</ul>';
+  return h;
+}
+function render() {
+  if (S.view === "loading") return;
+  const lesson = S.view === "task" || S.view === "done";
+  app.classList.toggle("wide", lesson);
+  const navCab = document.getElementById("navCab");
+  document.querySelectorAll('.sh-btn[href="/kk/listik.html#register"]').forEach(a => { a.style.display = (typeof USER !== "undefined" && USER) ? "none" : ""; });
+  if (navCab) { const nt = navCab.querySelector(".navcab-t"); if (nt) nt.textContent = (typeof USER !== "undefined" && USER) ? "Ата-ана кабинеті" : "Кіру"; }
+  if (navCab) { const on = S.view === "auth" || S.view === "pin" || S.view === "pinreset" || S.view === "cabinet"; navCab.classList.toggle("is-active", on); if (on) navCab.setAttribute("aria-current", "page"); else navCab.removeAttribute("aria-current"); }
+  document.body.classList.toggle("plain", lesson);
+  /* режим ребёнка: вошедшему кабинету не показываем меню сайта (тарифы, кабинет); оно возвращается в родительских экранах */
+  const parentScreen = S.view === "cabinet" || S.view === "pin" || S.view === "pinreset" || S.view === "auth";
+  const kid = !!USER && !parentScreen;
+  const shNav = document.querySelector(".sh-nav"); if (shNav) shNav.style.display = kid ? "none" : "";
+  const shLogo = document.querySelector(".sh-logo"); if (shLogo) shLogo.setAttribute("href", kid ? "/kk/listik.html" : "/");
+  /* режим ребёнка: ссылки в подвале (телефон, WhatsApp, документы) не нажимаются; для родителя и гостя возвращаются */
+  document.querySelectorAll(".sf a").forEach(a => {
+    if (kid) { const h = a.getAttribute("href"); if (h !== null) { a.dataset.href = h; a.removeAttribute("href"); } a.setAttribute("aria-disabled", "true"); a.style.cursor = "default"; }
+    else if (a.dataset.href !== undefined) { a.setAttribute("href", a.dataset.href); delete a.dataset.href; a.removeAttribute("aria-disabled"); a.style.cursor = ""; }
+  });
+  cabIdleSet(S.view === "cabinet" || S.view === "pinreset");
+  if (S.view === "goal") return renderGoal();
+  if (S.view === "home") return renderHome();
+  if (S.view === "auth") return renderAuth();
+  if (S.view === "verify") return renderVerify();
+  if (S.view === "forgot") return renderForgot();
+  if (S.view === "reset") return renderReset();
+  if (S.view === "pin") return renderPin();
+  if (S.view === "pinreset") return renderPinReset();
+  if (S.view === "cabinet") return renderCabinet();
+  if (S.view === "done") return renderDone();
+  if (S.view === "rest") return renderRest();
+  if (S.view === "paywall") return renderPaywall();
+  return renderTask();
+}
+
+function aiNote() {
+  if (SAMPLE_STATE === "pending") return "";
+  if (SAMPLE_STATE === "none") return "";
+  if (AI.denied) return "<p>ЖИ дауысына рұқсат берілмеген. Листик дайын сөздермен жігерлендіреді.</p>";
+  if (AI.on) return '<p>Листиктің дауысы Claude ЖИ-інде жұмыс істейді. ЖИ тек жігерлендіреді, сұрақтар мен жауаптарды көрмейді: бәрін бағдарлама тексереді. Бірінші жауапта Claude ересектен рұқсат сұрайды, шығын ересектің аккаунтынан жүреді.</p><button class="btn ghost small" data-action="aitoggle">ЖИ дауысын өшіру</button>';
+  return '<p>ЖИ дауысы өшірулі. Листик дайын сөздермен жігерлендіреді.</p><button class="btn ghost small" data-action="aitoggle">ЖИ дауысын қосу</button>';
+}
+
+/* ---------- кабинет родителя ---------- */
+const val = id => { const el = document.getElementById(id); return el ? el.value : ""; };
+const pinInput = (id, ph) => '<input id="' + id + '" class="inp pin" type="password" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="' + (ph || '····') + '">';
+const errBox = m => m ? '<div class="fb bad" role="alert">' + esc(m) + '</div>' : '';
+
+function renderAuth() {
+  const reg = S.mode === "register", f = S.form || {};
+  const en = reg ? 'register' : 'login';
+  const CHECK = '<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#1F7A45"/><path d="M7 12.5l3.2 3.2L17 9" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  let h = '<div class="auth"><div class="auth-card">';
+  h += '<h1 class="auth-h">' + (reg ? 'Ата-ана кабинетін жасаңыз' : 'Қайта қош келдіңіз!') + '</h1>';
+  h += '<p class="auth-sub">' + (reg ? 'Бір минут алады. Кабинет баланың прогресін сақтайды.' : 'Баланың Листикпен қалай оқып жатқанын көру үшін кіріңіз.') + '</p>';
+  h += '<div class="tabs"><button class="btn ghost' + (!reg ? ' on' : '') + '" data-action="auth" data-mode="login">Кіру</button>' +
+       '<button class="btn ghost' + (reg ? ' on' : '') + '" data-action="auth" data-mode="register">Тіркелу</button></div>';
+  h += '<div class="form">';
+  if (reg) h += '<label>Баланың аты немесе лақап аты <span class="hint">тегінсіз, мектепсіз және мекенжайсыз</span><input id="fChild" class="inp" maxlength="30" autocomplete="off" value="' + esc(f.childName || "") + '" data-enter="register"></label>';
+  h += '<label>Пошта<input id="fEmail" class="inp" type="email" autocomplete="username" autocapitalize="none" placeholder="name@mail.com" value="' + esc(f.email || "") + '" data-enter="' + en + '"></label>';
+  h += '<label>Құпиясөз' + (reg ? ' <span class="hint">кемінде 8 таңба</span>' : '') + '<input id="fPass" class="inp" type="password" value="' + esc(f.pass || '') + '" autocomplete="' + (reg ? 'new-password' : 'current-password') + '" data-enter="' + en + '"></label>';
+  h += '<label class="chk"><input type="checkbox" data-action="showpw"><span>Құпиясөзді көрсету</span></label>';
+  if (reg) {
+    h += '<label>4 саннан тұратын PIN-код<span class="hint">Ол кабинетті және ересекке арналған кеңестерді ашады. Есте сақтаңыз, балаға айтпаңыз.</span>' + pinInput("fPin").replace('placeholder=', 'value="' + esc(f.pin || '') + '" placeholder=') + '</label>';
+  }
+  if (reg) h += '<label class="chk"><input type="checkbox" id="fAgree"' + (f.agree ? ' checked' : '') + '><span>Мен құпиялылық саясатымен және пайдаланушы келісімімен келісемін</span></label>';
+  h += errBox(S.err);
+  h += '<div class="row"><button class="btn" data-action="' + en + '">' + (reg ? 'Тіркелу' : 'Кіру') + '</button></div>';
+  if (!reg) h += '<p class="hint" style="margin-top:16px">Құпиясөзді ұмыттыңыз ба? <button class="btn ghost small" data-action="forgot">Поштаға сілтеме алу</button></p>';
+  h += '</div></div>';
+  h += '<aside class="auth-side">' +
+       '<div class="auth-bubble">' + (reg ? 'Сәлеметсіз бе! Мен — Листик. Балаңызға математиканы түсінуге көмектесемін, ал сіз істердің қалай жүріп жатқанын көресіз.' : 'Сәлеметсіз бе! Мұнда баланың менімен қалай оқып жатқаны көрінеді.') + '</div>' +
+       '<ul class="auth-points">' +
+         '<li>' + CHECK + '<span>Әр нөмір бойынша прогресс көрінеді</span></li>' +
+         '<li>' + CHECK + '<span>PIN-код ересекке арналған кеңестерді ашады</span></li>' +
+         '<li>' + CHECK + '<span>Листик қарапайым сөздермен және арнайы әдістеме бойынша түсіндіреді</span></li>' +
+       '</ul>' +
+       '<div class="auth-photo"><div class="auth-blob" aria-hidden="true"></div><img src="/img/' + (reg ? 'hero-boy' : 'happy-girl') + '.webp" alt="" width="900" height="900"></div>' +
+       '</aside></div>';
+  app.innerHTML = h; window.scrollTo(0, 0);
+}
+function renderPin() {
+  let h = header(true);
+  h += '<h2 class="sec">Ата-ана кабинеті</h2><div class="form"><p class="lead">PIN-кодты енгізіңіз.</p>';
+  if (S.flash) { h += '<div class="fb ok">' + esc(S.flash) + '</div>'; S.flash = ""; }
+  h += pinInput("fPin").replace('class="inp pin"', 'class="inp pin" data-enter="pin-enter"');
+  h += errBox(S.err);
+  h += '<div class="row"><button class="btn" data-action="pin-enter">Ашу</button><button class="btn ghost" data-action="pin-forgot">PIN-ді ұмыттыңыз ба?</button></div></div>';
+  app.innerHTML = h; window.scrollTo(0, 0);
+  const el = document.getElementById("fPin"); if (el) el.focus({ preventScroll: true });
+}
+function renderPinReset() {
+  let h = header(true);
+  h += '<h2 class="sec">Жаңа PIN-код</h2><div class="form"><p class="lead">Кабинеттің құпиясөзін енгізіп, жаңа PIN ойлап табыңыз.</p>';
+  h += '<label>Құпиясөз<input id="fPass" class="inp" type="password" autocomplete="current-password"></label>';
+  h += '<label>Жаңа PIN-код' + pinInput("fPin") + '</label><label>PIN-кодты қайталаңыз' + pinInput("fPin2") + '</label>';
+  h += errBox(S.err);
+  h += '<div class="row"><button class="btn" data-action="pin-reset">Сақтау</button><button class="btn ghost" data-action="cab-open">Артқа</button></div></div>';
+  app.innerHTML = h; window.scrollTo(0, 0);
+}
+const fmtDate = iso => iso ? new Date(iso).toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric" }) : null;
+const LEVELS = { good: "жақсы шығады", train: "жаттығып жатырмыз", repeat: "қайталаған жөн" };
+const TREND_TXT = { up: "↑ өсуде", down: "↓ төмендеуде", flat: "→ өзгеріссіз" };
+const trendLine = k => (k.trend ? ' ' + TREND_TXT[k.trend] + '.' : '') + (k.dueNow ? ' Қайталайтын уақыт келді.' : '');
+/* ---------- кабинет родителя: графики и сводки ---------- */
+const PC = { blue: "#2B4BC4", green: "#1F7A45", amber: "#C2620A" };
+let PCID = 0;
+const plural = (n, a, b, c) => { const m = n % 100, k = n % 10; return m > 10 && m < 20 ? c : k === 1 ? a : k > 1 && k < 5 ? b : c; };
+const fmtDM = iso => iso.slice(8, 10) + "." + iso.slice(5, 7);
+const fmtMin = m => m < 60 ? m + " мин" : Math.floor(m / 60) + " сағ" + (m % 60 ? " " + (m % 60) + " мин" : "");
+const agoText = iso => { if (!iso) return null; const d = Math.floor((Date.now() - Date.parse(iso)) / 86400000); return d <= 0 ? "бүгін" : d === 1 ? "кеше" : d + " " + plural(d, "күн", "күн", "күн") + " бұрын"; };
+const niceMax = v => { if (v <= 4) return 4; if (v <= 8) return 8; const p = Math.pow(10, Math.floor(Math.log10(v))), m = v / p; return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * p; };
+function pTip(e, html) {
+  let t = document.getElementById("pcTip");
+  if (!t) { t = document.createElement("div"); t.id = "pcTip"; t.className = "pc-tip"; document.body.appendChild(t); }
+  if (!html) { t.hidden = true; return; }
+  t.innerHTML = html; t.hidden = false;
+  t.style.left = Math.max(6, Math.min(innerWidth - t.offsetWidth - 6, e.clientX - t.offsetWidth / 2)) + "px";
+  t.style.top = Math.max(6, e.clientY - t.offsetHeight - 14) + "px";
+}
+function tableView(head, rows) {
+  return '<details class="pc-dt"><summary>Сандармен көрсету</summary><div class="pc-scroll"><table><thead><tr>' + head.map(x => '<th>' + esc(x) + '</th>').join("") + '</tr></thead><tbody>' +
+    rows.map(r => '<tr>' + r.map(x => '<td>' + esc(x) + '</td>').join("") + '</tr>').join("") + '</tbody></table></div></details>';
+}
+/* график: kind "line" | "bar"; values могут быть null (нет данных); opts: {color, unit, ref, refLabel, max, name, labels (подписи оси), tips (подписи в подсказке)} */
+function pChart(kind, values, o) {
+  const id = "pc" + (++PCID), W = 480, H = 210, L = 34, R = 10, T = 14, B = 26, n = values.length, pw = W - L - R, ph = H - T - B;
+  const real = values.filter(v => v !== null), max = o.max || niceMax(Math.max(1, ...real, o.ref || 0));
+  const X = i => L + (kind === "bar" ? (pw / n) * (i + .5) : n === 1 ? pw / 2 : pw * i / (n - 1)), Y = v => T + ph - ph * v / max;
+  let g = "";
+  for (let k = 0; k <= 4; k++) { const v = max * k / 4, y = Y(v); g += '<line class="pc-gl" x1="' + L + '" x2="' + (W - R) + '" y1="' + y + '" y2="' + y + '"/><text class="pc-ax" x="' + (L - 6) + '" y="' + (y + 4) + '" text-anchor="end">' + Math.round(v) + '</text>'; }
+  const step = Math.ceil(n / 7);
+  o.labels.forEach((lb, i) => { if ((n - 1 - i) % step === 0) g += '<text class="pc-ax" x="' + X(i) + '" y="' + (H - 7) + '" text-anchor="middle">' + esc(lb) + '</text>'; });
+  if (o.ref) g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(o.ref) + '" y2="' + Y(o.ref) + '" stroke="' + PC.amber + '" stroke-width="1.5" stroke-dasharray="5 4"/><text class="pc-ax" x="' + (W - R) + '" y="' + (Y(o.ref) - 5) + '" text-anchor="end" style="fill:' + PC.amber + ';font-weight:700">' + esc(o.refLabel || "") + '</text>';
+  if (kind === "bar") {
+    const bw = Math.max(4, Math.min(30, pw / n - 3)), rr = Math.min(4, bw / 2);
+    values.forEach((v, i) => { if (!v) return; const h = Math.max(2, ph * v / max), x0 = X(i) - bw / 2, y0 = T + ph - h, r = Math.min(rr, h);
+      g += '<path d="M' + x0 + ' ' + (T + ph) + 'V' + (y0 + r) + 'q0 -' + r + ' ' + r + ' -' + r + 'h' + (bw - 2 * r) + 'q' + r + ' 0 ' + r + ' ' + r + 'V' + (T + ph) + 'z" fill="' + o.color + '"/>'; });
+  } else {
+    let seg = [];
+    const flush = () => { if (seg.length > 1) g += '<polyline fill="none" stroke="' + o.color + '" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" points="' + seg.join(" ") + '"/>'; seg = []; };
+    values.forEach((v, i) => { if (v === null) flush(); else seg.push(X(i).toFixed(1) + "," + Y(v).toFixed(1)); }); flush();
+    values.forEach((v, i) => { if (v !== null && (n <= 25 || i === n - 1)) g += '<circle cx="' + X(i) + '" cy="' + Y(v) + '" r="4.5" fill="' + o.color + '" stroke="#fff" stroke-width="2"/>'; });
+  }
+  g += '<line id="' + id + 'x" x1="0" x2="0" y1="' + T + '" y2="' + (T + ph) + '" stroke="#1E2A22" stroke-width="1" style="opacity:0"/><rect id="' + id + 'h" x="' + L + '" y="0" width="' + pw + '" height="' + (T + ph) + '" fill="transparent" style="touch-action:pan-y"/>';
+  setTimeout(() => {
+    const hit = document.getElementById(id + "h"); if (!hit) return; const svg = hit.ownerSVGElement, cx = document.getElementById(id + "x");
+    const move = e => {
+      const r = svg.getBoundingClientRect(), px = (e.clientX - r.left) * W / r.width;
+      let i = kind === "bar" ? Math.floor((px - L) / (pw / n)) : Math.round((px - L) / pw * (n - 1)); i = Math.max(0, Math.min(n - 1, i));
+      cx.setAttribute("x1", X(i)); cx.setAttribute("x2", X(i)); cx.style.opacity = kind === "line" ? ".3" : "0";
+      pTip(e, '<b>' + esc(o.tips[i]) + '</b>' + (values[i] === null ? 'сабақ болмады' : esc(o.name) + ': ' + values[i] + (o.unit || "")));
+    };
+    hit.addEventListener("pointermove", move); hit.addEventListener("pointerdown", move);
+    hit.addEventListener("pointerleave", () => { pTip(null); cx.style.opacity = 0; });
+  }, 0);
+  return '<div class="pc-chart"><svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(o.name) + '">' + g + '</svg></div>' +
+    tableView(["Күні", o.name], o.tips.map((t, i) => [t, values[i] === null ? "сабақ болмады" : values[i] + (o.unit || "")]));
+}
+const meter = (label, used, max, text) => {
+  const pct = max > 0 ? Math.min(100, Math.round(100 * used / max)) : 100;
+  return '<div class="pc-meter"><div class="top2"><span>' + label + '</span><span>' + text + '</span></div><div class="bar" aria-hidden="true"><i style="width:' + pct + '%' + (pct >= 100 ? ';background:' + PC.amber : '') + '"></i></div></div>';
+};
+function planCard(c) {
+  const p = c.plan;
+  if (p.active) return '<div class="pc-card pc-plan on"><b>Ақылы тариф белсенді</b><span>Әрекет ету мерзімі: ' + fmtDate(p.until) + ', қалғаны: ' + p.daysLeft + ' ' + plural(p.daysLeft, "күн", "күн", "күн") + '.</span><a class="btn ghost small" href="/kk/pricing.html">Тариф туралы</a></div>';
+  return '<div class="pc-card pc-plan"><b>' + (p.until ? 'Жазылым аяқталды: ' + fmtDate(p.until) : 'Қазір байқап көру қолжетімділігі') + '</b><span>Тегін қолжетімді есептер: ' + p.freeTasks + ' / ' + c.summary.tasksTotal + '. Ақылы тариф барлық есептерді ашады.</span><a class="btn small" href="/kk/pricing.html">Тарифтерді қарау</a></div>';
+}
+function tipsBlock(c) {
+  const rep = c.skills.filter(k => k.level === "repeat"), good = c.skills.filter(k => k.level === "good");
+  let h = "";
+  if (rep.length) h += '<div class="pc-tip2 warn"><b>Қайталаған жөн</b><div>' + rep.map(k => '<span class="tag repeat">' + esc(k.name) + '</span>').join(" ") + '</div></div>';
+  if (c.hardTop.length) h += '<div class="pc-tip2"><b>Соңғы сабақтарда жиі қиындық тудырғандар</b><div>' + c.hardTop.map(k => esc(k.name) + ' (' + k.lessons + ' ' + plural(k.lessons, "сабақта", "сабақта", "сабақта") + ')').join("; ") + '</div></div>';
+  if (good.length) h += '<div class="pc-tip2 ok"><b>Жақсы шығады</b><div>' + good.map(k => '<span class="tag good">' + esc(k.name) + '</span>').join(" ") + '</div></div>';
+  if (!c.diagAt) h += '<div class="pc-tip2"><b>Танысу әлі өтілмеген</b><div>Бұл — кеңессіз 8 қысқа сұрақ: олар арқылы Листик неден бастау керегін түсінеді. Бала кабинетке кіргеннен кейін басты бетте ұсынысты көреді.</div></div>';
+  if (c.errorsTop && c.errorsTop.length) h += '<div class="pc-tip2"><b>Көбіне қалай қателеседі</b><div>' + c.errorsTop.map(e => esc(e.label) + ' (' + e.n + ' ' + plural(e.n, "рет", "рет", "рет") + ')').join("; ") + '</div><div class="sub">Бұл — типтік қателер бойынша бағдарламаның есебі. Қателер тізімін автор құрастырған, оны мұғалім әлі тексерген жоқ.</div></div>';
+  if (c.recs && c.recs.length) h += '<div class="pc-tip2"><b>Келесіге нені алу керек</b><div>' + c.recs.map(r => '№ ' + esc(r.no) + ' ' + esc(r.title) + ' (' + REC_TXT[r.kind] + ')').join("; ") + '</div></div>';
+  const gap = c.lastAt ? Math.floor((Date.now() - Date.parse(c.lastAt)) / 86400000) : null;
+  if (gap !== null && gap >= 3) h += '<div class="pc-tip2"><b>Сабақ болмағанына ' + gap + ' ' + plural(gap, "күн", "күн", "күн") + '</b><div>Тұрақты қысқа сабақтар сирек әрі ұзақ сабақтардан жақсырақ жұмыс істейді.</div></div>';
+  h += '<div class="pc-tip2"><b>Үйде қалай көмектесуге болады</b><div>Жауапты бірден айтпаңыз. Баладан не істеп жатқанын өз сөзімен түсіндіруін сұраңыз: Листик жетекші сұрақтар қояды және келесі қадамды айтады.</div></div>';
+  return h;
+}
+function trendInfo(hist) {
+  if (hist.length < 4) return null;
+  const k = Math.min(5, Math.floor(hist.length / 2)), pc = a => { const f = a.reduce((n, l) => n + l.firstTry, 0), t = a.reduce((n, l) => n + l.total, 0); return t ? Math.round(100 * f / t) : 0; };
+  const now = pc(hist.slice(-k)), before = pc(hist.slice(-2 * k, -k)), d = now - before;
+  return { now, before, d, k, word: d >= 3 ? "өсуде" : d <= -3 ? "төмендеуде" : "бір деңгейде тұр" };
+}
+function renderCabinet() {
+  const c = S.cab, tab = S.tab || "progress", sm = c.summary;
+  let h = header(true);
+  h += '<h2 class="sec">Ата-ана кабинеті</h2>';
+  const TABS = [["progress", "Шолу"], ["perf", "Үлгерім"], ["tasks", "Есептер мен тақырыптар"], ["settings", "Баптаулар"]];
+  h += '<div class="tabs">' + TABS.map(t => '<button class="btn ghost' + (tab === t[0] ? ' on' : '') + '" data-action="cab-tab" data-tab="' + t[0] + '">' + t[1] + '</button>').join("") + '</div>';
+  if (S.flash) { h += '<div class="fb ok">' + esc(S.flash) + '</div>'; S.flash = ""; }
+  const started = c.startedAt && (sm.lessons || c.tasks.some(t => t.status !== "new") || c.skills.length);
+
+  if (tab === "progress") {
+    h += '<div class="pc-card pc-hero"><div><b class="nm">' + esc(c.child.name) + '</b><span>' + esc(c.subject.title) + ', ' + c.subject.grade + '-сынып</span></div>' +
+      '<div class="pc-meta">' + (c.startedAt ? 'Оқуды бастаған күні: ' + fmtDate(c.startedAt) : 'Оқу әлі басталған жоқ') + (c.lastAt ? '<br>Соңғы сабақ: ' + fmtDate(c.lastAt) + ' (' + agoText(c.lastAt) + ')' : '') + '</div></div>';
+    h += planCard(c);
+    h += '<h2 class="sec">Бүгін</h2>';
+    h += meter('Сабақ уақыты', c.today.studyUsed, c.today.studyMax, fmtMin(Math.round(c.today.studyUsed / 60)) + ' / ' + fmtMin(Math.round(c.today.studyMax / 60)));
+    h += meter('Листиктің дауысы', c.today.voiceUsed, c.today.voiceMax, fmtMin(Math.round(c.today.voiceUsed / 60)) + ' / ' + fmtMin(Math.round(c.today.voiceMax / 60)));
+    h += lvParentBlock();
+    if (!started) {
+      h += '<p style="margin-top:16px">Әзірге сабақ болған жоқ. Бала есептер шеше бастағанда, мұнда нәтижелер, графиктер мен ұсыныстар пайда болады.</p>';
+    } else {
+      const dw = c.week.minutes - c.week.prev;
+      h += '<h2 class="sec">Қорытындылар</h2><div class="stats">' +
+        '<div class="stat"><b>' + sm.tasksDone + ' / ' + sm.tasksTotal + '</b><span>есеп шешілді</span></div>' +
+        '<div class="stat"><b>' + (sm.firstTryPct === null ? '—' : sm.firstTryPct + '%') + '</b><span>қадам бірінші реттен</span></div>' +
+        '<div class="stat"><b>' + fmtMin(c.week.minutes) + '</b><span>7 күнде' + (c.week.prev || c.week.minutes ? (dw === 0 ? ', бір апта бұрынғыдай' : dw > 0 ? ', ' + dw + ' мин көп, бір апта бұрынғыдан' : ', ' + (-dw) + ' мин аз, бір апта бұрынғыдан') : '') + '</span></div>' +
+        '<div class="stat"><b>' + c.streak + '</b><span>' + plural(c.streak, "күн", "күн", "күн") + ' қатарынан оқиды</span></div>' +
+        '<div class="stat"><b>' + c.week.activeDays + ' / 7</b><span>апта ішінде сабақ болған күн</span></div>' +
+        '<div class="stat"><b>' + sm.lessons + '</b><span>аяқталған сабақ</span></div></div>';
+      h += '<div class="bar" aria-hidden="true"><i style="width:' + Math.round(100 * sm.tasksDone / sm.tasksTotal) + '%"></i></div>';
+      const a14 = c.activity.slice(-14);
+      h += '<h2 class="sec">14 күндегі сабақтар</h2><div class="pc-card">' + pChart("bar", a14.map(x => x.study), { color: PC.blue, unit: " мин", name: "Сабақ минуттары", ref: Math.round(c.today.studyMax / 60), refLabel: "күндік лимит", labels: a14.map(x => fmtDM(x.day)), tips: a14.map(x => fmtDM(x.day)) }) + '</div>';
+      h += '<h2 class="sec">Нені назарға алу керек</h2>' + tipsBlock(c);
+      h += '<h2 class="sec">Пән бөлімдері</h2>';
+      c.sections.forEach(s => {
+        const pct = s.tasksTotal ? Math.round(100 * s.tasksDone / s.tasksTotal) : 0;
+        h += '<div class="rowitem"><div class="top2"><span>' + esc(s.title) + '</span><span>шешілді ' + s.tasksDone + ' / ' + s.tasksTotal + '</span></div><div class="bar" aria-hidden="true"><i style="width:' + pct + '%"></i></div>' +
+          '<div class="sub">30 күнде: ' + (s.minutes30 ? fmtMin(s.minutes30) : 'сабақсыз') + (s.tasksStarted > s.tasksDone ? '. Орындалуда: ' + (s.tasksStarted - s.tasksDone) : '') + '</div></div>';
+      });
+      if (c.lessons.length) {
+        h += '<h2 class="sec">Соңғы сабақтар</h2>';
+        c.lessons.forEach(l => {
+          h += '<div class="rowitem"><div class="top2"><span>' + fmtDate(l.at) + ' · № ' + esc(l.no) + ' ' + esc(l.title) + '</span><span>' + l.firstTry + ' / ' + l.total + ' бірінші реттен</span></div>' +
+            '<div class="bar" aria-hidden="true"><i style="width:' + Math.round(100 * l.firstTry / Math.max(1, l.total)) + '%"></i></div>' +
+            (l.hard && l.hard.length ? '<div class="sub">Қиындықтар болды: ' + l.hard.map(esc).join(", ") + '</div>' : '') + '</div>';
+        });
+      }
+    }
+  }
+
+  if (tab === "perf") {
+    h += '<h2 class="sec">Үлгерім графигі</h2><p>Мұнда нәтижелердің қалай өзгеріп жатқаны көрінеді. «Бірінші реттен» — бала қатесіз және көмексіз шешкен қадамдардың үлесі.</p>';
+    if (!c.history.length) {
+      h += '<p class="mark">Графиктер бірінші аяқталған сабақтан кейін пайда болады.</p>';
+    } else {
+      const tr = trendInfo(c.history);
+      if (tr) h += '<div class="pc-card pc-trend"><b>' + (tr.d >= 3 ? '▲' : tr.d <= -3 ? '▼' : '●') + ' Үлгерім ' + tr.word + '</b><span>Соңғы ' + tr.k + ' ' + plural(tr.k, "сабақ", "сабақ", "сабақ") + ': ' + tr.now + '% қадам бірінші реттен. Алдыңғы ' + tr.k + ': ' + tr.before + '%.</span></div>';
+      const hs = c.history;
+      h += '<h2 class="sec">Сабақтар бойынша нәтиже</h2><div class="pc-card">' + pChart("line", hs.map(l => l.pct), { color: PC.green, unit: "%", max: 100, name: "Бірінші реттен", labels: hs.map(l => fmtDM(l.at)), tips: hs.map(l => fmtDM(l.at) + ' · № ' + l.no + ' ' + l.title) }) + '</div>';
+      const wk = c.weeks;
+      h += '<h2 class="sec">Апталар бойынша</h2><div class="pc-card"><p class="sub" style="margin:0 0 6px">Аптадағы бірінші реттен шыққан қадамдар үлесі (дүйсенбіден бастап)</p>' +
+        pChart("bar", wk.map(w => w.pct), { color: PC.green, unit: "%", max: 100, name: "Бірінші реттен", labels: wk.map(w => fmtDM(w.start)), tips: wk.map(w => 'Апта басы: ' + fmtDM(w.start)) }) + '</div>';
+      h += '<div class="pc-card" style="margin-top:12px"><p class="sub" style="margin:0 0 6px">Аптадағы сабақ минуттары</p>' +
+        pChart("bar", wk.map(w => w.minutes), { color: PC.blue, unit: " мин", name: "Сабақ минуттары", labels: wk.map(w => fmtDM(w.start)), tips: wk.map(w => 'Апта басы: ' + fmtDM(w.start)) }) + '</div>';
+    }
+    const a30 = c.activity;
+    h += '<h2 class="sec">Күндер бойынша сабақтар, 30 күн</h2><div class="pc-card">' + pChart("bar", a30.map(x => x.study), { color: PC.blue, unit: " мин", name: "Сабақ минуттары", ref: Math.round(c.today.studyMax / 60), refLabel: "күндік лимит", labels: a30.map(x => fmtDM(x.day)), tips: a30.map(x => fmtDM(x.day)) }) + '</div>';
+    if (c.skills.length) {
+      const sk = c.skills.slice().sort((a, b) => a.firstTry / a.steps - b.firstTry / b.steps);
+      h += '<h2 class="sec">Тақырыптар бойынша</h2><p>Жоғарыда ең нашар шығатындары. Жолақ неғұрлым ұзын болса, бірінші реттен шыққан қадам соғұрлым көп.</p>';
+      sk.forEach(k => {
+        const pct = Math.round(100 * k.firstTry / k.steps);
+        h += '<div class="rowitem"><div class="top2"><span>' + esc(k.name) + '</span><span class="tag ' + k.level + '">' + LEVELS[k.level] + ' · ' + pct + '%</span></div><div class="bar" aria-hidden="true"><i style="width:' + pct + '%"></i></div>' +
+          '<div class="sub">' + k.firstTry + ' / ' + k.steps + ' қадам бірінші реттен' + (k.helped ? '. Ересектің көмегімен: ' + k.helped : '') + '.' + trendLine(k) + '</div></div>';
+      });
+    }
+    h += '<h2 class="sec">Апталар бойынша жиынтық</h2>' + '<div class="pc-scroll"><table class="pc-tbl"><thead><tr><th>Апта басы</th><th>Минут</th><th>Сабақ</th><th>Бірінші реттен</th></tr></thead><tbody>' +
+      c.weeks.slice().reverse().map(w => '<tr><td>' + fmtDM(w.start) + '</td><td>' + w.minutes + '</td><td>' + w.lessons + '</td><td>' + (w.pct === null ? '—' : w.pct + '%') + '</td></tr>').join("") + '</tbody></table></div>' +
+      '<p class="sub" style="margin-top:8px">90 күнде барлығы: ' + fmtMin(c.totals.minutes90) + ', сабақ болған күндер: ' + c.totals.activeDays90 + '.</p>';
+  }
+
+  if (tab === "tasks") {
+    h += '<h2 class="sec">Есептер</h2>';
+    c.tasks.forEach(t => {
+      const pct = t.status === "done" ? 100 : Math.round(100 * t.solved / t.total);
+      const label = t.status === "done" ? '✓ шешілді' + (t.again ? ', қайталау: ' + t.solved + ' / ' + t.total : '') : t.status === "progress" ? 'орындалуда: ' + t.solved + ' / ' + t.total + ' қадам' : 'басталмаған';
+      h += '<div class="rowitem"><div class="top2"><span>№ ' + esc(t.no) + ' · ' + esc(t.title) + '</span><span>' + label + '</span></div>' +
+        '<div class="bar" aria-hidden="true"><i style="width:' + pct + '%"></i></div>' +
+        (t.status === "done" ? '<div class="sub">Соңғы рет бірінші реттен: ' + t.lastFirstTry + ' / ' + t.total + ' қадам. Шешілген рет: ' + t.completions + '.</div>' : '') + '</div>';
+    });
+    if (c.skills.length) {
+      h += '<h2 class="sec">Тақырыптар бойынша</h2>';
+      c.skills.forEach(k => {
+        h += '<div class="rowitem"><div class="top2"><span>' + esc(k.name) + '</span><span class="tag ' + k.level + '">' + LEVELS[k.level] + '</span></div>' +
+          '<div class="bar" aria-hidden="true"><i style="width:' + Math.round(100 * k.firstTry / k.steps) + '%"></i></div>' +
+          '<div class="sub">Бірінші реттен: ' + k.firstTry + ' / ' + k.steps + (k.helped ? '. Ересектің көмегімен: ' + k.helped : '') + '.' + trendLine(k) + '</div></div>';
+      });
+    }
+    const hs = c.history.slice(-10).reverse();
+    if (hs.length) {
+      h += '<h2 class="sec">Сабақтар тарихы</h2>';
+      hs.forEach(l => {
+        h += '<div class="rowitem"><div class="top2"><span>' + fmtDate(l.at) + ' · № ' + esc(l.no) + ' ' + esc(l.title) + '</span><span>' + l.firstTry + ' / ' + l.total + ' бірінші реттен</span></div>' +
+          (l.hard.length ? '<div class="sub">Қиындықтар болды: ' + l.hard.map(esc).join(", ") + '</div>' : '') + '</div>';
+      });
+    }
+    if (!c.tasks.some(t => t.status !== "new") && !c.skills.length) h += '<p>Әзірге деректер жоқ: бала әлі есеп шешкен жоқ.</p>';
+  }
+
+  if (tab === "settings") {
+    h += '<div class="form"><h2 class="sec">Бала</h2>';
+    h += '<label>Аты немесе лақап аты <span class="hint">тегінсіз, мектепсіз және мекенжайсыз</span><input id="fChild" class="inp" maxlength="30" value="' + esc(c.child.name) + '" data-enter="cab-child"></label>';
+    h += '<div class="row"><button class="btn small" data-action="cab-child">Сақтау</button></div>';
+    h += '<h2 class="sec">Жазылым</h2>' + planCard(c);
+    h += '<h2 class="sec">PIN-кодты ауыстыру</h2><label>Кабинеттің құпиясөзі<input id="fPass" class="inp" type="password" autocomplete="current-password"></label>';
+    h += '<label>Жаңа PIN-код' + pinInput("fPin") + '</label><label>PIN-кодты қайталаңыз' + pinInput("fPin2") + '</label>';
+    h += '<div class="row"><button class="btn small" data-action="cab-pin">PIN-ді ауыстыру</button></div>';
+    h += errBox(S.err);
+    h += '<h2 class="sec">Аккаунт</h2><p>Пошта: <b>' + esc(c.email) + '</b>' + (c.createdAt ? '<br>Кабинет жасалған күні: ' + fmtDate(c.createdAt) : '') + '</p>';
+    h += '<div class="row"><button class="btn ghost small" data-action="logout">Аккаунттан шығу</button></div></div>';
+  }
+  h += '<div class="row" style="margin-top:22px"><button class="btn ghost small" data-action="home">Есептер тізіміне</button></div>';
+  app.innerHTML = h; window.scrollTo(0, 0);
+}
+
+async function openCabinet(tab, flash) {
+  const r = await call("/api/cabinet");
+  if (r.status === 200) { const lv = await call("/api/leaves"); S = { view: "cabinet", tab: tab || "progress", cab: r.data, lv: lv.status === 200 ? lv.data : null, flash: flash || "" }; return render(); }
+  if (r.status === 401) { USER = null; S = { view: "auth", mode: "login", err: "Қайтадан кіріңіз." }; return render(); }
+  if (r.status === 403) { S = { view: "pin", err: "PIN-кодты тағы бір рет енгізіңіз." }; return render(); }
+  S.err = NET; render();
+}
+
+async function call(path, payload) {
+  try { return await api(path, payload); } catch (e) { return { status: 0, data: {} }; }
+}
+const NET = "Серверге қосылу мүмкін болмады. Қайта көріңіз.";
+const LOCKED = "Қате әрекет тым көп. 10 минут күтіңіз.";
+function need(v, x) { if (!x) { S.err = v; render(); return false; } return true; }
+
+async function doAuth(mode) {
+  const email = val("fEmail").trim(), password = val("fPass");
+  S.form = { email, childName: val("fChild"), agree: !!(document.getElementById("fAgree") || {}).checked, pass: password, pin: (document.getElementById("fPin") || {}).value || "" };   /* пароль и PIN держим только в памяти страницы, чтобы не вводить заново после ошибки */
+  S.err = "";
+  let payload = { email, password };
+  if (mode === "register") {
+    const pin = val("fPin");
+    if (!need("Баланың атын немесе лақап атын енгізіңіз.", S.form.childName.trim())) return;
+    if (!need("Құпиялылық саясатымен және пайдаланушы келісімімен келісу қажет.", S.form.agree)) return;
+    payload = { email, password, pin, childName: S.form.childName, agree: true };
+  }
+  const r = await call(mode === "register" ? "/api/register" : "/api/login", payload);
+  if (r.status === 200 && r.data.pending) { S = { view: "verify", email: r.data.email || email, err: "", flash: "" }; return render(); }
+  if (r.status === 403 && r.data.error === "unverified") { S = { view: "verify", email, err: "", flash: "Пошта әлі расталмаған. Хаттағы сілтемені ашыңыз немесе хатты қайта жіберіңіз." }; return render(); }
+  if (r.status === 200) { USER = r.data.user; await reloadTasks(); S = { view: "home", flash: mode === "register" ? "Кабинет жасалды. PIN-кодты есте сақтаңыз: ол кеңестер мен кабинетке кіру үшін керек." : "" }; return render(); }
+  S.err = r.status === 0 ? NET : r.status === 429 ? "Әрекет тым көп. Сәл күтіңіз." : (r.data.message || "Болмады. Деректерді тексеріңіз.");
+  render();
+}
+/* забыли пароль: письмо со ссылкой; новый пароль задаётся по ссылке из письма */
+function authShell(inner) {
+  return '<div class="auth"><div class="auth-card">' + inner + '</div><aside class="auth-side"><div class="auth-bubble">Алаңдамаңыз, қолжетімділікті бір минутта қайтарамыз.</div>' +
+    '<div class="auth-photo"><div class="auth-blob" aria-hidden="true"></div><img src="/img/happy-girl.webp" alt="" width="900" height="900"></div></aside></div>';
+}
+function renderForgot() {
+  const f = S.form || {};
+  let h = '<h1 class="auth-h">Құпиясөзді қалпына келтіру</h1>';
+  if (S.sent) {
+    h += '<p class="auth-sub">Осындай поштамен кабинет болса, біз сілтемесі бар хат жібердік. Ол бір сағат жарамды. Хат болмаса, «Спам» бөлімін қараңыз.</p>' +
+      '<div class="row"><button class="btn" data-action="auth" data-mode="login">Кіру бетіне оралу</button></div>';
+  } else {
+    h += '<p class="auth-sub">Кабинеттің поштасын көрсетіңіз, біз жаңа құпиясөз қоюға болатын сілтеме жібереміз.</p><div class="form">' +
+      '<label>Пошта<input id="fEmail" class="inp" type="email" autocomplete="username" autocapitalize="none" placeholder="name@mail.com" value="' + esc(f.email || "") + '" data-enter="forgot-send"></label>' +
+      errBox(S.err) +
+      '<div class="row"><button class="btn" data-action="forgot-send">Сілтеме жіберу</button><button class="btn ghost" data-action="auth" data-mode="login">Артқа</button></div></div>';
+  }
+  app.innerHTML = authShell(h); window.scrollTo(0, 0);
+}
+/* после регистрации: просим открыть ссылку из письма */
+function renderVerify() {
+  const e = esc(S.email || "");
+  let h = '<h1 class="auth-h">Поштаңызды тексеріңіз</h1>' +
+    '<p class="auth-sub">Біз хатты мына мекенжайға жібердік: <b>' + e + '</b>. Оны ашып, «Поштаны растау» түймесін басыңыз: содан кейін кабинет қосылады. Хат болмаса, «Спам» бөлімін қараңыз.</p>';
+  if (S.flash) h += '<div class="fb ok">' + esc(S.flash) + '</div>';
+  h += errBox(S.err) + '<div class="row"><button class="btn" data-action="verify-resend">Хатты қайта жіберу</button><button class="btn ghost" data-action="auth" data-mode="register">Басқа мекенжай</button></div>';
+  app.innerHTML = authShell(h).replace("Алаңдамаңыз, қолжетімділікті бір минутта қайтарамыз.", "Тағы бір хат қалды, содан кейін бастаймыз."); window.scrollTo(0, 0);
+}
+async function doVerifyResend() {
+  S.err = ""; S.flash = "";
+  const r = await call("/api/verify/resend", { email: S.email });
+  if (r.status === 200) S.flash = "Хат жіберілді. Бір минуттан кейін поштаңызды тексеріңіз."; else S.err = r.status === 0 ? NET : r.status === 429 ? "Әрекет тым көп. Сәл күтіңіз." : "Болмады. Кейінірек қайта көріңіз.";
+  render();
+}
+function renderReset() {
+  let h = '<h1 class="auth-h">Жаңа құпиясөз</h1><p class="auth-sub">Кемінде 8 таңбадан тұратын құпиясөз ойлап табыңыз.</p><div class="form">' +
+    '<label>Жаңа құпиясөз<input id="fPass" class="inp" type="password" autocomplete="new-password"></label>' +
+    '<label>Құпиясөзді қайталаңыз<input id="fPass2" class="inp" type="password" autocomplete="new-password" data-enter="reset-send"></label>' +
+    '<label class="chk"><input type="checkbox" data-action="showpw"><span>Құпиясөзді көрсету</span></label>' + errBox(S.err) +
+    '<div class="row"><button class="btn" data-action="reset-send">Құпиясөзді сақтау</button></div></div>';
+  app.innerHTML = authShell(h); window.scrollTo(0, 0);
+}
+async function doForgot() {
+  const email = val("fEmail").trim();
+  S.form = { email };
+  if (!need("Пошта мекенжайын тексеріңіз.", /^\S+@\S+\.\S{2,}$/.test(email))) return;
+  const r = await call("/api/password/forgot", { email });
+  if (r.status === 200) { S.sent = true; S.err = ""; return render(); }
+  S.err = r.status === 0 ? NET : r.status === 429 ? "Әрекет тым көп. Сәл күтіңіз." : "Болмады. Кейінірек қайта көріңіз.";
+  render();
+}
+async function doReset() {
+  const password = val("fPass");
+  if (!need("Құпиясөз кемінде 8 таңбадан тұруы керек.", password.length >= 8)) return;
+  if (!need("Құпиясөздер сәйкес келмеді. Пернетақта қалпын тексеріңіз.", password === val("fPass2"))) return;
+  const r = await call("/api/password/reset", { token: S.token, password });
+  if (r.status === 200) { USER = r.data.user; await reloadTasks(); S = { view: "home", flash: "Құпиясөз өзгертілді, сіз кабинетке кірдіңіз." }; return render(); }
+  S.err = r.status === 0 ? NET : r.status === 429 ? "Әрекет тым көп. Сәл күтіңіз." : (r.data.message || "Болмады. Жаңа сілтемені сұраңыз.");
+  render();
+}
+async function doPinEnter() {
+  const r = await call("/api/parent/enter", { pin: val("fPin").trim() });
+  if (r.status === 200 && r.data.ok) { USER = r.data.user; return openCabinet("progress"); }
+  if (r.status === 401) { USER = null; S = { view: "auth", mode: "login", err: "Қайтадан кіріңіз." }; return render(); }
+  S.err = r.status === 0 ? NET : r.status === 429 ? LOCKED : "PIN-код дұрыс емес.";
+  render();
+}
+async function doPinChange(fromCabinet) {
+  const pin = val("fPin"), pass = val("fPass");
+  if (!need("PIN-кодтар сәйкес келмеді.", pin === val("fPin2"))) return;
+  const r = await call("/api/pin/change", { password: pass, newPin: pin });
+  if (r.status === 200 && r.data.ok) { if (fromCabinet) return openCabinet("settings", "PIN-код өзгертілді."); S = { view: "pin", flash: "PIN-код өзгертілді. Оны енгізіңіз." }; return render(); }
+  S.err = r.status === 0 ? NET : r.status === 429 ? LOCKED : r.status === 400 ? r.data.message : r.status === 401 ? "Қайтадан кіріңіз." : "Құпиясөз дұрыс емес.";
+  render();
+}
+async function doChild() {
+  const r = await call("/api/parent/child", { childName: val("fChild") });
+  if (r.status === 200) { USER = r.data.user; return openCabinet("settings", "Сақталды."); }
+  if (r.status === 403) { S = { view: "pin" }; return render(); }
+  S.err = r.status === 0 ? NET : (r.data.message || "Сақтау мүмкін болмады.");
+  render();
+}
+
+/* ---------- каталог задач ---------- */
+const HOME = { q: "", view: "list", open: {}, inited: false };
+try { const v = localStorage.getItem("lk_view2"); if (v === "tiles" || v === "list") HOME.view = v; } catch (e) {}
+let SECTIONS = [];
+const ST_MARK = { done: "✓", progress: "…" };
+const REC_TXT = { review: "қайталайтын уақыт келді", harder: "күрделірек болады", easier: "жеңілірек болғаны жөн" };
+function catItem(t, i) {
+  const closed = !!t.closed, lock = !!t.locked || closed, cls = (lock ? " lock" : "") + (closed ? " seq" : "") + (t.st === "done" ? " done" : t.st === "progress" ? " progress" : "");
+  const mk = lock ? "🔒" : (ST_MARK[t.st] || "");
+  const label = "№ " + t.no + (closed ? ", алдымен шешу керек: № " + t.after : lock ? ", жазылым бойынша" : t.st === "done" ? ", шешілді" : t.st === "progress" ? ", басталды" : "") + (t.rec ? ", ұсынамыз: " + REC_TXT[t.rec] : "");
+  if (HOME.view === "list") {
+    return '<li><button class="row-btn' + cls + (t.title === "Задача" ? " word" : "") + '" data-action="start" data-i="' + i + '" aria-label="' + label + '">' +
+      '<span class="rno">' + esc(t.no) + '</span><span class="rtx">' + (t.title !== "Задача" ? '<b>' + esc(t.title) + '</b>' : '') +
+      (t.rec ? ' <em class="recm">★ ' + REC_TXT[t.rec] + '</em> ' : '') + (closed ? 'алдымен шешу керек: № ' + esc(t.after) : lock ? 'жазылым бойынша' : esc(t.cond || "")) + '</span><span class="rst">' + mk + '</span></button></li>';
+  }
+  return '<li><button class="tile' + cls + '" data-action="start" data-i="' + i + '" aria-label="' + label + '" title="' + esc(closed ? "Алдымен шешу керек: № " + t.after : lock ? t.title : (t.cond || t.title)) + '">' +
+    esc(t.no) + (mk ? '<span class="mk" aria-hidden="true">' + mk + '</span>' : '') + (t.rec ? '<span class="rc" title="Ұсынамыз: ' + REC_TXT[t.rec] + '" aria-hidden="true">★</span>' : '') + '</button></li>';
+}
+function catItems(idx) {
+  return '<ul class="' + (HOME.view === "list" ? "rows" : "tiles") + '">' + idx.map(i => catItem(TASKS[i], i)).join("") + '</ul>';
+}
+function catGroups() {
+  const by = {}, order = [];
+  TASKS.forEach((t, i) => { if (t.quiz) return; const k = t.section || "_other"; if (!by[k]) { by[k] = []; order.push(k); } by[k].push(i); });
+  const list = SECTIONS.map(x => ({ id: x.id, title: x.title }));
+  order.forEach(k => { if (!list.some(x => x.id === k)) list.push({ id: k, title: "Басқа есептер" }); });
+  return list.map(x => ({ id: x.id, title: x.title, idx: by[x.id] || [] }));
+}
+function catListHTML() {
+  const q = HOME.q.trim().toLowerCase();
+  const scope = QUEUE || TASKS.map((_, i) => i).filter(i => !TASKS[i].quiz);
+  if (q) {
+    const hit = scope.filter(i => { const t = TASKS[i]; return String(t.no).toLowerCase() === q || String(t.no).toLowerCase().startsWith(q) || (t.cond || "").toLowerCase().includes(q) || (t.title || "").toLowerCase().includes(q); });
+    if (!hit.length) return '<p class="cat-empty">Ештеңе табылмады. Нөмірді тексеріңіз немесе басқа сөзді көріңіз.</p>';
+    return '<p class="cat-meta">Табылды: ' + hit.length + (hit.length > 100 ? ' (алғашқы 100 көрсетілді, сұранысты нақтылаңыз)' : '') + '</p>' + catItems(hit.slice(0, 100));
+  }
+  const groups = catGroups().filter(g => !QUEUE || g.idx.some(i => QUEUE.indexOf(i) >= 0));
+  if (QUEUE) {
+    const g = groups[0];
+    const done = QUEUE.filter(i => TASKS[i].st === "done").length;
+    return '<p class="cat-meta">' + esc(g ? g.title : "Бөлім") + ' · ' + QUEUE.length + ' есеп' + (USER ? ', шешілді ' + done : '') + ' · <a href="' + (listHref() || 'start.html') + '">Басқа бөлімді таңдау</a></p>' + catItems(QUEUE);
+  }
+  return groups.map(g => {
+    const done = g.idx.filter(i => TASKS[i].st === "done").length;
+    return '<section class="grp2"><h2 class="grp2-h"><span class="gt">' + esc(g.title) + '</span><span class="gc">' + (USER && g.idx.length ? '<b>' + done + '</b> / ' + g.idx.length : g.idx.length + ' ' + plural(g.idx.length, "есеп", "есеп", "есеп")) + '</span></h2>' +
+      (g.idx.length ? catItems(g.idx) : '<p class="grp2-empty">Есептер әзірге жоқ</p>') + '</section>';
+  }).join("");
+}
+function paintCat() {
+  const el = document.getElementById("catlist"); if (el) el.innerHTML = catListHTML();
+  document.querySelectorAll(".seg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === HOME.view)));
+}
+function quizCard() {
+  if (!USER) return "";
+  if (OFFER.diag) return '<div class="mark quizc"><b>Танысып алайық, ' + esc(USER.child.name) + '!</b><div>Листик сенің не білетініңді түсінуі үшін сегіз қысқа сұрақ. Қателесуге болады. Кеңестер болмайды.</div>' +
+    '<div class="row"><button class="btn small" data-action="quiz" data-k="diag">Бастау</button><button class="btn ghost small" data-action="quiz-later">Қазір емес</button></div></div>';
+  if (OFFER.warm) return '<div class="mark quizc"><b>Бірнеше минуттық жылыту</b><div>' + OFFER.warm + ' ' + plural(OFFER.warm, "сұрақ", "сұрақ", "сұрақ") + ' қайталайтын уақыты келген тақырып бойынша.</div>' +
+    '<div class="row"><button class="btn small" data-action="quiz" data-k="warm">Жылытуды бастау</button></div></div>';
+  return "";
+}
+async function startQuiz(kind) {
+  let r; try { r = await api("/api/quiz/start", { kind }); } catch (e) { r = { status: 0, data: {} }; }
+  if (r.status === 401) { USER = null; S = { view: "auth", mode: "login", err: "Танысуды өту үшін кабинетке кіріңіз." }; return render(); }
+  if (r.status === 403 && r.data && r.data.error === "day_limit") { USAGE.studyLeft = 0; return endOfDay(); }
+  if (r.status !== 200 || !r.data || !r.data.task) { S = { view: "home", flash: r.status === 409 ? "Бүгін жылыту қажет емес." : "Бастау мүмкін болмады. Қайта көр." }; return render(); }
+  TASKS = TASKS.filter(t => !t.quiz); TASKS.push(r.data.task);
+  return startTask(TASKS.length - 1);
+}
+function renderHome() {
+  let h = header(false);
+  h += quizCard();
+  h += leavesCard();
+  h += '<div class="cat-title"><h1>' + (USER && USER.child && USER.child.name ? 'Сәлем, ' + esc(USER.child.name) + '! ' : '') + 'Жаттығуды таңда</h1></div>';
+  h += '<div class="cat-tools"><label class="cat-search"><input id="catq" type="search" inputmode="search" autocomplete="off" placeholder="Нөмір немесе сөз, мысалы 245" aria-label="Есепті табу" value="' + esc(HOME.q) + '"></label>' +
+    '<div class="seg" role="group" aria-label="Тізім түрі"><button data-action="view" data-v="tiles" aria-pressed="' + (HOME.view === "tiles") + '">▦ Плиткалар</button>' +
+    '<button data-action="view" data-v="list" aria-pressed="' + (HOME.view === "list") + '">☰ Тізім</button></div></div>';
+  h += '<div id="catlist">' + catListHTML() + '</div>';
+  if (S.flash) { h += '<div class="fb ok">' + esc(S.flash) + '</div>'; S.flash = ""; }
+  if (!USER) {
+    h += '<div class="mark"><b>Ата-аналарға.</b> Ата-ана кабинеті PIN-кодпен қорғалған. Онымен ересек қиын қадамда балаға көмектесе алады. Кабинетсіз Листик жұмыс істейді, бірақ ересекті шақыру мүмкін емес.' +
+      '<div class="row"><button class="btn small" data-action="auth" data-mode="register">Тіркелу</button><button class="btn ghost small" data-action="auth" data-mode="login">Кіру</button></div></div>';
+  }
+  if (!USER) h += '<div class="foot"><p>Барлық сұрақтар, ережелер мен жауаптар алдын ала жазылған. Бағдарламаның өзі баланың жауабын дұрыс жауаппен салыстырады.</p>' + aiNote() + ttsNote() + '</div>';
+  app.innerHTML = h;
+  window.scrollTo(0, 0);
+}
+
+function padHTML() {
+  let h = '<div class="pad" role="group" aria-label="Сандар">';
+  for (let d = 1; d <= 9; d++) h += '<button class="key" data-action="digit" data-d="' + d + '">' + d + '</button>';
+  h += '<button class="key erase" data-action="back" aria-label="Өшіру">⌫</button>' +
+    '<button class="key" data-action="digit" data-d="0">0</button>' +
+    '<button class="key go" data-action="check">Тексеру</button></div>';
+  return h;
+}
+
+function renderTask() {
+  const T = TASKS[S.t];
+  if (S.stage === "lesson") return renderLesson(T);
+  const st = T.steps[S.s];
+  const n = visIdx(T).length;
+  let h = lessonHeader(T, n, false);
+  h += '<div class="lesson"><section class="lcol">';
+  h += '<div id="voiceslot">' + voiceHTML() + '</div>';
+
+  h += '<div class="step"><div class="meta-row"><div class="meta">Қадам ' + vpos(T, S.s) + ' / ' + n + '</div>' +
+    (TTS.ok && !VOICE.quiet && !VOICE.available ? '<button class="speak" data-action="readq" aria-label="Сұрақты дауыстап оқу">🔊 Оқу</button>' : '') + '</div>';
+  h += '<p class="q">' + st.q + '</p>';
+
+  if (S.stage === "ask") {
+    if (st.type === "choice") {
+      h += '<div class="opts">';
+      st.options.forEach((o, i) => {
+        const w = S.wrong.includes(i);
+        h += '<button class="opt' + (w ? ' wrong' : '') + '" data-action="pick" data-i="' + i + '"' + (w ? ' disabled' : '') + '><span class="let hand">' + LETTERS[i] + '</span><span>' + o + '</span></button>';
+      });
+      h += '</div>';
+    } else if (st.type === "explain") {
+      h += '<div class="fields"><textarea id="exin" class="inp ex" rows="4" maxlength="400" placeholder="Өз сөзіңмен жаз немесе айт…" aria-label="Сенің түсіндірмең">' + esc(S.entry[0] || "") + '</textarea></div>' +
+        '<div class="row"><button class="btn" data-action="explain-send">Тексеру</button></div>';
+    } else {
+      const labels = st.type === "pair" ? st.fields : [null];
+      h += '<div class="fields">';
+      labels.forEach((lab, i) => {
+        const v = S.entry[i];
+        h += '<div class="field">' + (lab ? '<span>' + lab + '</span>' : '') +
+          '<button class="disp' + (S.active === i ? ' active' : '') + '" data-action="focus" data-i="' + i + '" aria-label="' + (lab || 'Жауап') + ': ' + (v || 'бос') + '">' +
+          '<span class="val">' + (v || '<span class="ph">?</span>') + '</span></button></div>';
+      });
+      h += '</div>';
+    }
+
+    if (S.emptyMsg) h += '<div class="fb bad" role="alert">Санды түймелермен теріп, «Тексеру» түймесін бас.</div>';
+    if (S.netMsg) h += '<div class="fb bad" role="alert">' + S.netMsg + '</div>';
+
+    if (S.calm) {
+      h += '<div class="fb calm pop" role="status">' + (S.calm === "break"
+        ? 'Демалатын кез келген сияқты. Үзіліс жасап, кейін қайтып келуге немесе жеңілірек есепті таңдауға болады. <button class="btn ghost small" data-action="home">Есептер тізіміне</button>'
+        : 'Сен тырысып жатырсың, бұл — ең бастысы. Терең тыныс алып, ережеге тағы бір қарайық. Бұл бәрінде болады.') + '</div>';
+    }
+    if (S.attempts >= 1) {
+      h += '<div class="mark hint"><b>Кеңес:</b> ' + (S.rule || '') + '</div>';
+    }
+    if (S.attempts >= 2 && S.similar) {
+      h += '<div class="mark similar"><b>Ұқсас мысал:</b> ' + S.similar + '</div>';
+    }
+    if (st.type !== "choice" && st.type !== "explain") h += padHTML();
+    if (vprev(T, S.s) >= 0) h += '<div class="row">' + backBtn() + '</div>';
+  }
+
+  if (S.stage === "right") {
+    h += '<div class="fb ok pop" role="status">' + (S.mv && S.mv[S.s] ? '<strong>Әрі қарай жүреміз.</strong> ' : '<strong class="g">Дұрыс!</strong> ') + (S.mv && S.mv[S.s] ? '' : S.okText) + '</div>';
+    const last = vnext(T, S.s) < 0;
+    h += '<div class="row">' + backBtn() + '<button class="btn" data-action="next">' + (last ? 'Аяқтау' : 'Әрі қарай') + '</button></div>';
+  }
+
+  if (S.stage === "locked") {
+    h += '<div class="fb bad" role="alert"><strong class="r">Бұл бәрінде болады.</strong> Үзіліс жасауға немесе ересекті шақыруға болады.</div>';
+    h += '<div class="mark"><b>Ереже:</b> ' + (S.rule || '') + '</div>';
+    h += '<div class="row">' + backBtn() + '<button class="btn ghost" data-action="home">Үзіліс жасау</button>' +
+      (S.adultPassed || !USER ? '' : '<button class="btn" data-action="adult">Ересекті шақыру</button>') + '</div>';
+    if (!USER) {
+      h += '<div class="mark"><b>Ересекке.</b> Ересек осы қадамда көмектесе алуы үшін PIN-коды бар ата-ана кабинеті керек. Оны басты бетте жасауға болады.</div>';
+    }
+    if (USER && S.adultOpen && !S.adultPassed) {
+      h += '<div class="mark"><b>Ересекке.</b> Кеңесті ашу үшін кабинеттің PIN-кодын енгізіңіз.' +
+        '<div class="fields" style="margin-top:8px"><input id="adultIn" class="inp pin" type="password" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="····">' +
+        '<button class="btn" data-action="adultcheck">Ашу</button></div>' +
+        (S.adultErr ? '<div>' + (S.adultErr === 'limit' ? 'Қате әрекет тым көп. 10 минут күтіңіз.' : 'PIN-код дұрыс емес. Қайта көріңіз.') + '</div>' : '') +
+        (S.netMsg ? '<div>' + S.netMsg + '</div>' : '') + '</div>';
+    }
+    if (S.adultPassed) {
+      h += '<div class="mark"><b>Ересекке.</b> ' +
+        (S.adultAnswer ? 'Осы қадамның жауабы: <b>' + S.adultAnswer + '</b>. Балаға неге солай екенін түсіндіріңіз де, «Тағы бір рет» түймесін басыңыз. ' : 'Қадамды баламен бірге талдап, «Тағы бір рет» түймесін басыңыз. ') +
+        'Жауапты бала өзі енгізеді.' +
+        '<div class="row"><button class="btn" data-action="retry">Тағы бір рет</button></div></div>';
+    }
+  }
+
+  h += '</div></section>' + notebookAside(T, false) + '</div>';
+  app.innerHTML = h;
+
+  if (S.stage === "locked" && S.adultOpen && !S.adultPassed) {
+    const el = document.getElementById("adultIn");
+    if (el) el.focus({ preventScroll: true });
+  }
+}
+
+/* ---------- мини-урок: объяснение перед шагами ---------- */
+function lessonVisual(v) {
+  if (!v || !v.groups || !v.per) return "";
+  const cols = Math.min(v.per, 4);
+  let h = '<div class="lvis" role="img" aria-label="' + v.groups + ' топ, әрқайсысында ' + v.per + '">';
+  for (let g = 0; g < v.groups; g++) {
+    h += '<div class="lg" style="grid-template-columns:repeat(' + cols + ',13px)">';
+    for (let k = 0; k < v.per; k++) h += '<i class="ld' + (v.split && k >= v.split ? ' b' : '') + '"></i>';
+    h += '</div>';
+  }
+  return h + '</div>';
+}
+function renderLesson(T) {
+  const L = T.lesson, n = L.cards.length;
+  let h = '<div class="top lhead">' + backHTML() + '<div class="hright">' + voiceBtn() + sndBtn() + '</div></div>' +
+    '<div class="lmeta"><div class="meters" id="limbox">' + limHTML() + '</div>' + lvPill() + '</div>';
+  h += '<div class="lpage"><div id="voiceslot">' + voiceHTML() + '</div>';
+  h += '<div class="lhd"><h2 class="ltitle">' + esc(L.title) + '</h2>' +
+    (L.board ? '<button class="speak" data-action="lplay" aria-label="Қадамдап көрсетіп айтып беру">▶ Қадамдап көрсету</button>'
+      : (TTS.ok && !VOICE.quiet && !VOICE.available ? '<button class="speak" data-action="readlesson" aria-label="Бүкіл сабақты дауыстап оқу">🔊 Бүкіл сабақты оқу</button>' : '')) + '</div>';
+  if (L.board) h += '<div class="lboard" id="lboard"><svg id="lbsvg" viewBox="0 0 360 232" role="img" aria-label="Алмасы бар себеттер"></svg><div class="lb-eq" id="lbeq" aria-live="polite"></div><div class="lb-leg" id="lbleg"></div></div>';
+  L.cards.forEach((c, i) => {
+    const fb = lessonVisual(c.visual);
+    h += '<section class="lscene" data-i="' + i + '"><span class="lnum">' + (i + 1) + '</span><div class="lbody"><p class="q lq">' + c.text + '</p>' +
+      (c.image ? '<img class="limg" src="' + esc(c.image) + '" alt="" onload="var f=this.nextElementSibling;if(f)f.style.display=\'none\'" onerror="this.remove()">' : '') +
+      (c.image ? '<div class="lfb">' + fb + '</div>' : fb) +
+      (L.board && c.board ? '<div class="lcbtns"><button class="speak" data-action="lshow" data-i="' + i + '">▶ Көрсету</button></div>' : '') +
+      '</div></section>';
+  });
+  h += '<div class="row lgo"><button class="btn" data-action="lstart">Есепті шешу</button></div></div>';
+  app.innerHTML = h;
+  if (L.board) lbInit(L);
+}
+
+/* ---------- доска с корзинами (мини-урок с полем board) ----------
+   В tasks.json: lesson.board = {nb, per}, у карточки cards[i].board = {fill:[4,4,0], sums:true, eq:"3×4=12", legend:true}.
+   Поля карточки дополняют то, что уже на доске. */
+const LB_NS = "http://www.w3.org/2000/svg";
+const LB_CENTERS = { 1: [180], 2: [110, 250], 3: [60, 180, 300] };
+const LB_SPOTS = {
+  1: [[0, 100]], 2: [[-19, 100], [19, 100]], 3: [[-19, 100], [19, 100], [0, 64]],
+  4: [[-19, 100], [19, 100], [-19, 64], [19, 64]], 5: [[-19, 100], [19, 100], [-19, 64], [19, 64], [0, 28]]
+};
+function lbEl(tag, attrs, parent) { const n = document.createElementNS(LB_NS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; }
+function lbBuild() {
+  const svg = document.getElementById("lbsvg"), B = LB.st; if (!svg) return;
+  svg.innerHTML = ""; LB.counts = [];
+  // верх рисунка зависит от того, сколько рядов яблок бывает в корзине; кружок с суммой стоит над самым высоким яблоком
+  const top = Math.min.apply(null, (LB_SPOTS[B.per] || LB_SPOTS[4]).map(p => p[1])), badgeY = top - 44, y0 = badgeY - 22;
+  svg.setAttribute("viewBox", "0 " + y0 + " 360 " + (232 - y0));
+  LB_CENTERS[B.nb].forEach((cx, i) => {
+    const g = lbEl("g", { transform: "translate(" + cx + ",0)" }, svg);
+    lbEl("g", { "class": "lb-apples" }, g);
+    const body = lbEl("g", {}, g);
+    lbEl("path", { d: "M-50 112 L50 112 L42 188 Q41 196 33 196 L-33 196 Q-41 196 -42 188Z", fill: "#B87A3E" }, body);
+    lbEl("path", { d: "M-46 134 H46 M-44 156 H44 M-42 176 H42", stroke: "#8F5A28", "stroke-width": 2.5, fill: "none", "stroke-linecap": "round" }, body);
+    lbEl("rect", { x: -54, y: 106, width: 108, height: 12, rx: 6, fill: "#8F5A28" }, body);
+    lbEl("text", { "class": "lb-tag", x: 0, y: 170 }, body).textContent = "по " + B.per;
+    lbEl("text", { x: 0, y: 220, "text-anchor": "middle", "font-size": 14, "font-weight": 700, fill: "#4B5575", "font-family": "inherit" }, g).textContent = "корзина " + (i + 1);
+    const badge = lbEl("g", { "class": "lb-badgeg", transform: "translate(0," + badgeY + ")", style: "display:none" }, g);
+    const inner = lbEl("g", { "class": "lb-badgein" }, badge);   // анимация на внутреннем элементе, чтобы не сбить положение кружка
+    lbEl("circle", { "class": "lb-badge-bg", r: 19 }, inner);
+    lbEl("text", { "class": "lb-badge-tx", y: 6 }, inner);
+    LB.counts.push(0);
+  });
+}
+function lbApple(i, k, animate) {
+  const svg = document.getElementById("lbsvg"), B = LB.st;
+  const s = (LB_SPOTS[B.per] || LB_SPOTS[4])[k];
+  const holder = svg.children[i].querySelector(".lb-apples");
+  const pos = lbEl("g", { transform: "translate(" + s[0] + "," + s[1] + ")" }, holder);
+  const a = lbEl("g", { "class": animate ? "lb-apple-in" : "" }, pos);
+  lbEl("circle", { r: 17, fill: "#D9413A" }, a);
+  lbEl("circle", { cx: -6, cy: -6, r: 4.5, fill: "#fff", opacity: .35 }, a);
+  lbEl("path", { d: "M0 -16 Q1 -22 5 -24", stroke: "#8F5A28", "stroke-width": 2.5, fill: "none", "stroke-linecap": "round" }, a);
+  lbEl("path", { d: "M2 -19 Q10 -28 17 -20 Q9 -14 2 -19Z", fill: "#1F7A45" }, a);
+}
+function lbDraw(animate) {
+  const svg = document.getElementById("lbsvg"), B = LB.st; if (!svg) return;
+  B.fill.forEach((n, i) => {
+    const holder = svg.children[i].querySelector(".lb-apples");
+    while (LB.counts[i] > n) { holder.removeChild(holder.lastChild); LB.counts[i]--; }
+    while (LB.counts[i] < n) { lbApple(i, LB.counts[i], animate); LB.counts[i]++; }
+  });
+  let run = 0;
+  B.fill.forEach((n, i) => {
+    run += n;
+    const g = svg.children[i].querySelector(".lb-badgeg");
+    if (B.sums && n > 0) {
+      const was = g.style.display !== "none";
+      g.style.display = ""; g.querySelector("text").textContent = run;
+      g.querySelector(".lb-badgein").setAttribute("class", "lb-badgein" + (was || !animate ? "" : " lb-badge"));
+    } else g.style.display = "none";
+  });
+  const eq = document.getElementById("lbeq");
+  if (eq) eq.textContent = (B.eq || "").replace(/([+×=])/g, " $1 ").replace(/\s+/g, " ").trim();
+  const lg = document.getElementById("lbleg");
+  if (lg) {
+    lg.innerHTML = "";
+    if (B.legend && B.nb > 1) [[B.nb, "сколько групп (корзин)", "g"], [B.per, "сколько в каждой группе", ""]].forEach(it => {
+      const c = document.createElement("span"); c.className = "lb-chip " + it[2];
+      const b = document.createElement("b"); b.textContent = it[0];
+      c.appendChild(b); c.appendChild(document.createTextNode(it[1])); lg.appendChild(c);
+    });
+  }
+}
+function lbApply(upd, animate) {
+  const B = LB.st; if (!upd) return;
+  const rebuild = (upd.nb && upd.nb !== B.nb) || (upd.per && upd.per !== B.per);
+  Object.assign(B, upd);
+  B.fill = Array.from({ length: B.nb }, (_, i) => Math.min(B.per, (B.fill && B.fill[i]) || 0));
+  if (rebuild) lbBuild();
+  lbDraw(animate);
+}
+function lbInit(L) {
+  LB.st = { nb: L.board.nb || 3, per: L.board.per || 4, fill: [], sums: false, legend: false, eq: "" };
+  lbBuild();
+  const first = L.cards.find(c => c.board);
+  lbApply(first ? first.board : {}, false);
+  LB.cur = first ? L.cards.indexOf(first) : -1;
+  lbMark(LB.cur);
+}
+function lbMark(i) {
+  document.querySelectorAll(".lscene").forEach(el => el.classList.toggle("cur", +el.dataset.i === i));
+}
+function lbShowCard(i, animate) {
+  const c = TASKS[S.t].lesson.cards[i]; if (!c) return;
+  if (c.board) lbApply(c.board, animate !== false);
+  LB.cur = i; lbMark(i);
+  const el = document.querySelector('.lscene[data-i="' + i + '"]');
+  if (el) { try { el.scrollIntoView({ behavior: "smooth", block: "nearest" }); } catch (e) {} }
+}
+/* Произносит карточку голосом браузера и вызывает done, когда договорил. Если голоса нет или говорит живой Листик, ждёт по времени чтения. */
+function lbSay(text, done) {
+  const t = spokenMath(plain(text));
+  if (!TTS.ok || !TTS.on || VOICE.quiet || VOICE.active) { setTimeout(done, 700 + t.length * 45); return; }
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(t);
+    u.lang = "ru-RU"; if (TTS.voice) u.voice = TTS.voice;
+    u.rate = 0.95; u.pitch = 1.1;
+    let fin = false; const f = () => { if (!fin) { fin = true; done(); } };
+    u.onend = f; u.onerror = f;
+    speechSynthesis.speak(u);
+    setTimeout(f, 5000 + t.length * 120);
+  } catch (e) { done(); }
+}
+function lbPlayAll() {
+  const cards = TASKS[S.t].lesson.cards;
+  stopSpeech();
+  const my = ++LB.token;
+  let i = 0;
+  const next = () => {
+    if (my !== LB.token || S.stage !== "lesson" || i >= cards.length) return;
+    const k = i++;
+    lbShowCard(k);
+    lbSay(cards[k].text, () => { if (my === LB.token) setTimeout(next, 500); });
+  };
+  next();
+}
+function lbPlayOne(i) {
+  stopSpeech();
+  lbShowCard(i);
+  lbSay(TASKS[S.t].lesson.cards[i].text, () => {});
+}
+
+async function submit(answer, pickedIndex, ch) {
+  if (S.busy) return;
+  const my = S, T = TASKS[S.t], st = T.steps[S.s], stepNo = S.s;
+  S.busy = true; S.netMsg = ""; S.emptyMsg = false;
+  let r;
+  try { r = await api("/api/check", { task: T.id, step: stepNo, answer, ch: ch === "voice" ? "voice" : "tap" }); }
+  catch (e) { my.busy = false; my.netMsg = "Байланыс жоқ. Қайта көр."; VOICE.onResult({ kind: "error", msg: "нет связи с сервером" }); return S === my && render(); }
+  my.busy = false;
+  if (S !== my || my.s !== stepNo) { VOICE.onResult({ kind: "error", msg: "шаг уже сменился" }); return; }
+  if (r.status === 403 && r.data && r.data.error === "paid_only") { S = { view: "paywall", t: my.t }; return render(); }
+  if (r.status === 403 && r.data && r.data.error === "day_limit") { USAGE.studyLeft = 0; return endOfDay(); }
+  if (r.status === 429) { my.netMsg = "Қате әрекет тым көп. Бір минут күте тұр."; VOICE.onResult({ kind: "error", msg: "слишком много попыток, нужно подождать минуту" }); return render(); }
+  if (r.status !== 200 && r.status !== 423) { my.netMsg = "Бірдеңе дұрыс болмады. Бетті жаңарт."; VOICE.onResult({ kind: "error", msg: "ошибка сервера" }); return render(); }
+  const d = r.data;
+  if (d.quizDone) { S.quizSum = d.quizDone; if (!S.lvQz) { S.lvQz = 1; const myq = S; leavesLoad().then(() => { if (S === myq && S.view === "done") render(); }); } }
+  if (d.leaves) leavesApply(d.leaves);
+  if (d.correct) {
+    S.stage = "right"; S.okText = d.ok || "";
+    (S.oks = S.oks || {})[S.s] = S.okText;      // запоминаем, чтобы можно было вернуться на этот шаг
+    if (d.note) S.notes.push(d.note);
+    if (d.col) {                                  // цифры столбика на листочке
+      (S.cols = S.cols || {})[stepNo] = d.col;
+      S.colNew = {};
+      d.col.forEach(o => { if (o.d) S.colNew["d" + o.d[0]] = 1; if (o.c) S.colNew["c" + o.c[0]] = 1; if (o.t) S.colNew["t" + o.t[0]] = 1; });
+    } else S.colNew = {};
+    const am = /Ответ:\s*(.+)$/.exec(d.ok || "");
+    if (am) S.notes.push("Ответ: " + am[1]);
+    say((S.errors[S.s] || 0) > 0 ? "rightAfter" : "right", st.skill);
+    VOICE.onResult({ kind: "correct", ok: d.ok, note: d.note, say: d.say });
+  } else if (d.moveOn) {
+    S.stage = "right"; S.okText = T.quiz === "diag" ? "Жақсы, әрі қарай жүреміз." : "Ештеңе етпейді, әрі қарай жүреміз.";
+    (S.oks = S.oks || {})[S.s] = S.okText; (S.mv = S.mv || {})[S.s] = true;
+    VOICE.onResult({ kind: "moveon" });
+  } else if (r.status === 423) {
+    S.stage = "locked"; S.rule = d.rule;
+    VOICE.onResult({ kind: "locked", rule: d.rule });
+  } else {
+    S.errors[S.s] = (S.errors[S.s] || 0) + 1;
+    S.attempts = d.attempts; S.rule = d.rule; S.similar = d.similar || null;
+    if (d.tired) S.calm = d.tired;
+    if (pickedIndex !== undefined) S.wrong.push(pickedIndex);
+    if (st.type !== "explain") S.entry = freshEntry(st);
+    S.active = 0;
+    if (d.locked) { S.stage = "locked"; say("locked", st.skill); }
+    else say(S.attempts === 1 ? "wrong1" : "wrong2", st.skill);
+    VOICE.onResult({ kind: "wrong", attempts: d.attempts, rule: d.rule, similar: d.similar || null, locked: !!d.locked, tired: d.tired || null, say: d.say });
+  }
+  render();
+}
+
+function openAdult() { S.adultOpen = true; S.netMsg = ""; S.adultErr = false; render(); }
+
+async function unlock(value) {
+  if (S.busy) return;
+  const my = S, T = TASKS[S.t];
+  S.busy = true; S.netMsg = "";
+  let r;
+  try { r = await api("/api/unlock", { task: T.id, step: S.s, pin: value }); }
+  catch (e) { my.busy = false; my.netMsg = "Байланыс жоқ."; return S === my && render(); }
+  my.busy = false;
+  if (S !== my) return;
+  if (r.status === 403) { USER = null; my.netMsg = "Кабинеттен кіру мерзімі аяқталды. Басты бетке оралып, қайта кіріңіз."; }
+  else if (r.status === 429) my.adultErr = "limit";
+  else if (r.data && r.data.ok) { my.adultPassed = true; my.helped[my.s] = true; my.adultErr = false; my.adultAnswer = r.data.answer_text || null; }
+  else my.adultErr = true;
+  render();
+}
+
+function digit(d) {
+  if (S.entry[S.active].length >= 4) return;
+  S.entry[S.active] = S.entry[S.active] === "0" ? d : S.entry[S.active] + d;
+  S.emptyMsg = false;
+  render();
+}
+function backspace() {
+  S.entry[S.active] = S.entry[S.active].slice(0, -1);
+  render();
+}
+
+function checkTyped() {
+  const st = TASKS[S.t].steps[S.s];
+  const vals = S.entry.map(v => v === "" ? NaN : parseInt(v, 10));
+  if (vals.every(isNaN)) { S.emptyMsg = true; return render(); }
+  const missing = vals.findIndex(isNaN);
+  if (missing !== -1) { S.active = missing; S.emptyMsg = false; return render(); }
+  submit(st.type === "number" ? vals[0] : vals);
+}
+
+function nextStep() {
+  const T = TASKS[S.t];
+  if (vnext(T, S.s) < 0) {
+    S.view = "done"; S.voice = null;
+    refreshLocks();   // задача решена: обновляем замки, чтобы следующее упражнение раздела открылось
+    render();
+    say("done");
+    paintVoice();
+    VOICE.announce();
+    return;
+  }
+  stopSpeech();
+  S.s = vnext(T, S.s); S.attempts = 0; S.stage = "ask"; S.wrong = []; S.voice = null; S.calm = "";
+  S.entry = freshEntry(T.steps[S.s]); S.active = 0;
+  S.adultOpen = false; S.adultPassed = false; S.adultErr = false; S.emptyMsg = false;
+  S.rule = null; S.similar = null; S.okText = ""; S.netMsg = ""; S.adultAnswer = null;
+  if (S.oks && S.oks[S.s] !== undefined) { S.stage = "right"; S.okText = S.oks[S.s]; }   // шаг уже решён: показываем ответ, а не задаём заново
+  render();
+  VOICE.announce();
+}
+
+/* кнопка «Назад»: возвращает на предыдущий (уже решённый) шаг, где можно перечитать вопрос и ответ */
+function backBtn() {
+  const T = TASKS[S.t], p = vprev(T, S.s);
+  return p >= 0 ? '<button class="btn ghost small" data-action="prev">← Артқа, қадамға: ' + vpos(T, p) + '</button>' : '';
+}
+function prevStep() {
+  const T = TASKS[S.t];
+  if (S.busy || vprev(T, S.s) < 0) return;
+  stopSpeech();
+  S.s = vprev(T, S.s); S.attempts = 0; S.wrong = []; S.voice = null; S.calm = "";
+  S.entry = freshEntry(T.steps[S.s]); S.active = 0;
+  S.adultOpen = false; S.adultPassed = false; S.adultErr = false; S.emptyMsg = false;
+  S.rule = null; S.similar = null; S.netMsg = ""; S.adultAnswer = null;
+  S.stage = "right"; S.okText = (S.oks && S.oks[S.s]) || "";
+  render();
+}
+
+function renderQuizDone() {
+  const T = TASKS[S.t], q = S.quizSum || { ok: 0, total: T.steps.length, weak: [], strong: [] };
+  let h = lessonHeader(T, T.steps.length, true);
+  h += '<div class="lesson"><section class="lcol"><div id="voiceslot">' + voiceHTML() + '</div><div class="sum"><h2>' + (T.quiz === "diag" ? "Таныстық!" : "Жылыту дайын!") + '</h2>';
+  h += '<p>Бірден шықты: <b>' + q.ok + ' / ' + q.total + '</b>.</p>';
+  if (q.strong.length) h += '<p><b>Жақсы шығады:</b> ' + q.strong.join(", ") + '.</p>';
+  if (q.weak.length) h += '<p><b>Жаттығамыз:</b> ' + q.weak.join(", ") + '. Листик бұған келесі күндері қайта оралады.</p>';
+  h += '<div class="row"><button class="btn" data-action="home">Жаттығуды таңдау</button></div></div></section></div>';
+  app.innerHTML = h;
+  window.scrollTo(0, 0);
+}
+function renderDone() {
+  if (TASKS[S.t].quiz) return renderQuizDone();
+  const T = TASKS[S.t];
+  const clean = new Set(), hard = new Set(), repeat = new Set();
+  let firstTry = 0;
+  T.steps.forEach((st, i) => {
+    if (st.skip) return;
+    const e = S.errors[i] || 0;
+    if (e === 0 && !S.helped[i]) { firstTry++; clean.add(st.skill); }
+    if (e > 0) hard.add(st.skill);
+    if (e >= 2 || S.helped[i]) repeat.add(st.skill);
+  });
+  hard.forEach(x => clean.delete(x));
+  const list = s => Array.from(s).join(", ");
+  let h = lessonHeader(T, T.steps.length, true);
+  h += '<div class="lesson"><section class="lcol">';
+  h += '<div id="voiceslot">' + voiceHTML() + '</div>';
+  h += '<div class="sum"><h2>Сабақ қорытындысы</h2>';
+  h += '<p>Бірінші реттен шыққан қадамдар: <b>' + firstTry + ' / ' + visIdx(T).length + '</b>.</p>';
+  h += '<p><b>Өзі істей алды:</b> ' + (clean.size ? list(clean) : 'бұл жолы бәрі қиын болды, бұл қалыпты') + '.</p>';
+  h += '<p><b>Қиын болды:</b> ' + (hard.size ? list(hard) : 'ештеңе жоқ, қадамдар тегіс өтті') + '.</p>';
+  h += '<p><b>Қайталаған жөн:</b> ' + (repeat.size ? list(repeat) : 'әзірге ештеңе жоқ, келесі есепті алуға болады') + '.</p>';
+  h += lvDoneHTML();
+  h += '<div class="row">' +
+    (QPOS >= 0 && QPOS < QUEUE.length - 1
+      ? '<button class="btn" data-action="start" data-i="' + QUEUE[QPOS + 1] + '">Келесі есеп</button>'
+      : (QPOS >= 0 ? '<a class="btn" href="' + (listHref() || 'start.html') + '" style="text-decoration:none;display:inline-flex;align-items:center">Бөлім өтілді. Басқасын таңдау</a>' : '<button class="btn" data-action="home">Есептер тізіміне</button>')) +
+    (QPOS >= 0 ? '<button class="btn ghost" data-action="' + (listHref() ? 'list' : 'home') + '">Есептер тізіміне</button>' : '') +
+    '<button class="btn ghost" data-action="start" data-i="' + S.t + '">Қайта шешу</button></div></div></section>' + notebookAside(T, true) + '</div>';
+  app.innerHTML = h;
+  window.scrollTo(0, 0);
+}
+
+function readNum(id) {
+  const el = document.getElementById(id);
+  if (!el) return NaN;
+  const v = el.value.replace(/\s+/g, "");
+  return /^\d+$/.test(v) ? parseInt(v, 10) : NaN;
+}
+
+app.addEventListener("click", e => {
+  const b = e.target.closest("[data-action]");
+  if (!b) return;
+  const a = b.dataset.action;
+  if (a === "start") return startTask(+b.dataset.i);
+  if (a === "quiz") return startQuiz(b.dataset.k === "warm" ? "warm" : "diag");
+  if (a === "quiz-later") { OFFER.diag = false; call("/api/quiz/later", {}); return render(); }
+  if (a === "sec") { HOME.open[b.dataset.s] = !HOME.open[b.dataset.s]; return paintCat(); }
+  if (a === "view") { HOME.view = b.dataset.v; try { localStorage.setItem("lk_view2", HOME.view); } catch (e) {} return paintCat(); }
+  if (a === "list" && listHref()) { stopSpeech(); VOICE.stop(null, true); location.href = listHref(); return; }
+  if (a === "home" || a === "list") { leavesLoad().then(() => { if (S && S.view === "home") render(); }); stopSpeech(); VOICE.stop(null, true); if (S.view === "cabinet" && USER) call("/api/parent/leave", {}); S = { view: "home" }; render(); loadOffer().then(() => { if (S.view === "home") render(); }); return; }
+  if (a === "auth") { S = { view: "auth", mode: b.dataset.mode || "login", err: "", form: S.form }; return render(); }
+  if (a === "showpw") { ["fPass", "fPass2"].forEach(id => { const el = document.getElementById(id); if (el) el.type = b.checked ? "text" : "password"; }); return; }
+  if (a === "cab-tab") { S.tab = b.dataset.tab; S.err = ""; return render(); }
+  if (a === "forgot") { S = { view: "forgot", err: "", form: S.form }; return render(); }
+  if (a === "verify-resend") return doVerifyResend();
+  if (a === "forgot-send") return doForgot();
+  if (a === "reset-send") return doReset();
+  if (a === "login") return doAuth("login");
+  if (a === "register") return doAuth("register");
+  if (a === "cab-open") { if (!USER) { S = { view: "auth", mode: "login", err: "" }; return render(); } S = { view: "pin" }; return render(); }
+  if (a === "pin-enter") return doPinEnter();
+  if (a === "pin-forgot") { S = { view: "pinreset" }; return render(); }
+  if (a === "pin-reset") return doPinChange(false);
+  if (a === "cab-pin") return doPinChange(true);
+  if (a === "cab-child") return doChild();
+  if (a === "logout") { try{localStorage.removeItem("listik_in")}catch(e){} call("/api/logout", {}).then(reloadTasks).then(() => { if (S.view === "home") render(); }); USER = null; S = { view: "home", flash: "Сіз кабинеттен шықтыңыз." }; return render(); }
+  if (a === "ttstoggle") { TTS.on = !TTS.on; if (!TTS.on) stopSpeech(); return render(); }
+  if (a === "voicetoggle") { if (VOICE.active || VOICE.connecting) VOICE.stop(); else VOICE.start(); return; }
+  if (a === "readq") { if (VOICE.quiet) return; if (!VOICE.active && VOICE.available && !VOICE.err) { VOICE.start(); return; } if (VOICE.active) { VOICE.interrupt(); if (VOICE.fast && S.view === "task" && S.stage === "ask" && VOICE.fastAsk(true)) return; return VOICE.tell("[Программа] Ребёнок просит повторить вопрос. Прочитай текущий вопрос ещё раз вслух."); } const q = TASKS[S.t].steps[S.s].q; return speak(spokenMath(q), true); }
+  if (a === "aitoggle") { AI.on = !AI.on; return render(); }
+  if (a === "pick") { const i = +b.dataset.i; return submit(i, i); }
+  if (a === "digit") return digit(b.dataset.d);
+  if (a === "back") return backspace();
+  if (a === "focus") { S.active = +b.dataset.i; return render(); }
+  if (a === "check") return checkTyped();
+  if (a === "explain-send") {
+    const el = document.getElementById("exin"), txt = ((el && el.value) || S.entry[0] || "").trim();
+    S.entry[0] = txt;
+    if (txt.length < 3) { S.netMsg = "Кемінде бір-екі сөз жаз немесе айт."; return render(); }
+    S.netMsg = "";
+    return submit(txt);
+  }
+  if (a === "lnext" || a === "lprev") { stopSpeech(); S.lc += a === "lnext" ? 1 : -1; render(); VOICE.announce(true); return; }
+  if (a === "lstart") { stopSpeech(); S.stage = "ask"; S.lc = 0; render(); VOICE.announce(); return; }
+  if (a === "lplay") return lbPlayAll();
+  if (a === "lshow") return lbPlayOne(+b.dataset.i);
+  if (a === "readlesson") { if (VOICE.quiet) return;
+    const cards = TASKS[S.t].lesson.cards;
+    if (!VOICE.active && VOICE.available && !VOICE.err) { VOICE.start(); return; }
+    if (VOICE.active) { VOICE.interrupt(); return VOICE.tell("[Программа] Ребёнок просит прочитать урок ещё раз. Прочитай весь урок вслух дословно, подряд, без пауз и вопросов: " + cards.map(c => vsay(c.text)).join(" ")); }
+    return speak(spokenMath(cards.map(c => plain(c.text)).join(" ")), true);
+  }
+  if (a === "goal-open") { S = { view: "goal" }; return render(); }
+  if (a === "goal-back") { S = { view: "home" }; return render(); }
+  if (a === "goal-pick") return pickGoal(b.dataset.id);
+  if (a === "next") return nextStep();
+  if (a === "prev") return prevStep();
+  if (a === "adult") return openAdult();
+  if (a === "adultcheck") {
+    return unlock(val("adultIn").trim());
+  }
+  if (a === "retry") {
+    const st = TASKS[S.t].steps[S.s];
+    S.stage = "ask"; S.attempts = 2; S.wrong = []; S.adultOpen = false; S.adultPassed = false;
+    S.entry = freshEntry(st); S.active = 0; S.netMsg = "";
+    say("retry", st.skill);
+    render();
+    VOICE.announce(true);
+    return;
+  }
+});
+
+/* цифры с обычной клавиатуры (на компьютере) */
+app.addEventListener("input", e => {
+  if (e.target && e.target.id === "catq") { HOME.q = e.target.value; paintCat(); }
+  if (e.target && e.target.id === "exin" && S && S.entry) S.entry[0] = e.target.value;
+});
+app.addEventListener("keydown", e => {
+  if (e.key === "Enter" && e.target && e.target.id === "catq") {
+    const first = document.querySelector("#catlist [data-action=start]"); if (first) startTask(+first.dataset.i);
+  }
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Enter" && e.target && e.target.dataset && (e.target.dataset.enter || e.target.id === "adultIn")) {
+    const btn = app.querySelector('[data-action="' + (e.target.dataset.enter || "adultcheck") + '"]'); if (btn) btn.click(); return;
+  }
+  if (!S || S.view !== "task" || S.stage !== "ask") return;
+  const st = TASKS[S.t].steps[S.s];
+  if (st.type === "choice" || st.type === "explain") return;
+  if (e.target && e.target.tagName === "INPUT") return;
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (/^\d$/.test(e.key)) { digit(e.key); e.preventDefault(); }
+  else if (e.key === "Backspace") { backspace(); e.preventDefault(); }
+  else if (e.key === "Enter" && !(e.target && e.target.tagName === "BUTTON")) { checkTyped(); e.preventDefault(); }
+  else if (st.type === "pair" && (e.key === "ArrowRight" || e.key === "ArrowLeft")) {
+    S.active = (S.active + 1) % st.fields.length; render(); e.preventDefault();
+  }
+});
+
+/* ============================================================
+   ЖИВОЙ ГОЛОС (дешёвая схема: браузер записывает речь ребёнка, сервер распознаёт её,
+   текстовая модель отвечает, сервер озвучивает ответ; версия на Realtime: listik.realtime.html).
+   Ребёнок говорит, Листик отвечает голосом. Правильность ответа,
+   как и раньше, проверяет СЕРВЕР (/api/check): модель правильных
+   ответов не знает, она получает от сервера только «верно / неверно»,
+   правило и подсказку и пересказывает их ребёнку.
+   ============================================================ */
+const VOICE = {
+  available: false, active: false, connecting: false, quiet: false, err: "",
+  sid: null, ac: null, node: null, stream: null, player: null, playing: false, listening: false, vad: null,
+  inFlight: false, queue: [], pending: null, adv: "none", advTimer: null, maxTimer: null, epoch: 0, pl: null, rd: null,
+  state: "idle", heard: "", greeted: false
+};
+const VOICE_SILENCE = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAABErAAABAAgAZGF0YQAAAAA=";
+const VOICE_WORKLET = "class Tap extends AudioWorkletProcessor{process(i){const c=i[0]&&i[0][0];if(c)this.port.postMessage(c.slice(0));return true;}}registerProcessor('tap',Tap);";
+const VOICE_LABEL = { connecting: "Қосылып жатырмын…", listen: "Тыңдап тұрмын", think: "Листик ойланып жатыр…", speak: "Листик сөйлеп тұр" };
+function plain(s) { return String(s == null ? "" : s).replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim(); }
+
+/* Знаки -> слова для озвучки: «7 · 4» читается как «7 умножить на 4» (модель сама знаки пропускает) */
+// voiceMath:start
+function voiceMath(s) {
+  return String(s)
+    .replace(/(?<=[\d)□])\s:\s(?=[\d(□])/g, " разделить на ")
+    .replace(/(?<=[\d)□])\s*[−–]\s*(?=[\d(□])/g, " минус ")
+    .replace(/(?<=[\d)□]) - (?=[\d(□])/g, " минус ")
+    .replace(/\s*[·×*]\s*/g, " умножить на ")
+    .replace(/\s*\+\s*/g, " плюс ")
+    .replace(/\s*=\s*/g, " равно ")
+    .replace(/\s*>\s*/g, " больше ").replace(/\s*<\s*/g, " меньше ")
+    .replace(/\(/g, " открываем скобку ").replace(/\)/g, " закрываем скобку ")
+    .replace(/□/g, " окошко ")
+    .replace(/(?<=\s)\?(?=\s|$)/g, "какое-то число")
+    .replace(/\bx\b/gi, " икс ")
+    .replace(/ост\./g, "остаток")
+    .replace(/\s+/g, " ").trim();
+}
+// voiceMath:end
+function vsay(s) { return voiceMath(plain(s)); }
+
+function voiceBtn() {
+  if (!VOICE.available || VOICE.quiet) return "";
+  const on = VOICE.active || VOICE.connecting;
+  return '<button class="vbtn' + (on ? ' on' : '') + '" data-action="voicetoggle" aria-pressed="' + on + '" title="Листик сұрақтарды дауыстап оқиды және жауапты тыңдайды">🎤 Дауыс</button>';
+}
+function voiceStatusHTML() {
+  let h = "";
+  if (VOICE.err) h += '<div class="vpill bad" role="alert">' + esc(VOICE.err) + '</div>';
+  if (VOICE.active || VOICE.connecting) {
+    const label = VOICE_LABEL[VOICE.connecting ? "connecting" : VOICE.state] || "";
+    h += '<div class="vpill ' + VOICE.state + '" role="status"><span class="vdot"></span>' + label +
+      (VOICE.heard ? ' · Мен естідім: «' + esc(VOICE.heard) + '»' : '') + '</div>';
+  } else if (VOICE.quiet && VOICE.available && S && (S.view === "task" || S.view === "done")) {
+    h += '<div class="vpill quiet" role="status">🔇 ' + QUIET_NOTE + '</div>';
+  }
+  return h;
+}
+
+Object.assign(VOICE, {
+  setState(state, heard) {
+    if (state) this.state = state;
+    if (heard !== undefined) this.heard = heard;
+    paintVoice();
+  },
+
+  async start() {
+    if (this.active || this.connecting) return;
+    this.connecting = true; this.err = ""; this.state = "think"; this.heard = "";
+    stopSpeech(); render();
+    try {
+      // проигрыватель «разблокируется» нажатием кнопки (иначе Safari и телефоны не дадут играть звук)
+      this.player = new Audio(VOICE_SILENCE);
+      this.player.play().catch(() => {});
+      await this.openMic();
+      const r = await api("/api/voice/session", {});
+      if (r.status === 403 && r.data && r.data.error === "voice_limit") { this.teardown(); enterQuiet(); return; }
+      if (r.status === 403 && r.data && r.data.error === "day_limit") { this.teardown(); USAGE.studyLeft = 0; endOfDay(); return; }
+      if (r.status === 401) throw new Error("Листикпен дауыспен сөйлесу үшін ата-ана кабинетіне кіріңіз.");
+      if (r.status === 429) throw new Error("Дауыс тым жиі қосылды. Сәл күте тұр.");
+      if (r.status !== 200 || !r.data.sid) throw new Error("Дауыс қазір қолжетімсіз. Түймелермен жауап беруге болады.");
+      this.sid = r.data.sid;
+      this.fast = r.data.fast || null; if (this.fast) this.prefetch();
+      this.active = true; this.connecting = false; this.state = "think";
+      this.announce(); render();
+    } catch (e) {
+      const msg = e && e.name === "NotAllowedError" ? "Микрофонды қосу мүмкін болмады. Браузер баптауларында оған рұқсат бер."
+        : (e && e.message) || "Дауысты қосу мүмкін болмады.";
+      this.teardown(); this.err = msg; render();
+    }
+  },
+
+  /* микрофон: звук кусочками, по паузе определяем, что ребёнок договорил */
+  async openMic() {
+    this.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 } });
+    const AC = window.AudioContext || window.webkitAudioContext;
+    this.ac = new AC(); await this.ac.resume();
+    await this.ac.audioWorklet.addModule(URL.createObjectURL(new Blob([VOICE_WORKLET], { type: "application/javascript" })));
+    const src = this.ac.createMediaStreamSource(this.stream);
+    this.node = new AudioWorkletNode(this.ac, "tap");
+    this.node.port.onmessage = e => this.onChunk(e.data);
+    const mute = this.ac.createGain(); mute.gain.value = 0;
+    src.connect(this.node); this.node.connect(mute); mute.connect(this.ac.destination);
+    this.vad = { thr: 0.02, calibMs: 0, calibSum: 0, calibN: 0, calibDone: false };
+    this.resetVad();
+  },
+  resetVad() { Object.assign(this.vad, { pre: [], preSamples: 0, speaking: false, voicedMs: 0, silenceMs: 0, buf: [], totalMs: 0 }); },
+  armMic() {
+    if (!this.active || this.inFlight || this.playing || !this.vad) return;
+    this.resetVad(); this.listening = true; this.setState("listen");
+  },
+  onChunk(f32) {
+    const v = this.vad; if (!v || !this.ac) return;
+    const sr = this.ac.sampleRate, ms = f32.length / sr * 1000;
+    let sum = 0; for (let i = 0; i < f32.length; i++) sum += f32[i] * f32[i];
+    const rms = Math.sqrt(sum / f32.length);
+    // первые полсекунды слушаем фоновый шум и ставим порог чуть выше него
+    if (!v.calibDone) {
+      v.calibMs += ms; v.calibSum += rms; v.calibN++;
+      if (v.calibMs >= 500) { v.thr = Math.min(0.08, Math.max(0.015, v.calibSum / v.calibN * 3 + 0.005)); v.calibDone = true; }
+    }
+    if (!this.listening) return;
+    if (!v.speaking) {
+      v.pre.push(f32); v.preSamples += f32.length;
+      while (v.preSamples > sr * 0.3 && v.pre.length > 1) v.preSamples -= v.pre.shift().length;
+      if (rms > v.thr) {
+        v.voicedMs += ms;
+        if (v.voicedMs >= 120) {
+          v.speaking = true; v.buf = v.pre.slice(); v.pre = []; v.preSamples = 0; v.silenceMs = 0;
+          v.totalMs = v.buf.reduce((a, c) => a + c.length, 0) / sr * 1000;
+          this.setState("listen");
+        }
+      } else v.voicedMs = 0;
+    } else {
+      v.buf.push(f32); v.totalMs += ms;
+      if (rms > v.thr) v.silenceMs = 0; else v.silenceMs += ms;
+      // договорил: пауза больше 1,1 секунды или набралось 27 секунд (предел распознавания)
+      if (v.silenceMs >= 1100 || v.totalMs >= 15000) {
+        const speechMs = v.totalMs - v.silenceMs, chunks = v.buf;
+        this.listening = false; this.resetVad();
+        if (speechMs < 300) this.armMic(); else this.utterance(chunks);
+      }
+    }
+  },
+  utterance(chunks) {
+    let total = 0; for (const c of chunks) total += c.length;
+    const all = new Float32Array(total); let o = 0;
+    for (const c of chunks) { all.set(c, o); o += c.length; }
+    const ratio = this.ac.sampleRate / 16000, n = Math.floor(total / ratio), pcm = new Int16Array(n);
+    for (let i = 0; i < n; i++) {   // звук -> 16 кГц, 16 бит, моно
+      const a = Math.floor(i * ratio), b = Math.max(a + 1, Math.min(total, Math.floor((i + 1) * ratio)));
+      let s = 0; for (let j = a; j < b; j++) s += all[j];
+      const x = Math.max(-1, Math.min(1, s / (b - a)));
+      pcm[i] = x < 0 ? x * 32768 : x * 32767;
+    }
+    const u8 = new Uint8Array(pcm.buffer); let bin = "";
+    for (let i = 0; i < u8.length; i += 0x8000) bin += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+    this.exchange(this.withFast({ audio: btoa(bin) }));
+  },
+
+  teardown() {
+    try { this.node && this.node.disconnect(); } catch (e) {}
+    try { this.stream && this.stream.getTracks().forEach(t => t.stop()); } catch (e) {}
+    try { this.ac && this.ac.close(); } catch (e) {}
+    try { this.player && this.player.pause(); } catch (e) {}
+    try { this.pl && this.pl.cancel(); } catch (e) {}
+    try { this.rd && this.rd.cancel(); } catch (e) {}
+    this.pl = this.rd = null;
+    clearTimeout(this.advTimer); clearTimeout(this.maxTimer);
+    this.sid = this.ac = this.node = this.stream = this.player = this.vad = null;
+    this.active = false; this.connecting = false; this.inFlight = false; this.playing = false; this.listening = false;
+    this.queue = []; this.pending = null; this.adv = "none"; this.state = "idle"; this.heard = ""; this.greeted = false;
+    this.fast = null; this.fastTok = (this.fastTok || 0) + 1;
+  },
+  stop(msg, silent) {
+    this.teardown(); this.err = msg || "";
+    if (!silent) render();
+  },
+
+  /* Оборвать речь Листика: ребёнок перешёл на другой шаг, и старая реплика больше не нужна.
+     Реплики, которые ещё в пути от сервера, помечаются устаревшими (epoch) и не озвучиваются. */
+  interrupt() {
+    this.epoch++;
+    clearTimeout(this.advTimer); this.adv = "none";
+    try { if (this.player) { this.player.onended = null; this.player.onerror = null; this.player.pause(); } } catch (e) {}
+    try { if (this.pl) this.pl.cancel(); } catch (e) {}
+    try { if (this.rd) this.rd.cancel(); } catch (e) {}     // обрываем поток с сервера: новые фразы не нужны
+  },
+  /* очередь фраз: играем по одной, по мере прихода с сервера; finished — когда всё проиграно (или оборвали) */
+  makePlayback() {
+    const V = this, q = []; let ended = false, playing = false, cancelled = false, started = false, over = false, resolveFin;
+    const finished = new Promise(r => { resolveFin = r; });
+    const fin = () => { if (over) return; over = true; if (V.pl === pb) V.pl = null; resolveFin(); };
+    const next = () => {
+      if (cancelled) return;
+      if (!q.length) { playing = false; if (ended) fin(); return; }
+      playing = true;
+      const it = q.shift(), p = V.player; let called = false;
+      const once = () => { if (called) return; called = true; next(); };
+      if (!p) return once();
+      p.onended = once; p.onerror = once;
+      p.src = it.url || ("data:" + (it.mime || "audio/mpeg") + ";base64," + it.b64);
+      p.play().catch(once);
+    };
+    const pb = {
+      finished,
+      get started() { return started; },
+      push(mime, b64, url) {
+        if (cancelled || (!b64 && !url)) return;
+        q.push({ mime, b64, url });
+        if (!started) { started = true; V.playing = true; V.setState("speak"); }
+        if (!playing) next();
+      },
+      end() { ended = true; if (!playing && !q.length) fin(); },
+      cancel() { cancelled = true; q.length = 0; if (V.pl === pb) V.playing = false; fin(); }
+    };
+    this.pl = pb;
+    return pb;
+  },
+  /* один запрос «ход»: сервер присылает фразы по мере готовности (stream), браузер сразу начинает играть первую */
+  async turn(payload, ep) {
+    const pb = this.makePlayback();
+    const res = await fetch("/api/voice/turn", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(Object.assign({ session: SESSION, stream: true }, payload)) });
+    const ct = res.headers.get("content-type") || "";
+    const show = text => { if (ep === this.epoch && S) { vid = vid || ++voiceSeq; S.voice = { id: vid, text, loading: false }; paintVoice(); } };
+    let vid = 0;
+    if (res.status !== 200 || ct.indexOf("ndjson") < 0) {       // ошибка или прежний ответ одним куском
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 200 && data.audio) pb.push(data.mime, data.audio);
+      if (res.status === 200 && data.reply) show(data.reply);
+      pb.end();
+      return { status: res.status, data, pb };
+    }
+    const rd = res.body.getReader(); this.rd = rd;
+    if (ep !== this.epoch) { try { rd.cancel(); } catch (e) {} }
+    const dec = new TextDecoder(); let buf = "", err = null;
+    const data = { heard: "", calls: null, reply: "" };
+    const handle = o => {
+      if (o.heard !== undefined) data.heard = o.heard;
+      else if (o.calls) data.calls = o.calls;
+      else if (o.error) err = o;
+      else if (o.text !== undefined) {
+        data.reply += (data.reply ? " " : "") + o.text; show(data.reply);
+        if (o.audio) pb.push(o.mime, o.audio);
+      }
+    };
+    try {
+      for (;;) {
+        const x = await rd.read(); if (x.done) break;
+        buf += dec.decode(x.value, { stream: true });
+        let i; while ((i = buf.indexOf("\n")) >= 0) {
+          const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
+          if (line) { try { handle(JSON.parse(line)); } catch (e) {} }
+        }
+      }
+    } catch (e) { if (ep === this.epoch) { pb.cancel(); throw e; } }
+    if (this.rd === rd) this.rd = null;
+    pb.end();
+    if (err && !pb.started) return { status: 502, data: { error: err.error, stage: err.stage }, pb };
+    return { status: 200, data, pb };
+  },
+  tell(t) { if (!this.active) return; this.queue.push(t); this.flush(); },
+  flush() {
+    if (!this.active || this.inFlight || this.playing || !this.queue.length) return;
+    this.exchange({ tell: this.queue.splice(0) });
+  },
+
+  /* что происходит на экране -> сообщение для Листика */
+  announce(retry) {
+    if (!this.active) return;
+    this.interrupt();
+    if (this.fast && S.view === "task" && S.stage === "ask" && this.fastAsk(false)) return;
+    if (S.view === "task" && S.stage === "lesson") this.tell(this.lessonText(retry));
+    else if (S.view === "task" && S.stage === "ask") this.tell(this.stepText(retry));
+    else if (S.view === "done") this.tell(this.doneText());
+  },
+  stepText(retry) {
+    const T = TASKS[S.t], st = T.steps[S.s], n = visIdx(T).length;
+    let t = (T.quiz ? "[Программа] Это быстрые вопросы (" + (T.quiz === "diag" ? "знакомство" : "разминка") + "), а не обычная задача." + (T.quiz === "diag" ? " Ничего не подсказывай и не объясняй: программа так узнаёт, что ребёнок уже умеет. Задавай вопросы по очереди." : "") : "[Программа] Задача №" + T.no + ". Условие: " + vsay(T.condition) + ".") + " Сейчас шаг " + vpos(T, S.s) + " / " + n + ". Вопрос (уже подготовлен для чтения вслух): " + vsay(st.q) + ". ";
+    if (st.type === "choice") t += "Тип ответа: выбор варианта (передавай букву в поле choice). Варианты: " + st.options.map((o, i) => LETTERS[i] + ") " + vsay(o)).join("; ") + ". ";
+    else if (st.type === "explain") t += "Тип ответа: ребёнок объясняет своими словами. Выслушай и передай его слова дословно в поле text. Сам ничего не объясняй и не подсказывай, ответ не называй. ";
+    else if (st.type === "pair") t += "Тип ответа: " + st.fields.length + " числа по порядку (поле values): " + st.fields.map(f => vsay(f)).join(", ") + ". ";
+    else t += "Тип ответа: одно целое число (поле number). ";
+    if (retry === "ctx") t += "Этот вопрос ребёнку уже озвучен готовой записью, заново его не читай. Выслушай ребёнка и действуй по правилам.";
+    else if (retry) t += "Взрослый помог, ребёнок пробует этот шаг ещё раз. Ободри его и повтори вопрос.";
+    else if (!this.greeted) { this.greeted = true; t += "Это начало занятия: коротко поздоровайся (ты Листик), прочитай ребёнку вопрос вслух дословно и жди ответ голосом."; }
+    else t += "Прочитай ребёнку вопрос вслух дословно и жди ответ голосом.";
+    return t.replace(/([.?!])\./g, "$1");
+  },
+  lessonText(again) {
+    const T = TASKS[S.t], L = T.lesson;
+    let t = "[Программа] Мини-урок «" + vsay(L.title) + "». Прочитай ребёнку весь урок вслух дословно, подряд, одним рассказом, без пауз и без вопросов. Текст: " + L.cards.map(c => vsay(c.text)).join(" ") + " ";
+    t += "Картинки на экране не описывай, ничего не добавляй от себя и не называй результатов, которых нет в тексте. Когда дочитаешь, скажи только: «Теперь нажми «Решать задачу»», и замолчи. Если ребёнок просит повторить, прочитай ещё раз дословно. ";
+    if (!this.greeted) { this.greeted = true; t += "Это начало занятия: сначала коротко поздоровайся (ты Листик)."; }
+    return t.replace(/([.?!])\./g, "$1");
+  },
+  doneText() {
+    const T = TASKS[S.t];
+    if (T.quiz) {
+      const q = S.quizSum || { ok: 0, total: T.steps.length, weak: [], strong: [] };
+      return "[Программа] " + (T.quiz === "diag" ? "Знакомство закончено" : "Разминка закончена") + ". Сразу получилось " + q.ok + " / " + q.total + ". Хорошо получается: " + (q.strong.length ? q.strong.join(", ") : "пока рано говорить") +
+        ". Потренируем: " + (q.weak.length ? q.weak.join(", ") : "ничего") + ". Скажи в двух коротких предложениях, что получилось хорошо, и что Листик вернётся к трудному в ближайшие дни. Предложи выбрать упражнение. Не называй проценты.";
+    }
+    let first = 0; const hard = new Set();
+    T.steps.forEach((st, i) => { const e = S.errors[i] || 0; if (e === 0 && !S.helped[i]) first++; if (e > 0) hard.add(plain(st.skill)); });
+    return "[Программа] Задача решена. С первого раза получилось " + first + " / " + visIdx(T).length + ". Было трудно: " + (hard.size ? [...hard].join(", ") : "ничего") +
+      ". Подведи итог в 2–3 коротких предложениях: что получилось само, что стоит повторить. Скажи, что можно нажать «Следующая задача» или сделать перерыв.";
+  },
+
+  /* один обмен с сервером: отправили, что случилось; получили вызов проверки или реплику */
+  async exchange(first) {
+    if (!this.active) return;
+    this.inFlight = true; this.listening = false; this.setState("think");
+    const sid = this.sid;
+    let payload = first;
+    try {
+      for (let hop = 0; hop < 4; hop++) {
+        if (this.queue.length) payload = Object.assign({}, payload, { tell: (payload.tell || []).concat(this.queue.splice(0)) });
+        const ep = this.epoch;
+        const r = await this.turn(Object.assign({ sid }, payload), ep);
+        if (!this.active || this.sid !== sid) return;
+        if (r.status === 403 && r.data && r.data.error === "voice_limit") { enterQuiet(); return; }
+        if (r.status === 410) { this.stop("Дауыспен сабақ тым ұзаққа созылды. Қайта бастау үшін түймені бас."); return; }
+        if (r.status !== 200) throw new Error("голос: ответ " + r.status + " " + JSON.stringify(r.data));
+        const d = r.data;
+        if (d.heard) this.setState(null, String(d.heard).trim().slice(0, 120));
+        if (d.fast && d.intent === "repeat") {          // «повтори»: проигрываем вопрос ещё раз, модель не нужна
+          if (ep !== this.epoch) { this.inFlight = false; this.setState("listen"); this.flush(); this.armMic(); return; }
+          if (this.fastAsk(true)) return;
+          payload = { tell: ["[Программа] Ребёнок просит повторить вопрос. Прочитай текущий вопрос ещё раз вслух."] };
+          continue;
+        }
+        if (d.fast && d.calls && d.calls.length) {      // ответ понятен без модели: проверяем и играем готовую реплику
+          this.lastInfo = null;
+          let out = null;
+          for (const c of d.calls) {
+            if (ep !== this.epoch) { out = { error: "stale" }; break; }
+            try { out = await this.exec(c); } catch (e) { console.error(e); out = { error: "внутренняя ошибка" }; }
+          }
+          if (!this.active || this.sid !== sid) return;
+          if (ep !== this.epoch) { this.inFlight = false; this.setState("listen"); this.flush(); this.armMic(); return; }
+          const info = this.lastInfo; this.lastInfo = null;
+          if (this.adv === "queued") this.adv = "praising";
+          const ids = out && !out.error && info ? this.sayFor(info) : null;
+          if (ids && await this.fastSay(ids, ep)) return;
+          this.inFlight = true;                         // запасной путь: пусть ответит модель
+          payload = { tell: ["[Программа] Ребёнок ответил голосом. Результат проверки: " + JSON.stringify(out)] };
+          continue;
+        }
+        if (d.calls && d.calls.length) {
+          const outputs = [];
+          for (const c of d.calls) {
+            let out;
+            if (ep !== this.epoch) out = { error: "шаг уже сменился, этот ответ относился к прошлому шагу" };
+            else try { out = await this.exec(c); } catch (e) { console.error(e); out = { error: "внутренняя ошибка" }; }
+            outputs.push({ call_id: c.call_id, output: JSON.stringify(out) });
+          }
+          if (!this.active || this.sid !== sid) return;
+          if (this.adv === "queued") this.adv = "praising";
+          payload = { outputs };
+          continue;
+        }
+        if (this.err) { this.err = ""; paintVoice(); }
+        this.inFlight = false;
+        await this.playReply(d, ep, r.pb);
+        return;
+      }
+      this.inFlight = false; this.armMic(); this.flush();
+    } catch (e) {
+      console.error("[голос]", e);
+      this.inFlight = false;
+      if (!this.active || this.sid !== sid) return;
+      this.err = "Дауыспен бірдеңе дұрыс болмады. Тағы бір рет айт немесе түймелермен жауап бер.";
+      this.adv = "none"; paintVoice();
+      this.armMic(); this.flush();
+    }
+  },
+  async playReply(d, ep, pb) {
+    const stale = () => ep !== undefined && ep !== this.epoch;
+    if (stale()) {   // шаг сменился, пока шла реплика: молчим
+      if (pb) pb.cancel();
+      this.setState("listen"); this.flush(); this.armMic(); return;
+    }
+    if (pb && pb.started) {
+      await pb.finished;
+      if (this.pl === null || this.pl === pb) this.playing = false;
+      if (!this.active) return;
+      if (stale()) { this.setState("listen"); this.flush(); this.armMic(); return; }
+    }
+    this.setState("listen");
+    this.maybeAdvance(false);      // похвалу дочитали: переходим к следующему шагу
+    this.flush();                  // сообщения программы, пока мы говорили
+    this.armMic();
+  },
+
+  async exec(c) {
+    if (c.name !== "submit_answer") return { error: "неизвестная функция" };
+    let args = {};
+    try { args = JSON.parse(c.arguments || "{}"); } catch (e) { return { error: "не удалось прочитать ответ" }; }
+    if (S.view !== "task" || S.stage !== "ask" || S.busy) return { error: "Сейчас ответ принять нельзя: шаг не ждёт ответа.", stage: S.stage || S.view };
+    const st = TASKS[S.t].steps[S.s];
+    let answer, picked;
+    if (st.type === "explain") {
+      const tx = String(args.text || "").trim().slice(0, 400);
+      if (tx.length < 3) return { error: "Для этого шага нужны слова ребёнка в поле text." };
+      answer = tx;
+    } else if (st.type === "number") {
+      if (!Number.isInteger(args.number)) return { error: "Для этого шага нужно одно целое число (поле number)." };
+      answer = args.number;
+    } else if (st.type === "choice") {
+      const i = LETTERS.indexOf(String(args.choice || "").trim().toUpperCase());
+      if (i < 0 || i >= st.options.length) return { error: "Для этого шага нужна буква варианта (поле choice): " + LETTERS.slice(0, st.options.length).join(", ") };
+      answer = i; picked = i;
+    } else {
+      if (!Array.isArray(args.values) || args.values.length !== st.fields.length || !args.values.every(Number.isInteger))
+        return { error: "Для этого шага нужно " + st.fields.length + " целых числа по порядку (поле values): " + st.fields.map(plain).join(", ") };
+      answer = args.values;
+    }
+    return new Promise(resolve => {
+      const p = { resolve: v => { clearTimeout(timer); resolve(v); } };
+      const timer = setTimeout(() => { if (VOICE.pending === p) { VOICE.pending = null; resolve({ error: "проверка не ответила, попробуй ещё раз" }); } }, 10000);
+      VOICE.pending = p;
+      submit(answer, picked, "voice");
+    });
+  },
+
+  /* результат проверки от сервера (вызывается из submit) */
+  onResult(info) {
+    if (!this.active) return;
+    this.lastInfo = info;
+    let out;
+    if (info.kind === "correct") {
+      this.adv = "queued";
+      out = { result: "correct", message: vsay(info.ok), instruction: "Произнеси message дословно и добавь не больше пяти слов одобрения. Следующий вопрос не задавай: программа сама перейдёт к следующему шагу." };
+    } else if (info.kind === "wrong") {
+      out = { result: "wrong", attempt: info.attempts, max_attempts: 3, rule: vsay(info.rule), similar: info.similar ? vsay(info.similar) : null, locked: !!info.locked, tired: info.tired || null,
+        instruction: info.locked
+          ? "Скажи «Так бывает у всех. Можно сделать перерыв или позвать взрослого». Ничего не добавляй, ответ не называй."
+          : "Скажи «Пока не так», дословно прочитай rule (и similar, если он есть) и попроси попробовать ещё раз. Ничего не добавляй от себя, ответ не называй и за ребёнка не считай." };
+    } else if (info.kind === "moveon") {
+      this.adv = "queued";
+      out = { result: "move_on", instruction: "Скажи «Хорошо, идём дальше» или «Ничего страшного, идём дальше» и больше ничего. Ответ не называй и не объясняй. Программа сама перейдёт к следующему вопросу." };
+    } else if (info.kind === "locked") {
+      out = { result: "locked", locked: true, rule: vsay(info.rule), instruction: "Шаг заблокирован. Скажи «Так бывает у всех. Можно сделать перерыв или позвать взрослого». Ответ не называй." };
+    } else out = { error: info.msg || "ошибка" };
+    if (info.kind === "wrong" && info.tired && out.instruction && !out.locked)
+      out.instruction += info.tired === "break"
+        ? " Потом добавь одну добрую фразу: ты молодец, что стараешься, и можно сделать перерыв или выбрать задачу полегче."
+        : " Потом добавь одну добрую фразу: ты стараешься, и так бывает у всех. Говори спокойно и коротко.";
+    if (this.pending) { const p = this.pending; this.pending = null; p.resolve(out); }
+    else {
+      const msg = "[Программа] Ребёнок ответил на экране (кнопками). Результат проверки: " + JSON.stringify(out);
+      const ids = this.fast && info.kind !== "error" ? this.sayFor(info) : null;
+      if (ids) this.fastSay(ids, this.epoch).then(ok => { if (!ok) this.tell(msg); });
+      else this.tell(msg);
+    }
+  },
+  maybeAdvance(force) {
+    if (this.adv !== "praising") return;
+    if (this.inFlight && !force) return;
+    this.adv = "none"; clearTimeout(this.advTimer);
+    if (S.view === "task" && S.stage === "right") nextStep();
+  }
+});
+
+/* ---------- быстрый голос: готовые записи вместо «модель + озвучка» ----------
+   Вопрос шага, «верно», правило и подсказки под типичные ошибки написаны учителями и озвучены заранее (mp3 на сервере).
+   Ответ ребёнка сервер разбирает без модели (fastparse.js); если не уверен, отвечает модель, как раньше.
+   Если запись не загрузилась, тоже работает прежний путь. Выключатель на сервере: VOICE_FAST=0. */
+Object.assign(VOICE, {
+  fast: null, fastTok: 0, lastInfo: null, clipBlobs: new Map(), lastPick: {},
+  loadClip(id) {                       // -> Promise<адрес для проигрывателя | null>; повторные просьбы берут из памяти
+    if (!id) return Promise.resolve(null);
+    let p = this.clipBlobs.get(id);
+    if (!p) {
+      p = fetch("/clips/" + id + ".mp3").then(r => r.ok ? r.blob() : Promise.reject(new Error("clip " + r.status)))
+        .then(b => URL.createObjectURL(b)).catch(() => { this.clipBlobs.delete(id); return null; });
+      this.clipBlobs.set(id, p);
+    }
+    return p;
+  },
+  prefetch() {                         // заранее качаем общие фразы и вопросы текущей задачи (ответы и подсказки не качаем: в них есть решение)
+    if (!this.fast) return;
+    const ids = [];
+    Object.values(this.fast.clips || {}).forEach(a => (a || []).forEach(id => ids.push(id)));
+    try { TASKS[S.t].steps.forEach(st => { if (st.qc) ids.push(st.qc); }); } catch (e) {}
+    ids.forEach(id => this.loadClip(id));
+  },
+  pickClip(key) {                      // случайный вариант фразы, но не тот же, что в прошлый раз
+    const a = (this.fast && this.fast.clips && this.fast.clips[key]) || [];
+    if (!a.length) return null;
+    let id = a[Math.floor(Math.random() * a.length)];
+    if (a.length > 1 && id === this.lastPick[key]) id = a[(a.indexOf(id) + 1) % a.length];
+    this.lastPick[key] = id; return id;
+  },
+  /* что сказать после проверки ответа (номера клипов); null — готовой записи нет, пусть говорит модель */
+  sayFor(info) {
+    const say = (info.say || []).filter(Boolean);
+    if (info.kind === "correct") return say.length ? say : null;
+    if (info.kind === "moveon") { const m = this.pickClip("moveon"); return m ? [m] : null; }
+    if (info.kind === "locked") { const m = this.pickClip("locked"); return m ? [m] : null; }
+    if (info.kind === "wrong") {
+      if (info.locked) { const m = this.pickClip("locked"); return m ? [m] : null; }
+      const lead = this.pickClip("lead_wrong");
+      if (!say.length || !lead) return null;
+      const ids = [lead, ...say];
+      if (info.tired) { const t = this.pickClip(info.tired === "break" ? "tired_break" : "tired_ease"); if (t) ids.push(t); }
+      return ids;
+    }
+    return null;
+  },
+  /* сложить записи в очередь проигрывателя; все грузятся параллельно, играть начинаем с первой готовой */
+  async playClips(ids, ep) {
+    const loads = ids.map(id => this.loadClip(id));
+    const pb = this.makePlayback(); let ok = false;
+    for (const l of loads) {
+      const u = await l;
+      if (ep !== this.epoch || !this.active) { pb.cancel(); return { ok: false, stale: true }; }
+      if (u) { pb.push("audio/mpeg", null, u); ok = true; }
+      else if (!ok) { pb.cancel(); return { ok: false }; }   // первой записи нет: играть нечего, отдаём модели
+    }
+    pb.end();
+    return { ok: true, pb };
+  },
+  /* сказать записями и вернуться к слушанию; false — не получилось, надо делать по-старому */
+  async fastSay(ids, ep) {
+    const my = this.fastTok = (this.fastTok || 0) + 1;
+    this.inFlight = true; this.setState("think");
+    let r; try { r = await this.playClips(ids, ep); } catch (e) { r = { ok: false }; }
+    if (!this.active) return true;
+    if (this.fastTok !== my) { if (r.pb) r.pb.cancel(); return true; }      // уже началось другое: оно само всё доведёт
+    if (r.stale || ep !== this.epoch) { if (r.pb) r.pb.cancel(); this.inFlight = false; this.setState("listen"); this.flush(); this.armMic(); return true; }
+    if (!r.ok) { this.inFlight = false; return false; }
+    this.inFlight = false;
+    await this.playReply({}, ep, r.pb);
+    return true;
+  },
+  /* вопрос текущего шага из записи (в первый раз с приветствием). true — взялись, false — записи нет */
+  fastAsk(again) {
+    const st = TASKS[S.t].steps[S.s];
+    if (!this.fast || !st || !st.qc) return false;
+    const ids = [];
+    if (!this.greeted && !again) { this.greeted = true; const g = this.pickClip("greet"); if (g) ids.push(g); }
+    ids.push(st.qc);
+    this.prefetch();
+    this.fastSay(ids, this.epoch).then(ok => { if (!ok) { this.greeted = this.greeted; this.tell(this.stepText(false)); } });
+    return true;
+  },
+  /* что ждём от ребёнка на этом шаге: по этому сервер разбирает речь без модели */
+  fastSpec() {
+    if (!this.fast || !S || S.view !== "task" || S.stage !== "ask") return null;
+    const st = TASKS[S.t].steps[S.s];
+    if (!st) return null;
+    if (st.type === "number") return { type: "number" };
+    if (st.type === "pair" && st.fields) return { type: "pair", n: st.fields.length };
+    if (st.type === "choice" && st.options) return { type: "choice", options: st.options.map(o => plain(o)) };
+    return null;
+  },
+  withFast(p) {
+    const spec = this.fastSpec();
+    if (spec) { p.fast = spec; p.tell = [this.stepText("ctx")]; }     // контекст для модели на случай, если разбор не уверен
+    return p;
+  }
+});
+
+/* ---------- связь с сервером ---------- */
+const DATA_DIR = "/data/public/";
+function randomId() {
+  const a = new Uint8Array(16); crypto.getRandomValues(a);
+  return Array.from(a, x => x.toString(16).padStart(2, "0")).join("");
+}
+const SESSION = randomId();
+async function loadJSON(name) {
+  const res = await fetch(DATA_DIR + name, { cache: "no-cache" });
+  if (!res.ok) throw new Error(name + ": " + res.status);
+  return res.json();
+}
+async function api(path, payload) {
+  const res = payload
+    ? await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(Object.assign({ session: SESSION }, payload)) })
+    : await fetch(path, { cache: "no-cache" });
+  const data = await res.json().catch(() => ({}));
+  const KKMSG = {"PIN должен состоять из 4 цифр.": "PIN-код 4 саннан тұруы керек.", "Введите имя или псевдоним ребёнка (без фамилии).": "Баланың атын немесе лақап атын енгізіңіз (тегінсіз).", "Доступ к этому кабинету закрыт. Напишите нам в WhatsApp, мы поможем.": "Бұл кабинетке қолжетімділік жабылған. Бізге WhatsApp-қа жазыңыз, көмектесеміз.", "Не получилось создать кабинет. Возможно, этот адрес уже занят: попробуйте войти.": "Кабинет жасау мүмкін болмады. Бұл мекенжай бос емес болуы мүмкін: кіріп көріңіз.", "Неверный адрес или пароль.": "Мекенжай немесе құпиясөз дұрыс емес.", "Нужно согласиться с политикой конфиденциальности и пользовательским соглашением.": "Құпиялылық саясатымен және пайдаланушы келісімімен келісу қажет.", "Пароль должен быть не короче 8 символов.": "Құпиясөз кемінде 8 таңбадан тұруы керек.", "Почта ещё не подтверждена. Откройте ссылку из письма.": "Пошта әлі расталмаған. Хаттағы сілтемені ашыңыз.", "Почта уже подтверждена. Просто войдите в кабинет.": "Пошта расталған. Кабинетке жай ғана кіріңіз.", "Проверьте адрес почты.": "Пошта мекенжайын тексеріңіз.", "Регистрация новых кабинетов пока закрыта. Напишите нам в WhatsApp.": "Жаңа кабинеттерді тіркеу әзірге жабық. Бізге WhatsApp-қа жазыңыз.", "Ссылка устарела или не подходит. Войдите, и мы отправим новую.": "Сілтеменің мерзімі өткен немесе жарамсыз. Кіріңіз, біз жаңасын жібереміз.", "Ссылка устарела или уже использована. Запросите новую.": "Сілтеменің мерзімі өткен немесе қолданылып қойған. Жаңасын сұраңыз.", "Этот PIN слишком простой, его легко угадать. Выберите другой.": "Бұл PIN тым оңай, оны болжау оңай. Басқасын таңдаңыз."};
+  if (data && typeof data.message === "string" && KKMSG[data.message]) data.message = KKMSG[data.message];
+  return { status: res.status, data };
+}
+/* ---- время занятий: до 70 минут в день, голос до 30 минут; считает сервер ---- */
+const USAGE = { studyLeft: null, voiceLeft: null, studyMax: 4200, voiceMax: 1800, lastInput: Date.now() };
+const QUIET_NOTE = "Листиктің бүгінгі дауысы аяқталды. Листик үнсіз режимде жалғастырады: сұрақтарды өзің оқы, түймелермен жауап бер.";
+/* две полоски в шапке урока: сколько времени занятия и голоса уже использовано; текст — сколько осталось */
+function meterHTML(icon, label, left, max, off) {
+  const pct = max > 0 ? Math.max(0, Math.min(100, Math.round((max - left) / max * 100))) : 100;
+  const mins = Math.max(left > 0 ? 1 : 0, Math.ceil(left / 60));
+  const warn = !off && left <= 300;
+  return '<div class="meter' + (warn ? ' warn' : '') + (off ? ' off' : '') + '" role="progressbar" aria-label="' + label + '" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '">' +
+    '<span class="mi" aria-hidden="true">' + icon + '</span><span class="mbar"><i style="width:' + pct + '%"></i></span><span class="mtx">' + mins + ' мин</span></div>';
+}
+function limHTML() {
+  if (USAGE.studyLeft == null) return "";
+  return meterHTML("⏱", "Бүгінгі сабақ уақыты, қалғаны", USAGE.studyLeft, USAGE.studyMax, false);
+}
+function setUsage(d) {
+  if (!d || typeof d.studyLeft !== "number") return;
+  USAGE.studyLeft = d.studyLeft; USAGE.voiceLeft = d.voiceLeft; USAGE.studyMax = d.studyMax; USAGE.voiceMax = d.voiceMax;
+  if (USAGE.voiceLeft <= 0 && VOICE.available && !VOICE.quiet) enterQuiet();
+  if (USAGE.studyLeft <= 0 && S && (S.view === "task" || S.view === "done")) return endOfDay();
+  const el = document.getElementById("limbox"); if (el) el.innerHTML = limHTML();
+}
+function enterQuiet() {
+  VOICE.quiet = true; VOICE.err = "";
+  if (VOICE.active || VOICE.connecting) VOICE.stop(null, true);
+  stopSpeech();
+  if (S && (S.view === "task" || S.view === "done")) render();
+}
+function endOfDay() {
+  VOICE.stop(null, true); stopSpeech();
+  S = { view: "rest" }; render();
+}
+function renderPaywall() {
+  const wa = "https://wa.me/77759714163?text=" + encodeURIComponent("Сәлеметсіз бе! Листикке жазылым рәсімдегім келеді.");
+  let h = header(true);
+  h += '<div class="form"><h2 class="sec">Бұл есеп жазылым бойынша</h2>' +
+    '<p class="lead">Байқап көру есептері төлемсіз ашық. Бөлімдердің қалған есептері жазылыммен ашылады, оны ересек төлейді.</p>' +
+    (USER ? '' : '<p class="lead" style="font-size:15px;opacity:.75">Жазылым рәсімдедіңіз бе? Ата-ана кабинетіне кіріңіз, есептер ашылады.</p>') +
+    '<div class="row"><a class="btn" href="/kk/pricing.html">Тарифтерді қарау</a>' +
+    (USER ? '' : '<button class="btn ghost" data-action="auth" data-mode="login">Кіру</button>') +
+    '<button class="btn ghost" data-action="home">Есептерге</button></div></div>';
+  app.innerHTML = h; window.scrollTo(0, 0);
+}
+function renderRest() {
+  const mins = Math.round(USAGE.studyMax / 60);
+  let h = header(true);
+  h += '<div class="form"><h2 class="sec">Бүгінге жеткілікті</h2>' +
+    '<p class="lead">Бүгін біз ' + mins + ' минут оқыдық: бұл тамаша жұмыс. Басқа демалыс керек. Серуендеп, ойнап ал, ал ертең Листик сені тағы күтеді.</p>' +
+    '<p class="lead" style="font-size:15px;opacity:.75">Ересектерге: күніне ' + mins + ' минутқа дейін сабақ қолжетімді, өйткені осы жаста ұзақ уақыт зейін қою қиын. Есептегіш ертең нөлге оралады.</p>' +
+    '<div class="row"><button class="btn" data-action="home">Басты бетке</button></div></div>';
+  app.innerHTML = h; window.scrollTo(0, 0);
+}
+async function usageSend(active, voice) {
+  try { const r = await api("/api/usage/ping", { active, voice, task: (S && S.t != null && TASKS[S.t]) ? TASKS[S.t].id : null }); if (r.status === 200) setUsage(r.data); } catch (e) {}
+}
+function usageTick() {
+  const lesson = !!S && (S.view === "task" || S.view === "done");
+  const vis = document.visibilityState === "visible";
+  if (!lesson && !VOICE.active) return;
+  const idle = Date.now() - USAGE.lastInput > 180000;   // 3 минуты без нажатий: ребёнок отошёл, время занятия не идёт
+  usageSend(lesson && vis && (!idle || VOICE.active), vis && VOICE.active);
+}
+["pointerdown", "keydown", "touchstart"].forEach(ev => addEventListener(ev, () => { USAGE.lastInput = Date.now(); }, { passive: true }));
+setInterval(usageTick, 15000);
+
+/* Обновляет только статусы и замки у уже загруженных задач (шаги и урок не трогает) */
+async function refreshLocks() {
+  try {
+    const t = await api("/api/tasks"); if (t.status !== 200 || !Array.isArray(t.data.tasks)) return;
+    const by = new Map(t.data.tasks.map(x => [x.id, x]));
+    TASKS.forEach(x => { const n = by.get(x.id); if (!n) return; x.st = n.st; x.rec = n.rec; x.why = n.why; x.closed = !!n.closed; x.after = n.after; });
+  } catch (e) {}
+}
+async function reloadTasks() {
+  try { const t = await api("/api/tasks"); if (t.status === 200 && Array.isArray(t.data.tasks) && t.data.tasks.length === TASKS.filter(x => !x.quiz).length) TASKS = t.data.tasks; } catch (e) {}
+  await loadOffer();
+}
+async function loadData() {
+  const [tasks, phrases, prompts] = await Promise.all([api("/api/tasks"), loadJSON("phrases.json"), loadJSON("prompts.json")]);
+  if (tasks.status !== 200) throw new Error("tasks");
+  TASKS = tasks.data.tasks;
+  SECTIONS = tasks.data.sections || [];
+  CANNED = phrases.canned;
+  SITUATION = phrases.situation;
+  PROMPT_TEMPLATE = prompts.ai_voice.template;
+  BANNED = new RegExp(prompts.ai_voice.banned_pattern, prompts.ai_voice.banned_flags);
+  try { const me = await api("/api/me"); USER = me.data.user || null; } catch (e) { USER = null; }
+  await loadOffer();
+  await leavesLoad();
+  try { const v = await api("/api/voice/available"); VOICE.available = !!(v.data && v.data.ok) && !!((window.AudioContext || window.webkitAudioContext) && window.AudioWorkletNode && navigator.mediaDevices && navigator.mediaDevices.getUserMedia); } catch (e) { VOICE.available = false; }
+  try { const u = await api("/api/usage"); setUsage(u.data); } catch (e) {}
+}
+async function boot() {
+  /* при переходе на «Регистрацию» или «Войти» не мигаем надписью про задачи */
+  let notIn = true; try { notIn = localStorage.getItem("listik_in") !== "1"; } catch (e) {}
+  const quiet = notIn || /^#(register|login|cabinet|reset=|verify=)/.test(location.hash);
+  app.innerHTML = quiet ? '' : '<div class="top"><div class="brand hand">' + LOGO + 'Листик</div></div><p class="lead">Есептерді жүктеп жатырмын…</p>';
+  try {
+    await loadData();
+    const vm = /^#verify=([A-Za-z0-9._-]+)$/.exec(location.hash);
+    if (vm) {                                   // ссылка из письма «Подтвердите почту»
+      history.replaceState(null, "", location.pathname);
+      const r = await call("/api/verify", { token: vm[1] });
+      if (r.status === 200) { USER = r.data.user; try { localStorage.setItem("listik_in", "1"); } catch (e) {} await reloadTasks(); S = { view: "home", flash: "Пошта расталды, кабинет жасалды. PIN-кодты есте сақтаңыз: ол кеңестер мен кабинетке кіру үшін керек." }; return render(); }
+      S = { view: "auth", mode: "login", err: r.status === 0 ? NET : (r.data.message || "Сілтеме жарамсыз. Кіріңіз, біз жаңасын жібереміз.") };
+      return render();
+    }
+    const rm = /^#reset=([A-Za-z0-9._-]+)$/.exec(location.hash), hm = /^#(register|login)$/.exec(location.hash);
+    if (rm) {                                   // ссылка из письма «Новый пароль»
+      history.replaceState(null, "", location.pathname);
+      S = { view: "reset", token: rm[1], err: "" };
+      return render();
+    }
+    if (hm && !USER) {                          // кнопки «Регистрация» и «Войти» на других страницах сайта
+      history.replaceState(null, "", location.pathname);
+      S = { view: "auth", mode: hm[1], err: "" };
+      return render();
+    }
+    if (location.hash === "#cabinet") {
+      history.replaceState(null, "", location.pathname);
+      S = USER ? { view: "pin" } : { view: "auth", mode: "login", err: "" };
+      return render();
+    }
+    if (!USER) {                                // без регистрации внутрь не пускаем
+      history.replaceState(null, "", location.pathname);
+      S = { view: "auth", mode: "register", err: "" };
+      return render();
+    }
+    buildQueue();
+    if (QUEUE) {
+      const want = PARAMS.get("task"), k = want ? TASKS.findIndex(t => t.id === want) : -1;
+      let go = k >= 0 && QUEUE.indexOf(k) >= 0 ? k : QUEUE[0];
+      if (TASKS[go].closed) go = QUEUE.find(i => !TASKS[i].closed && TASKS[i].st !== "done") ?? QUEUE.find(i => !TASKS[i].closed) ?? go;   // закрытое упражнение не открываем: ведём к первому доступному
+      return startTask(go);
+    }
+    S = { view: "home" };
+    render();
+  } catch (e) {
+    app.innerHTML = '<div class="top"><div class="brand hand">' + LOGO + 'Листик</div></div>' +
+      '<p class="lead">Есептерді жүктеу мүмкін болмады. Интернетті тексеріп, бетті жаңартыңыз. ' +
+      'Егер бағдарламаны өзіңіз іске қосып жатсаңыз, оны сервер арқылы ашыңыз (команда: node server.js).</p>';
+  }
+}
+boot();
+</script>
+<script>window.addEventListener("hashchange",function(){if(/^#(cabinet|register|login)$/.test(location.hash))location.reload();});</script>
+<script>
+/* Вошедшему родителю кнопка «Регистрация» в шапке не нужна */
+(function(){try{fetch("/api/me",{cache:"no-store",credentials:"same-origin"}).then(function(r){return r.json()}).then(function(d){var u=d&&(d.user||(d.data&&d.data.user));try{if(u)localStorage.setItem("listik_in","1");else localStorage.removeItem("listik_in")}catch(e){}if(!u)return;document.querySelectorAll('.sh-btn[href="/kk/listik.html#register"],.mh-btn[href="/kk/listik.html#register"]').forEach(function(a){a.style.display="none"})}).catch(function(){})}catch(e){}})();
+</script>
+</body>
+</html>

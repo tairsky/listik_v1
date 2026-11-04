@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="kk">
+<head>
+<script src="/lang.js"></script>
+<script>try{if(localStorage.getItem("listik_in")==="1"){var s=document.createElement("style");s.textContent='.sh-btn[href="/kk/listik.html#register"],.mh-btn[href="/kk/listik.html#register"]{display:none!important}';document.head.appendChild(s)}}catch(e){}</script>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Листик: мектеп оқушыларына арналған ЖИ-репетитор</title>
+<meta name="description" content="Листик баланың орнына шешпейді, жауапқа қадам-қадаммен, қарапайым сөздермен, арнайы әдістеме бойынша жетелейді.">
+<style>
+@font-face{font-family:"Manrope";src:url("/fonts/Manrope-cyrillic-ext.woff2") format("woff2");font-weight:200 800;font-display:swap;unicode-range:U+0460-052F,U+1C80-1C8A,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F}
+@font-face{font-family:"Manrope";src:url("/fonts/Manrope-cyrillic.woff2") format("woff2");font-weight:200 800;font-display:swap;unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:"Manrope";src:url("/fonts/Manrope-latin.woff2") format("woff2");font-weight:200 800;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Nunito";src:url("/fonts/Nunito-var-cyrillic.woff2") format("woff2");font-weight:200 1000;font-display:swap;unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}@font-face{font-family:"Nunito";src:url("/fonts/Nunito-var-latin.woff2") format("woff2");font-weight:200 1000;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Onest";src:url("/fonts/Onest.woff2") format("woff2");font-weight:100 900;font-display:swap}
+body{margin:0;background:#1E2A22}
+html{scroll-behavior:smooth}
+.lk-float{animation:lkfloat 5s ease-in-out infinite}
+.lk-float2{animation:lkfloat 6.5s ease-in-out -2s infinite}
+.lk-float3{animation:lkfloat 4.2s ease-in-out -1s infinite}
+svg .lk-float,svg .lk-float2{transform-box:fill-box;transform-origin:center}
+@keyframes lkfloat{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-12px) rotate(3deg)}}
+.lk-globe-land{animation:lkspin 16s linear infinite}
+@keyframes lkspin{from{transform:translateX(0)}to{transform:translateX(-200px)}}
+.lk-flip{transform-origin:left center;transform-style:preserve-3d;animation:lkflip 6s ease-in-out infinite}
+@keyframes lkflip{0%,12%{transform:rotateY(0deg)}42%,62%{transform:rotateY(-180deg)}92%,100%{transform:rotateY(0deg)}}
+.lk-face{position:absolute;top:0;left:0;right:0;bottom:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.lk-back{transform:rotateY(180deg)}
+svg .lk-orbit{transform-box:fill-box;transform-origin:center;animation:lkorbit 9s linear infinite}
+@keyframes lkorbit{to{transform:rotate(360deg)}}
+.lk-glow{animation:lkglow 2.4s ease-in-out infinite}
+@keyframes lkglow{0%,100%{opacity:.2}50%{opacity:1}}
+.lk-dot{display:inline-block;width:8px;height:8px;border-radius:50%;animation:lkdot 1.2s ease-in-out infinite}
+.lk-dot:nth-child(2){animation-delay:.2s}
+.lk-dot:nth-child(3){animation-delay:.4s}
+@keyframes lkdot{0%,60%,100%{transform:translateY(0);opacity:.45}30%{transform:translateY(-6px);opacity:1}}
+.lk-cta{animation:lkpulse 2.8s ease-in-out infinite}
+@keyframes lkpulse{0%,100%{box-shadow:0 0 0 0 rgba(31,122,69,.4)}50%{box-shadow:0 0 0 12px rgba(31,122,69,0)}}
+.lk-cta2{animation:lkpulse2 2.8s ease-in-out infinite}
+@keyframes lkpulse2{0%,100%{box-shadow:0 0 0 0 rgba(251,250,244,.5)}50%{box-shadow:0 0 0 12px rgba(251,250,244,0)}}
+svg .lk-blink{transform-box:fill-box;transform-origin:center;animation:lkblink 5s ease-in-out infinite}
+@keyframes lkblink{0%,92%,100%{transform:scaleY(1)}96%{transform:scaleY(.1)}}
+.lk-breathe{animation:lkbreathe 5s ease-in-out infinite}
+@keyframes lkbreathe{0%,100%{transform:scale(.8)}50%{transform:scale(1.3)}}
+@media (prefers-reduced-motion:reduce){.lk-float,.lk-float2,.lk-float3,.lk-globe-land,.lk-flip,.lk-orbit,.lk-glow,.lk-dot,.lk-cta,.lk-cta2,.lk-blink,.lk-breathe{animation:none}}
+</style>
+<style>
+/* мобильная шапка: компактная, с чёткой границей от первого экрана */
+@media (max-width:720px){
+.mh{background:#fff;border-bottom:1px solid #E3E8DC;box-shadow:0 2px 10px rgba(30,42,34,.06);position:relative;z-index:2}
+.mh-in{padding:16px 16px 4px!important;gap:0!important;flex-direction:column;align-items:stretch!important}
+.mh-logo{justify-content:center}
+.mh-logo img{height:30px!important;width:auto!important}
+.mh-logo span{font-size:22px!important}
+.mh-nav{justify-content:space-around;flex-wrap:nowrap!important;gap:0!important}
+.mh-nav a:not(.mh-btn){font-size:14px!important;padding:8px 6px 8px!important;line-height:20px!important;white-space:nowrap}
+.mh-h1{font-size:30px!important;line-height:1.15!important}
+.mh-sub{font-size:17px!important;line-height:1.5!important}
+.mh-hero{align-items:center!important;text-align:center}
+.mh-hero .lk-cta{margin-top:8px!important}
+.mh-flip{flex-direction:column-reverse!important;flex-wrap:nowrap!important;gap:28px!important}
+.mh-flip>div{flex:none!important;width:100%}
+.mh-flip>div:first-child{max-width:330px!important}
+.mh-final{padding-bottom:0!important}
+.mh-fcta{align-items:center!important;text-align:center}
+.mh-herobox{padding-bottom:0!important}
+.mh-x{display:none}
+.mh-btn{display:none!important}
+}
+</style>
+<style>/* Кнопка «Войти» в шапке: контур рядом с зелёной «Регистрацией», отделена чертой от пунктов меню */
+@media (min-width:721px){
+.sh-nav a[href="/kk/listik.html#cabinet"],.mh-nav a[href="/kk/listik.html#cabinet"]{position:relative;display:inline-flex!important;align-items:center;justify-content:center;box-sizing:border-box;min-height:44px;padding:0 22px!important;margin-left:14px;border:2px solid #1F7A45!important;border-radius:999px;background:#fff;color:#1F7A45!important;font-weight:800!important;font-size:16px;line-height:1!important;white-space:nowrap}
+.sh-nav a[href="/kk/listik.html#cabinet"]:hover,.mh-nav a[href="/kk/listik.html#cabinet"]:hover{background:#EAF5EE;color:#15683A!important}
+.sh-nav a[href="/kk/listik.html#cabinet"]::before,.mh-nav a[href="/kk/listik.html#cabinet"]::before{content:"";position:absolute;left:-22px;top:50%;height:28px;width:1px;margin-top:-14px;background:#D5DBCF}
+}
+</style>
+<style>h1,h2,h3{font-family:"Nunito",system-ui,sans-serif !important;font-weight:800 !important}</style>
+<link rel="icon" type="image/png" href="/img/logo.png">
+<style>
+.lk-faq{background:#FFFFFF;border:1px solid #E3E0CF;border-radius:20px;padding:0 28px}
+.lk-faq summary{display:flex;align-items:center;justify-content:space-between;gap:16px;cursor:pointer;list-style:none;padding:20px 0}
+.lk-faq summary::-webkit-details-marker{display:none}
+.lk-faq summary::after{content:"+";flex:none;width:32px;height:32px;border-radius:50%;background:#E6F2E8;color:#14532D;font-weight:800;font-size:22px;line-height:32px;text-align:center;transition:transform .2s}
+.lk-faq[open] summary::after{content:"\2212"}
+.lk-faq[open]{padding-bottom:20px}
+.lk-faq summary:focus-visible{outline:3px solid #1F7A45;outline-offset:4px;border-radius:12px}
+</style>
+</head>
+<body>
+<div style="width:100%;background:#FBFAF4;color:#1E2A22;font-family:Nunito,system-ui,sans-serif;font-size:18px;line-height:1.55">
+
+<!-- Шапка -->
+<header class="mh">
+<div class="mh-in" style="max-width:1120px;margin:0 auto;padding:20px 24px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+<a class="mh-logo" href="/kk/" aria-label="Листик — басты бетке" style="display:flex;align-items:center;gap:10px;text-decoration:none">
+<img src="/img/logo.png" alt="" width="49" height="44" style="height:44px;width:auto;display:block">
+<span style="font-family:Nunito,system-ui,sans-serif;font-size:30px;font-weight:800;color:#006429">Листик</span>
+</a>
+<nav class="mh-nav" aria-label="Басты мәзір" style="display:flex;align-items:center;flex-wrap:wrap;gap:6px 24px">
+<a href="/kk/about.html" style="color:#1E2A22;text-decoration:none;font-weight:600;font-size:16px;line-height:24px;padding:12px 0 9px;border-bottom:3px solid transparent">Бағдарлама туралы</a>
+<a href="/kk/pricing.html" style="color:#1E2A22;text-decoration:none;font-weight:600;font-size:16px;line-height:24px;padding:12px 0 9px;border-bottom:3px solid transparent">Тарифтер</a>
+<a href="/kk/listik.html#cabinet" style="color:#1E2A22;text-decoration:none;font-weight:600;font-size:16px;line-height:24px;padding:12px 0 9px;border-bottom:3px solid transparent"><span class="navcab-t">Кіру</span></a>
+<a class="mh-btn" href="/kk/listik.html#register" style="display:inline-flex;align-items:center;min-height:44px;box-sizing:border-box;background:#1F7A45;color:#FFFFFF;font-weight:800;font-size:16px;padding:10px 22px;border-radius:999px;text-decoration:none">Тіркелу</a>
+<a class="lang-sw" href="/" hreflang="ru" lang="ru" data-lang="ru" aria-label="Русский" title="Русский">РУС</a></nav>
+</div>
+</header>
+
+<!-- Первый экран -->
+<div style="position:relative;overflow:hidden">
+<div class="mh-herobox" style="max-width:1120px;margin:0 auto;padding:40px 24px 56px;box-sizing:border-box;display:flex;flex-wrap:wrap;align-items:center;gap:56px">
+<div class="mh-hero" style="flex:1 1 440px;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:24px">
+<h1 class="mh-h1" style="margin:0;font-size:46.8px;line-height:1.1;font-weight:800;letter-spacing:-0.01em">Балаңызға сабақ дайындауға көмектесуге үлгермейсіз бе?</h1>
+<p class="mh-sub" style="margin:0;font-size:22px;color:#4B5A50;max-width:620px">ЖИ-репетитор тақырыпты қарапайым сөздермен, ренжімей әрі асықпай түсіндіреді. Қазір: математика, 3-сынып.</p>
+<a class="lk-cta" href="/kk/listik.html#register" style="margin-top:16px;display:inline-flex;align-items:center;justify-content:center;min-height:56px;box-sizing:border-box;background:#1F7A45;color:#FFFFFF;font-weight:800;font-size:20px;padding:14px 36px;border-radius:999px;text-decoration:none">Тегін байқап көру</a>
+</div>
+<div style="flex:1 1 340px;min-width:0;max-width:400px;margin:0 auto;position:relative">
+<div style="position:relative;width:100%;aspect-ratio:1/1">
+<div aria-hidden="true" style="position:absolute;left:-3%;right:-3%;bottom:0;height:64%;background:#F2C14E;border-radius:999px 999px 0 0"></div>
+<img src="/img/hero-boy.webp" alt="Рюкзагы бар қуанышты бала" fetchpriority="high" width="900" height="900" style="position:absolute;left:0;bottom:0;display:block;width:100%;height:100%;object-fit:contain;object-position:50% 100%">
+</div>
+<div class="lk-float2" aria-hidden="true" style="position:absolute;top:-26px;right:-14px;width:120px;height:130px">
+<div style="transform:rotate(-12deg)">
+<svg width="120" height="130" viewBox="0 0 120 130" aria-hidden="true">
+<defs>
+<clipPath id="lkgc"><circle cx="60" cy="58" r="46"></circle></clipPath>
+<radialGradient id="lkgo" cx="36%" cy="30%" r="85%"><stop offset="0%" stop-color="#CFEEFB"></stop><stop offset="60%" stop-color="#8FD0EE"></stop><stop offset="100%" stop-color="#4FA6D6"></stop></radialGradient>
+<radialGradient id="lkgs" cx="36%" cy="30%" r="80%"><stop offset="55%" stop-color="#0B3D5C" stop-opacity="0"></stop><stop offset="100%" stop-color="#0B3D5C" stop-opacity="0.38"></stop></radialGradient>
+</defs>
+<ellipse cx="60" cy="123" rx="24" ry="5" fill="#1E2A22" opacity="0.14"></ellipse>
+<path d="M40 121 Q60 112 80 121" stroke="#1E2A22" stroke-width="5" stroke-linecap="round" fill="none"></path>
+<path d="M60 112 V104" stroke="#1E2A22" stroke-width="5" stroke-linecap="round"></path>
+<path d="M60 4 A54 54 0 0 1 60 112" stroke="#1E2A22" stroke-width="4" fill="none" stroke-linecap="round"></path>
+<circle cx="60" cy="58" r="46" fill="url(#lkgo)"></circle>
+<g clip-path="url(#lkgc)">
+<g class="lk-globe-land">
+<g fill="#5DB57A" stroke="#2F8A52" stroke-width="1.6" stroke-linejoin="round">
+<path d="M10 40 C20 25 45 28 52 40 C58 52 48 70 35 74 C22 70 8 56 10 40Z"></path>
+<path d="M75 30 C90 22 112 30 118 44 C122 58 105 66 96 62 C86 70 74 58 78 46Z"></path>
+<path d="M140 50 C150 38 172 40 180 52 C186 66 170 82 156 80 C142 76 134 62 140 50Z"></path>
+<path d="M120 84 C128 80 138 86 134 94 C128 98 118 92 120 84Z"></path>
+</g>
+<g fill="#5DB57A" stroke="#2F8A52" stroke-width="1.6" stroke-linejoin="round" transform="translate(200 0)">
+<path d="M10 40 C20 25 45 28 52 40 C58 52 48 70 35 74 C22 70 8 56 10 40Z"></path>
+<path d="M75 30 C90 22 112 30 118 44 C122 58 105 66 96 62 C86 70 74 58 78 46Z"></path>
+<path d="M140 50 C150 38 172 40 180 52 C186 66 170 82 156 80 C142 76 134 62 140 50Z"></path>
+<path d="M120 84 C128 80 138 86 134 94 C128 98 118 92 120 84Z"></path>
+</g>
+</g>
+<g fill="none" stroke="#FFFFFF" stroke-width="1" opacity="0.45">
+<ellipse cx="60" cy="58" rx="46" ry="14"></ellipse>
+<ellipse cx="60" cy="58" rx="46" ry="30"></ellipse>
+<ellipse cx="60" cy="58" rx="18" ry="46"></ellipse>
+<ellipse cx="60" cy="58" rx="34" ry="46"></ellipse>
+<path d="M60 12 V104"></path>
+</g>
+</g>
+<circle cx="60" cy="58" r="46" fill="url(#lkgs)"></circle>
+<ellipse cx="42" cy="36" rx="13" ry="7" fill="#FFFFFF" opacity="0.5" transform="rotate(-32 42 36)"></ellipse>
+<circle cx="60" cy="58" r="46" fill="none" stroke="#1E2A22" stroke-width="3.5"></circle>
+<circle cx="60" cy="4" r="4" fill="#F2C14E" stroke="#1E2A22" stroke-width="2.5"></circle>
+<circle cx="60" cy="112" r="4" fill="#F2C14E" stroke="#1E2A22" stroke-width="2.5"></circle>
+</svg>
+</div>
+</div>
+<div class="lk-float" aria-hidden="true" style="position:absolute;left:-18px;top:84px;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:16px;padding:8px 14px;font-weight:800;font-size:20px;color:#14532D;box-shadow:0 6px 16px rgba(30,42,34,0.12)">x + 7 = 15</div>
+<div class="lk-float3" aria-hidden="true" style="position:absolute;left:-14px;bottom:70px;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:16px;padding:8px 16px;font-weight:800;font-size:22px;color:#14532D;box-shadow:0 6px 16px rgba(30,42,34,0.12)">параш<span style="border-bottom:3px solid #F2C14E">ю</span>т</div>
+<div class="lk-float2" aria-hidden="true" style="position:absolute;right:-12px;bottom:36px;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:16px;padding:8px 14px;font-weight:800;font-size:20px;color:#14532D;box-shadow:0 6px 16px rgba(30,42,34,0.12)">CO₂</div>
+</div>
+</div>
+</div>
+
+<!-- Знакомая ситуация -->
+<div style="background:#F3EFE0;padding:64px 24px;box-sizing:border-box">
+<div class="mh-flip" style="max-width:1040px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:56px">
+<div style="flex:1 1 300px;min-width:0;max-width:330px;margin:0 auto">
+<div style="position:relative;width:100%;aspect-ratio:1/1">
+<div aria-hidden="true" style="position:absolute;left:-3%;right:-3%;bottom:0;height:62%;background:#A9CBEA;border-radius:170px 40px 0 0"></div>
+<img src="/img/aha-girl.webp" alt="Саусағын көтерген қуанышты қыз: түсіндім" loading="lazy" width="900" height="757" style="position:absolute;left:0;bottom:0;display:block;width:100%;height:100%;object-fit:contain;object-position:50% 100%">
+</div>
+</div>
+<div style="flex:1 1 420px;min-width:0;display:flex;flex-direction:column;gap:20px">
+<h2 style="margin:0;font-size:34.2px;line-height:1.2;font-weight:800">Жақсы бағалар түсінуден басталады</h2>
+<p style="margin:0">Жауабы айтылып қойған бала бүгін «5» алады да, бақылау жұмысында «2» алады. Түсінген бала өзі шығара алады.</p>
+<p style="margin:0;font-weight:800;font-size:20px;color:#14532D">Листик дайын жауап бермейді. Ол сұрақ қояды және ойлануға үйретеді: бүгін есепті, ертең кез келген тақырыпты.</p>
+</div>
+</div>
+</div>
+
+<style>
+.lk-step{position:relative}
+@media (min-width:1000px){
+.lk-step:not(:last-child)::after{content:"";position:absolute;top:50%;right:-15px;width:9px;height:9px;margin-top:-5px;border-top:2.5px solid #B7C4B6;border-right:2.5px solid #B7C4B6;transform:rotate(45deg);border-radius:1px}
+}
+</style>
+<!-- Как это работает -->
+<div style="max-width:1120px;margin:0 auto;padding:64px 24px;box-sizing:border-box;display:flex;flex-direction:column;gap:40px">
+<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:32px">
+<div style="flex:1 1 420px;min-width:0;max-width:none;display:flex;flex-direction:column;gap:14px">
+<h2 style="margin:0;font-size:34.2px;line-height:1.2;font-weight:800">Оқуды бастаудың 4 қарапайым қадамы</h2>
+<p style="margin:0;color:#4B5A50">Одан әрі Листиктің өзі баланы қадам-қадаммен жетелеп, кеңес беріп, жігерлендіріп отырады.</p>
+</div>
+
+</div>
+<div class="lk-steps" style="display:flex;flex-wrap:wrap;gap:20px">
+<div class="lk-step" style="flex:1 1 220px;min-width:0;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:20px;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px">
+<div style="width:40px;height:40px;border-radius:50%;background:#E6F2E8;color:#14532D;font-weight:800;display:flex;align-items:center;justify-content:center">1</div>
+<h3 style="margin:0;font-size:19.8px;line-height:1.25;font-weight:800">Кабинет</h3>
+<p style="margin:0;font-size:16px;color:#4B5A50">Ата-ана кабинетін жасаңыз: баланың аты, пошта және PIN. Бір минут алады.</p>
+</div>
+<div class="lk-step" style="flex:1 1 220px;min-width:0;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:20px;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px">
+<div style="width:40px;height:40px;border-radius:50%;background:#E6F2E8;color:#14532D;font-weight:800;display:flex;align-items:center;justify-content:center">2</div>
+<h3 style="margin:0;font-size:19.8px;line-height:1.25;font-weight:800">Танысу</h3>
+<p style="margin:0;font-size:16px;color:#4B5A50">Листик баланың не білетінін түсінуі үшін сегіз қысқа сұрақ. Өткізіп жіберуге болады.</p>
+</div>
+<div class="lk-step" style="flex:1 1 220px;min-width:0;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:20px;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px">
+<div style="width:40px;height:40px;border-radius:50%;background:#E6F2E8;color:#14532D;font-weight:800;display:flex;align-items:center;justify-content:center">3</div>
+<h3 style="margin:0;font-size:19.8px;line-height:1.25;font-weight:800">Жаттығу</h3>
+<p style="margin:0;font-size:16px;color:#4B5A50">Тізімнен жаттығуды таңдаңыз. Листик қадам-қадаммен жетелейді, баланың орнына ештеңе шешпейді.</p>
+</div>
+<div class="lk-step" style="flex:1 1 220px;min-width:0;background:#FFFFFF;border:1px solid #E3E0CF;border-radius:20px;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px">
+<div style="width:40px;height:40px;border-radius:50%;background:#E6F2E8;color:#14532D;font-weight:800;display:flex;align-items:center;justify-content:center">4</div>
+<h3 style="margin:0;font-size:19.8px;line-height:1.25;font-weight:800">Прогресс</h3>
+<p style="margin:0;font-size:16px;color:#4B5A50">Ата-ана кабинетінде нені шешкені және бала қай жерде қиналып жатқаны көрінеді.</p>
+</div>
+</div>
+</div>
+
+
+<!-- Частые вопросы -->
+<div style="background:#F3EFE0;padding:64px 24px;box-sizing:border-box">
+<div style="max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:28px">
+<h2 style="margin:0;font-size:34.2px;line-height:1.2;font-weight:800">Жиі қойылатын сұрақтар</h2>
+<div style="display:flex;flex-direction:column;gap:12px">
+<details class="lk-faq">
+<summary><h3 style="margin:0;font-size:18px;font-weight:800">Листик баланың орнына шешеді ме?</h3></summary>
+<p style="margin:12px 0 0;font-size:16px;color:#4B5A50">Жоқ. Бұл — қағида, баптау емес. Ол жауапқа сұрақтар мен кеңестер арқылы жетелейді, бірақ жауаптың өзін айтпайды.</p>
+</details>
+<details class="lk-faq">
+<summary><h3 style="margin:0;font-size:18px;font-weight:800">Листик түсіндірмелерді қайдан алады?</h3></summary>
+<p style="margin:12px 0 0;font-size:16px;color:#4B5A50">Өзіміз әзірлеген жаттығулар мен әдістемеден. Листик ережелер мен тапсырмаларды сол жерде ойдан шығармайды, дайын қадамдармен жүріп, оларды қарапайым сөздермен айтып береді.</p>
+</details>
+<details class="lk-faq">
+<summary><h3 style="margin:0;font-size:18px;font-weight:800">Қай сыныптар мен пәндерге арналған?</h3></summary>
+<p style="margin:12px 0 0;font-size:16px;color:#4B5A50">Листик біздің жаттығуларымыз бойынша оқытады. Пәндер мен жаттығулар біртіндеп қосылады: әдіскерлеріміз оларды тексеріп, барлық мүмкін қателерді алып тастағаннан кейін.</p>
+</details>
+<details class="lk-faq">
+<summary><h3 style="margin:0;font-size:18px;font-weight:800">Қасында отыру керек пе?</h3></summary>
+<p style="margin:12px 0 0;font-size:16px;color:#4B5A50">Міндетті емес. Бірақ алғашқы сабақтарды бірге өткізген пайдалы: бәрі қалай жұмыс істейтінін көресіз.</p>
+</details>
+<details class="lk-faq">
+<summary><h3 style="margin:0;font-size:18px;font-weight:800">Неге сабақ күніне 60 минутпен шектелген?</h3></summary>
+<p style="margin:12px 0 0;font-size:16px;color:#4B5A50">Осы жастағы балаларға бір тапсырмаға 15–20 минуттан артық зейін қою қиын, ал ұзақ сабақ шаршатып, қызығушылықты жояды. Сондықтан күніне 60 минутқа дейін қолжетімді. Бұл үзілістермен бірнеше тапсырмаға жеткілікті.</p>
+</details>
+<details class="lk-faq">
+<summary><h3 style="margin:0;font-size:18px;font-weight:800">ЖИ-репетитор тірі репетиторден немен артық немесе кем?</h3></summary>
+<p style="margin:12px 0 0;font-size:16px;color:#4B5A50">Мектеп бағдарламасы бойынша сабаққа Листик өзі жетеді. Ол тақырыпты түсіндіреді, баланы қадамдап жетелейді және нәтижесін тексереді. Ешкімді іздеп, жазылып, сабаққа апарып-әкелудің керегі жоқ, ал ата-анаға қасына отырып, өзі түсіндірудің қажеті жоқ.</p>
+</details>
+</div>
+</div>
+</div>
+
+<!-- Финальный призыв -->
+<div class="mh-final" style="background:#1F7A45;padding:64px 24px;box-sizing:border-box">
+<div style="max-width:1040px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:56px">
+<div class="mh-fcta" style="flex:1 1 420px;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:20px">
+<h2 style="margin:0;font-size:36px;line-height:1.2;font-weight:800;color:#FFFFFF">Балаға сезіндіріңіз:<br>«Мен мұны өзім шештім»</h2>
+<p style="margin:0;font-size:20px;color:#E6F2E8">Оқуға қызығушылық дәл осы сезімнен басталады.</p>
+<a class="lk-cta2" href="/kk/listik.html#register" style="display:inline-flex;align-items:center;justify-content:center;min-height:56px;box-sizing:border-box;background:#FBFAF4;color:#14532D;font-weight:800;font-size:20px;padding:14px 36px;border-radius:999px;text-decoration:none">Тегін бастау</a>
+</div>
+<div style="flex:1 1 280px;min-width:0;max-width:300px;margin:0 auto;position:relative">
+<div style="position:relative;width:100%;aspect-ratio:1/1">
+<div aria-hidden="true" style="position:absolute;left:-3%;right:-3%;bottom:0;height:60%;background:#F2C14E;border-radius:999px 999px 0 0"></div>
+<img src="/img/happy-girl.webp" alt="Қызғылт сары футболка киген қуанышты қыз" loading="lazy" width="900" height="900" style="position:absolute;left:0;bottom:0;display:block;width:100%;height:100%;object-fit:contain;object-position:50% 100%">
+</div>
+</div>
+</div>
+</div>
+
+<!-- Футер -->
+<footer style="background:#1E2A22;color:#E6F2E8;padding:56px 24px 32px;box-sizing:border-box">
+<div style="max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:32px">
+<div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:32px">
+<div style="flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;align-items:center;gap:10px">
+<img src="/img/logo.png" alt="" width="48" height="44" style="height:44px;width:auto;display:block">
+<span style="font-family:Nunito,system-ui,sans-serif;font-size:28px;font-weight:800;color:#A7D568">Листик</span>
+</div>
+<p style="margin:0;font-size:16px;color:#BFDFC6">Мектеп оқушыларына арналған ЖИ-репетитор</p>
+</div>
+<div style="flex:1 1 220px;min-width:0;display:flex;flex-direction:column;gap:8px">
+<div style="font-size:14px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:#BFDFC6">Бізбен байланысыңыз</div>
+<a href="tel:+77759714163" style="display:inline-flex;align-items:center;min-height:44px;font-size:20px;font-weight:800;color:#FFFFFF;text-decoration:none">+7 (775) 971-41-63</a>
+<a href="https://wa.me/77759714163" style="display:inline-flex;align-items:center;min-height:44px;font-size:16px;color:#BFDFC6;text-decoration:none">WhatsApp-қа жазу</a>
+</div>
+<div style="flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:4px">
+<div style="font-size:14px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:#BFDFC6;margin-bottom:4px">Құжаттар</div>
+<a href="#" style="display:inline-flex;align-items:center;min-height:32px;font-size:16px;color:#FFFFFF;text-decoration:none">Құпиялылық саясаты</a>
+<a href="#" style="display:inline-flex;align-items:center;min-height:32px;font-size:16px;color:#FFFFFF;text-decoration:none">Пайдаланушы келісімі</a>
+<a href="#" style="display:inline-flex;align-items:center;min-height:32px;font-size:16px;color:#FFFFFF;text-decoration:none">Жария оферта</a>
+</div>
+</div>
+<div style="border-top:1px solid #3A4A40;padding-top:20px;font-size:14px;color:#BFDFC6">© 2026 «Листик» ЖШС. Барлық құқықтары қорғалған.</div>
+</div>
+</footer>
+
+</div>
+<script>
+/* Вошедшему родителю кнопка «Регистрация» в шапке не нужна */
+(function(){try{fetch("/api/me",{cache:"no-store",credentials:"same-origin"}).then(function(r){return r.json()}).then(function(d){var u=d&&(d.user||(d.data&&d.data.user));try{if(u)localStorage.setItem("listik_in","1");else localStorage.removeItem("listik_in")}catch(e){}if(!u)return;document.querySelectorAll('a[href="/kk/listik.html#cabinet"] .navcab-t').forEach(function(t){t.textContent="Ата-ана кабинеті"});document.querySelectorAll('.sh-btn[href="/kk/listik.html#register"],.mh-btn[href="/kk/listik.html#register"]').forEach(function(a){a.style.display="none"})}).catch(function(){})}catch(e){}})();
+</script>
+<script src="/kk/sitechat-widget.js" defer></script>
+</body>
+</html>
