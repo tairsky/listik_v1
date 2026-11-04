@@ -41,6 +41,12 @@ const PROMPT = `Ты — помощник на сайте «Листик». Ты
 - Коротко: 1–4 предложения, простые слова, тёплый спокойный тон. Без таблиц, заголовков и длинных списков. Если нужен список, не больше трёх пунктов через дефис.
 - Отвечай на заданный вопрос и, если уместно, предложи следующий шаг (попробовать бесплатно или написать в WhatsApp). Не навязывай.`;
 
+/* Казахская версия сайта (/kk/): виджет шлёт lang:"kk", к промту добавляется эта приписка. */
+const KK_NOTE = `
+
+ЯЗЫК ОТВЕТА (важно)
+Посетитель смотрит казахскую версию сайта. Отвечай по-казахски: простым, тёплым литературным языком, обращайся на «Сіз». Если человек сам явно просит по-русски или пишет по-русски длинное сообщение, ответь по-русски. Названия «Листик», WhatsApp, цифры и тарифы оставляй как есть. Факты бери только из описания выше, ничего не добавляй.`;
+
 module.exports = function (D) {
   const { modelCall, outputText, Upstream, tooMany, hit, send, bigBody, M, dayStamp, logEvent, logWho, OPENAI_KEY, SETTINGS } = D;
   let busy = 0;
@@ -58,6 +64,7 @@ module.exports = function (D) {
       .map(m => ({ role: m.role, content: m.text.trim().slice(0, MAX_MSG_CHARS) }));
     if (!msgs.length || msgs[msgs.length - 1].role !== "user") return send(res, 400, { error: "bad_request" });
 
+    const kk = b.lang === "kk";
     const who = a ? "u" + a.user.id : ip;
     if (tooMany("chat10:" + ip, IP_PER_10MIN, 10 * 60000) || tooMany("chatday:" + ip, IP_PER_DAY, 24 * 3600000)) return send(res, 429, { error: "too_many" });
     const dn = dayStamp(); if (glob.day !== dn) { glob.day = dn; glob.n = 0; }
@@ -66,10 +73,10 @@ module.exports = function (D) {
     glob.n++; busy++;
     try {
       const r = await modelCall({
-        model: D.LLM_MODEL, instructions: PROMPT, input: msgs, store: false, max_output_tokens: 700
+        model: D.LLM_MODEL, instructions: kk ? PROMPT + KK_NOTE : PROMPT, input: msgs, store: false, max_output_tokens: 700
       });
       const reply = outputText(r).replace(/[*_`#]/g, "").trim().slice(0, 1200);
-      if (!reply) return send(res, 200, { reply: "Не получилось ответить. Напишите нам в WhatsApp: " + WA });
+      if (!reply) return send(res, 200, { reply: (kk ? "Жауап беру мүмкін болмады. Бізге WhatsApp-қа жазыңыз: " : "Не получилось ответить. Напишите нам в WhatsApp: ") + WA });
       logEvent({ kind: "sitechat", u: logWho(a, ip), n: msgs.length });   // только факт обращения, без текста
       return send(res, 200, { reply });
     } catch (e) {
