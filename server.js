@@ -512,6 +512,24 @@ function resetToken(user) {
   const exp = Date.now() + 60 * MIN;
   return user.id + "." + exp + "." + crypto.createHmac("sha256", PEPPER).update("reset|" + user.id + "|" + exp + "|" + user.pass.hash.slice(0, 16)).digest("hex");
 }
+/* ссылка подтверждения почты (48 часов), тоже без хранения на сервере; привязана к текущему паролю */
+function verifyToken(user) {
+  const exp = Date.now() + 48 * 60 * MIN;
+  return user.id + "." + exp + "." + crypto.createHmac("sha256", PEPPER).update("verify|" + user.id + "|" + exp + "|" + user.pass.hash.slice(0, 16)).digest("hex");
+}
+function userByVerifyToken(tok) {
+  const p = typeof tok === "string" ? tok.split(".") : [];
+  if (p.length !== 3 || !/^\d+$/.test(p[1]) || Number(p[1]) < Date.now()) return null;
+  const user = USERS.find(u => u.id === p[0]);
+  if (!user || user.blocked) return null;
+  const want = crypto.createHmac("sha256", PEPPER).update("verify|" + user.id + "|" + p[1] + "|" + user.pass.hash.slice(0, 16)).digest();
+  let got; try { got = Buffer.from(p[2], "hex"); } catch (e) { return null; }
+  return got.length === want.length && crypto.timingSafeEqual(got, want) ? user : null;
+}
+/* почту подтверждать нужно, только если сервер умеет слать письма (иначе никто не смог бы войти); у старых кабинетов поля verified нет, они считаются подтверждёнными */
+const needVerify = () => MAIL.configured;
+const unverified = u => u.verified === false;
+const sendVerify = (req, u) => MAIL.verifyEmail(u.email, u.child.name, siteUrl(req) + "/listik.html#verify=" + verifyToken(u)).catch(mailFail);
 function userByResetToken(tok) {
   const p = typeof tok === "string" ? tok.split(".") : [];
   if (p.length !== 3 || !/^\d+$/.test(p[1]) || Number(p[1]) < Date.now()) return null;
@@ -1208,16 +1226,49 @@ async function api(req, res, url) {
     const name = cleanName(b.childName);
     if (!name) return send(res, 400, { error: "child", message: "Введите имя или псевдоним ребёнка (без фамилии)." });
     if (b.agree !== true) return send(res, 400, { error: "agree", message: "Нужно согласиться с политикой конфиденциальности и пользовательским соглашением." });
-    if (USERS.some(u => u.email === email)) return send(res, 409, { error: "exists", message: "Не получилось создать кабинет. Возможно, этот адрес уже занят: попробуйте войти." });
-    const user = {
-      id: crypto.randomBytes(8).toString("hex"), email,
-      pass: await hashSecret(b.password, "pass"), pin: await hashSecret(b.pin, "pin"),
-      child: { name, grade: 3 }, createdAt: new Date().toISOString(), agreedAt: new Date().toISOString(), progress: null
-    };
-    USERS.push(user); saveUsers();
+    const prev = USERS.find(u => u.email === email);
+    if (prev && !unverified(prev)) return send(res, 409, { error: "exists", message: "Не получилось создать кабинет. Возможно, этот адрес уже занят: попробуйте войти." });
+    const pass = await hashSecret(b.password, "pass"), pin = await hashSecret(b.pin, "pin");
+    let user;
+    if (prev) {                                  // адрес занят, но почту так и не подтвердили: даём зарегистрироваться заново
+      user = prev; user.pass = pass; user.pin = pin; user.child = { name, grade: 3 }; user.agreedAt = new Date().toISOString();
+      if (!needVerify()) delete user.verified;
+    } else {
+      user = {
+        id: crypto.randomBytes(8).toString("hex"), email, pass, pin,
+        child: { name, grade: 3 }, createdAt: new Date().toISOString(), agreedAt: new Date().toISOString(), progress: null
+      };
+      if (needVerify()) user.verified = false;
+      USERS.push(user);
+    }
+    saveUsers();
+    if (unverified(user)) {
+      sendVerify(req, user);                     // письмо не задерживает ответ
+      return send(res, 200, { pending: true, email });
+    }
     MAIL.welcome(email, name, siteUrl(req)).catch(mailFail);      // письмо не задерживает ответ и не ломает регистрацию, если почта недоступна
     startLogin(res, user);
     return send(res, 200, { user: { email, child: user.child, parent: false } });
+  }
+  /* --- подтверждение почты: ссылка из письма открывает кабинет --- */
+  if (url === "/api/verify") {
+    if (tooMany("vfy:" + ip, 20, 60 * MIN)) return send(res, 429, { error: "too_many" });
+    hit("vfy:" + ip);
+    const user = userByVerifyToken(b.token);
+    if (!user) return send(res, 400, { error: "token", message: "Ссылка устарела или не подходит. Войдите, и мы отправим новую." });
+    if (!unverified(user)) return send(res, 400, { error: "done", message: "Почта уже подтверждена. Просто войдите в кабинет." });
+    user.verified = true; user.verifiedAt = new Date().toISOString(); saveUsers();
+    MAIL.welcome(user.email, user.child.name, siteUrl(req)).catch(mailFail);
+    startLogin(res, user);
+    return send(res, 200, { user: { email: user.email, child: user.child, parent: false } });
+  }
+  if (url === "/api/verify/resend") {
+    const email = typeof b.email === "string" ? b.email.trim().toLowerCase() : "";
+    if (tooMany("vrs:" + ip, 6, 60 * MIN) || tooMany("vrs:" + email, 3, 60 * MIN)) return send(res, 429, { error: "too_many" });
+    hit("vrs:" + ip); hit("vrs:" + email);
+    const user = EMAIL_RE.test(email) ? USERS.find(u => u.email === email) : null;
+    if (user && !user.blocked && unverified(user)) sendVerify(req, user);
+    return send(res, 200, { ok: true });          // ответ одинаковый, чтобы нельзя было выяснить, какие адреса зарегистрированы
   }
   if (url === "/api/login") {
     const email = typeof b.email === "string" ? b.email.trim().toLowerCase() : "";
@@ -1229,6 +1280,7 @@ async function api(req, res, url) {
       hit("login:" + ip); hit("login:" + email); return send(res, 401, { error: "login", message: "Неверный адрес или пароль." });
     }
     if (user.blocked) return send(res, 403, { error: "blocked", message: "Доступ к этому кабинету закрыт. Напишите нам в WhatsApp, мы поможем." });
+    if (unverified(user)) return send(res, 403, { error: "unverified", message: "Почта ещё не подтверждена. Откройте ссылку из письма." });
     startLogin(res, user);
     return send(res, 200, { user: { email: user.email, child: user.child, parent: false, plan: hasPlan({ user }) ? { until: user.plan.until } : null } });
   }
@@ -1248,7 +1300,7 @@ async function api(req, res, url) {
       return send(res, 400, { error: "password", message: "Пароль должен быть не короче 8 символов." });
     const user = userByResetToken(b.token);
     if (!user) return send(res, 400, { error: "token", message: "Ссылка устарела или уже использована. Запросите новую." });
-    user.pass = await hashSecret(b.password, "pass"); saveUsers();
+    user.pass = await hashSecret(b.password, "pass"); if (unverified(user)) { user.verified = true; user.verifiedAt = new Date().toISOString(); } saveUsers();
     for (const [k, v] of auth) if (v.uid === user.id) auth.delete(k);      // старые входы закрываем
     startLogin(res, user);
     return send(res, 200, { user: { email: user.email, child: user.child, parent: false, plan: hasPlan({ user }) ? { until: user.plan.until } : null } });
@@ -1606,6 +1658,7 @@ http.createServer((req, res) => {
   console.log("Листик: http://localhost:" + PORT);
   console.log(OPENAI_KEY ? "Голос: включён (дешёвая схема: " + STT_MODEL + " + " + LLM_MODEL + " + " + TTS_MODEL + ")" : "Голос: выключен (нет OPENAI_API_KEY в файле .env)");
   console.log("Быстрый голос (готовые реплики): " + (FAST_ON ? "включён, известных текстов " + CLIPS.registry.size + ", готовых mp3 " + [...CLIPS.registry.keys()].filter(CLIPS.have).length : "выключен (VOICE_FAST=0)"));
+  console.log(MAIL.configured ? "Почта: подтверждение адреса при регистрации включено" : "ВНИМАНИЕ: RESEND_API_KEY не задан, письма не уходят (пишутся в storage/outbox.log), поэтому подтверждение почты выключено. Задайте ключ в .env или на Render.");
   console.log("Чат на сайте: " + (SITECHAT.available() ? "включён (до " + (process.env.SITE_CHAT_GLOBAL_DAY || 3000) + " сообщений в сутки)" : "выключен (нет ключа OpenAI или SITE_CHAT=0)"));
   console.log("Кабинетов в базе: " + USERS.length + " (файл: " + USERS_FILE + ")");
   console.log(TRUST_PROXY ? "Прокси: TRUST_PROXY=1, TRUST_HOPS=" + TRUST_HOPS + " (DEBUG_IP=1 покажет, какой адрес выбирается)"

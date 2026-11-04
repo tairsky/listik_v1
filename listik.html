@@ -6,7 +6,7 @@
 <meta charset="utf-8">
 <meta name="format-detection" content="telephone=no">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Листик — репетитор по математике</title>
+<title>Листик: репетитор по математике</title>
 <meta name="description" content="Листик — ИИ-репетитор по математике для 3 класса: ведёт ребёнка по шагам, не решает за него. Создайте кабинет родителя за минуту.">
 <style>
 @font-face { font-family: "Manrope"; src: url("fonts/Manrope-cyrillic-ext.woff2") format("woff2"); font-weight: 200 800; font-display: swap; unicode-range: U+0460-052F,U+1C80-1C8A,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F; }
@@ -1069,6 +1069,7 @@ function render() {
   if (S.view === "goal") return renderGoal();
   if (S.view === "home") return renderHome();
   if (S.view === "auth") return renderAuth();
+  if (S.view === "verify") return renderVerify();
   if (S.view === "forgot") return renderForgot();
   if (S.view === "reset") return renderReset();
   if (S.view === "pin") return renderPin();
@@ -1099,7 +1100,7 @@ function renderAuth() {
   const CHECK = '<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#1F7A45"/><path d="M7 12.5l3.2 3.2L17 9" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   let h = '<div class="auth"><div class="auth-card">';
   h += '<h1 class="auth-h">' + (reg ? 'Создайте кабинет родителя' : 'С возвращением!') + '</h1>';
-  h += '<p class="auth-sub">' + (reg ? 'Это займёт минуту. Кабинет сохраняет прогресс ребёнка и помогает взрослому на трудном шаге.' : 'Войдите, чтобы увидеть, как ребёнок занимается с Листиком.') + '</p>';
+  h += '<p class="auth-sub">' + (reg ? 'Это займёт минуту. Кабинет сохраняет прогресс ребёнка.' : 'Войдите, чтобы увидеть, как ребёнок занимается с Листиком.') + '</p>';
   h += '<div class="tabs"><button class="btn ghost' + (!reg ? ' on' : '') + '" data-action="auth" data-mode="login">Войти</button>' +
        '<button class="btn ghost' + (reg ? ' on' : '') + '" data-action="auth" data-mode="register">Регистрация</button></div>';
   h += '<div class="form">';
@@ -1384,6 +1385,8 @@ async function doAuth(mode) {
     payload = { email, password, pin, childName: S.form.childName, agree: true };
   }
   const r = await call(mode === "register" ? "/api/register" : "/api/login", payload);
+  if (r.status === 200 && r.data.pending) { S = { view: "verify", email: r.data.email || email, err: "", flash: "" }; return render(); }
+  if (r.status === 403 && r.data.error === "unverified") { S = { view: "verify", email, err: "", flash: "Почта ещё не подтверждена. Откройте ссылку из письма или отправьте его ещё раз." }; return render(); }
   if (r.status === 200) { USER = r.data.user; await reloadTasks(); S = { view: "home", flash: mode === "register" ? "Кабинет создан. Запомните PIN-код: он нужен для подсказок и входа в кабинет." : "" }; return render(); }
   S.err = r.status === 0 ? NET : r.status === 429 ? "Слишком много попыток. Подождите немного." : (r.data.message || "Не получилось. Проверьте данные.");
   render();
@@ -1406,6 +1409,21 @@ function renderForgot() {
       '<div class="row"><button class="btn" data-action="forgot-send">Отправить ссылку</button><button class="btn ghost" data-action="auth" data-mode="login">Назад</button></div></div>';
   }
   app.innerHTML = authShell(h); window.scrollTo(0, 0);
+}
+/* после регистрации: просим открыть ссылку из письма */
+function renderVerify() {
+  const e = esc(S.email || "");
+  let h = '<h1 class="auth-h">Проверьте почту</h1>' +
+    '<p class="auth-sub">Мы отправили письмо на <b>' + e + '</b>. Откройте его и нажмите «Подтвердить почту»: после этого кабинет включится. Если письма нет, загляните в «Спам».</p>';
+  if (S.flash) h += '<div class="fb ok">' + esc(S.flash) + '</div>';
+  h += errBox(S.err) + '<div class="row"><button class="btn" data-action="verify-resend">Отправить письмо ещё раз</button><button class="btn ghost" data-action="auth" data-mode="register">Другой адрес</button></div>';
+  app.innerHTML = authShell(h).replace("Не переживайте, доступ вернём за минуту.", "Осталось одно письмо, и мы начнём."); window.scrollTo(0, 0);
+}
+async function doVerifyResend() {
+  S.err = ""; S.flash = "";
+  const r = await call("/api/verify/resend", { email: S.email });
+  if (r.status === 200) S.flash = "Письмо отправлено. Проверьте почту через минуту."; else S.err = r.status === 0 ? NET : r.status === 429 ? "Слишком много попыток. Подождите немного." : "Не получилось. Попробуйте позже.";
+  render();
 }
 function renderReset() {
   let h = '<h1 class="auth-h">Новый пароль</h1><p class="auth-sub">Придумайте пароль не короче 8 символов.</p><div class="form">' +
@@ -2002,6 +2020,7 @@ app.addEventListener("click", e => {
   if (a === "showpw") { ["fPass", "fPass2"].forEach(id => { const el = document.getElementById(id); if (el) el.type = b.checked ? "text" : "password"; }); return; }
   if (a === "cab-tab") { S.tab = b.dataset.tab; S.err = ""; return render(); }
   if (a === "forgot") { S = { view: "forgot", err: "", form: S.form }; return render(); }
+  if (a === "verify-resend") return doVerifyResend();
   if (a === "forgot-send") return doForgot();
   if (a === "reset-send") return doReset();
   if (a === "login") return doAuth("login");
@@ -2766,10 +2785,18 @@ async function loadData() {
 async function boot() {
   /* при переходе на «Регистрацию» или «Войти» не мигаем надписью про задачи */
   let notIn = true; try { notIn = localStorage.getItem("listik_in") !== "1"; } catch (e) {}
-  const quiet = notIn || /^#(register|login|cabinet|reset=)/.test(location.hash);
+  const quiet = notIn || /^#(register|login|cabinet|reset=|verify=)/.test(location.hash);
   app.innerHTML = quiet ? '' : '<div class="top"><div class="brand hand">' + LOGO + 'Листик</div></div><p class="lead">Загружаю задачи…</p>';
   try {
     await loadData();
+    const vm = /^#verify=([A-Za-z0-9._-]+)$/.exec(location.hash);
+    if (vm) {                                   // ссылка из письма «Подтвердите почту»
+      history.replaceState(null, "", location.pathname);
+      const r = await call("/api/verify", { token: vm[1] });
+      if (r.status === 200) { USER = r.data.user; try { localStorage.setItem("listik_in", "1"); } catch (e) {} await reloadTasks(); S = { view: "home", flash: "Почта подтверждена, кабинет создан. Запомните PIN-код: он нужен для подсказок и входа в кабинет." }; return render(); }
+      S = { view: "auth", mode: "login", err: r.status === 0 ? NET : (r.data.message || "Ссылка не подошла. Войдите, и мы отправим новую.") };
+      return render();
+    }
     const rm = /^#reset=([A-Za-z0-9._-]+)$/.exec(location.hash), hm = /^#(register|login)$/.exec(location.hash);
     if (rm) {                                   // ссылка из письма «Новый пароль»
       history.replaceState(null, "", location.pathname);
