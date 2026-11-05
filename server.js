@@ -953,7 +953,7 @@ function cabinetExtra(user, tasksView) {
   const hardTop = Object.entries(hardCount).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([name, n]) => ({ name, lessons: n }));
   const active = hasPlan({ user }), key = "u:" + user.id, uv = usageView(key);
   return {
-    plan: { active, until: user.plan && user.plan.until || null, daysLeft: active ? Math.ceil((Date.parse(user.plan.until) - now) / 86400000) : 0,
+    plan: { active, until: user.plan && user.plan.until || null, cancelAt: user.cancelRenewal && user.cancelRenewal.at || null, daysLeft: active ? Math.ceil((Date.parse(user.plan.until) - now) / 86400000) : 0,
       freeTasks: TASKS.filter(x => !isPaidTask(x)).length },
     today: { studyUsed: Math.round(uv.studyMax - uv.studyLeft), studyMax: uv.studyMax, voiceUsed: Math.round(uv.voiceMax - uv.voiceLeft), voiceMax: uv.voiceMax },
     createdAt: user.createdAt || null,
@@ -1051,6 +1051,7 @@ const STATIC = {
   "/pricing.html": ["pricing.html", "text/html; charset=utf-8"],
   "/about.html": ["about.html", "text/html; charset=utf-8"],
   "/privacy.html": ["privacy.html", "text/html; charset=utf-8"],
+  "/terms.html": ["terms.html", "text/html; charset=utf-8"],
   "/hidden-blocks.html": ["hidden-blocks.html", "text/html; charset=utf-8"],
   "/admin": ["admin.html", "text/html; charset=utf-8"],
   "/admin.html": ["admin.html", "text/html; charset=utf-8"],
@@ -1349,6 +1350,18 @@ async function api(req, res, url) {
     if (!name) return send(res, 400, { error: "child", message: "Введите имя или псевдоним ребёнка (без фамилии)." });
     a.user.child.name = name; saveUsers();
     return send(res, 200, { ok: true, user: publicUser(a) });
+  }
+  /* отказ от продления подписки (и возврат продления): отметка в кабинете + письма родителю и в billing@ */
+  if (url === "/api/parent/cancel-renewal") {
+    if (!isParent(a)) return send(res, a ? 403 : 401, { error: "parent_required" });
+    if (!hasPlan(a)) return send(res, 400, { error: "noplan", message: "Платной подписки сейчас нет." });
+    if (tooMany("cancel:" + a.user.id, 10, 60 * MIN)) return send(res, 429, { error: "too_many" });
+    hit("cancel:" + a.user.id);
+    const undo = b.undo === true;
+    if (undo) delete a.user.cancelRenewal; else a.user.cancelRenewal = { at: new Date().toISOString() };
+    saveUsers();
+    MAIL.renewalChange(a.user.email, a.user.child && a.user.child.name, a.user.plan.until, undo).catch(mailFail);
+    return send(res, 200, { ok: true });
   }
   /* смена PIN (и «Забыли PIN»): всегда нужен пароль от кабинета, ребёнок его не знает */
   if (url === "/api/pin/change") {

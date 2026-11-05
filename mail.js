@@ -72,4 +72,21 @@ function passwordReset(email, url) {
   return sendMail({ to: email, subject: "Листик: восстановление пароля", text, html });
 }
 
-module.exports = { sendMail, welcome, verifyEmail, passwordReset, configured: !!KEY };
+/* отказ от продления подписки (или возврат продления): письмо родителю и уведомление в billing@ */
+const BILLING = process.env.BILLING_EMAIL || "billing@listik.kz";
+function renewalChange(email, childName, until, undo) {
+  const d = until ? new Date(until).toLocaleDateString("ru-RU") : "—";
+  const subject = undo ? "Листик: продление снова включено" : "Листик: вы отказались от продления";
+  const text = undo
+    ? "Здравствуйте!\n\nПродление подписки Листика снова включено. Оплаченный период действует до " + d + ".\n\nЕсли есть вопросы: " + WA
+    : "Здравствуйте!\n\nМы получили ваш отказ от продления подписки Листика. Подписка действует до " + d + " и дальше продлеваться не будет.\n\nЕсли вы нажали по ошибке, вернуть продление можно в кабинете родителя, в блоке «Подписка».\n\nЕсли есть вопросы: " + WA;
+  const html = wrap(undo ? "Продление снова включено" : "Вы отказались от продления",
+    "<p>" + esc(text.split("\n\n")[1]) + "</p>" + (undo ? "" : "<p style='font-size:14px;color:#445'>" + esc(text.split("\n\n")[2]) + "</p>"));
+  const note = (undo ? "Продление снова включено" : "Отказ от продления") + "\nПочта: " + email + "\nИмя ребёнка: " + (childName || "—") + "\nПодписка действует до: " + d;
+  return Promise.all([
+    sendMail({ to: email, subject, text, html }),
+    sendMail({ to: BILLING, subject: (undo ? "Продление включено: " : "Отказ от продления: ") + email, text: note, html: "<pre style='font-family:inherit'>" + esc(note) + "</pre>" })
+  ]);
+}
+
+module.exports = { sendMail, welcome, verifyEmail, passwordReset, renewalChange, configured: !!KEY };

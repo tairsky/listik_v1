@@ -41,6 +41,7 @@ if (cmd === "list") {
   else {
     const cur = user.plan && Date.parse(user.plan.until) > Date.now() ? Date.parse(user.plan.until) : Date.now();
     user.plan = { until: new Date(cur + Number(value) * 86400000).toISOString() };
+    delete user.cancelRenewal;
     save(); console.log("Подписка для " + email + " действует до " + user.plan.until.slice(0, 10) + ".");
   }
 } else if (cmd === "delete" && user) {
