@@ -1050,6 +1050,7 @@ const STATIC = {
   "/start.html": ["start.html", "text/html; charset=utf-8"],
   "/pricing.html": ["pricing.html", "text/html; charset=utf-8"],
   "/about.html": ["about.html", "text/html; charset=utf-8"],
+  "/privacy.html": ["privacy.html", "text/html; charset=utf-8"],
   "/hidden-blocks.html": ["hidden-blocks.html", "text/html; charset=utf-8"],
   "/admin": ["admin.html", "text/html; charset=utf-8"],
   "/admin.html": ["admin.html", "text/html; charset=utf-8"],
