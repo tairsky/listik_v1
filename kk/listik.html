@@ -565,6 +565,7 @@
 .vstart span{font-size:15px;opacity:.75}
 </style>
 <link rel="icon" type="image/png" href="/img/logo.png">
+<script src="/analytics.js" defer></script>
 </head>
 <body>
 <div class="sh-band">
@@ -1386,6 +1387,7 @@ async function doAuth(mode) {
     payload = { email, password, pin, childName: S.form.childName, agree: true };
   }
   const r = await call(mode === "register" ? "/api/register" : "/api/login", payload);
+  if (mode === "register" && r.status === 200 && window.lkTrack) window.lkTrack("sign_up");
   if (r.status === 200 && r.data.pending) { S = { view: "verify", email: r.data.email || email, err: "", flash: "" }; return render(); }
   if (r.status === 403 && r.data.error === "unverified") { S = { view: "verify", email, err: "", flash: "Пошта әлі расталмаған. Хаттағы сілтемені ашыңыз немесе хатты қайта жіберіңіз." }; return render(); }
   if (r.status === 200) { USER = r.data.user; await reloadTasks(); S = { view: "home", flash: mode === "register" ? "Кабинет жасалды. PIN-кодты есте сақтаңыз: ол кеңестер мен кабинетке кіру үшін керек." : "" }; return render(); }

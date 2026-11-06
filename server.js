@@ -1057,6 +1057,7 @@ const STATIC = {
   "/admin.html": ["admin.html", "text/html; charset=utf-8"],
   "/site.css": ["site.css", "text/css; charset=utf-8"],
   "/lang.js": ["lang.js", "application/javascript; charset=utf-8"],
+  "/analytics.js": ["analytics.js", "application/javascript; charset=utf-8"],
   /* Казахская версия сайта (собирается командой: python3 kk_tools/build_kk.py) */
   "/kk": ["kk/index.html", "text/html; charset=utf-8"],
   "/kk/": ["kk/index.html", "text/html; charset=utf-8"],

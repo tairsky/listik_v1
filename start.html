@@ -126,6 +126,7 @@ main { padding-top:48px; padding-bottom:72px; display:flex; flex-direction:colum
 </style>
 <link rel="stylesheet" href="/site.css">
 <link rel="icon" type="image/png" href="/img/logo.png">
+<script src="/analytics.js" defer></script>
 </head>
 <body class="grid-bg">
 <script>fetch("/api/me",{cache:"no-store",credentials:"same-origin"}).then(function(r){return r.json()}).then(function(d){var u=d&&(d.user||(d.data&&d.data.user));if(!u)location.replace("/listik.html#register")}).catch(function(){});</script>
