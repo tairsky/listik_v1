@@ -7,7 +7,7 @@
   var IDS = {
     gtm: "GTM-NCWQ44FC", // Google Tag Manager, контейнер Listik (GA4 и пиксели добавляются внутри GTM)
     ga4: "",        // GA4 напрямую не нужен: подключается тегом внутри GTM (ID потока: G-GVSNEHQGDE)
-    meta: "",       // Meta (Facebook/Instagram) Pixel, например "1234567890123456"
+    meta: "1044512218650795", // Meta (Facebook/Instagram) Pixel, например "1234567890123456"
     tiktok: "",     // TikTok Pixel, например "C1234567890ABCDEF"
     yandex: ""      // Яндекс.Метрика, например "12345678"
   };
