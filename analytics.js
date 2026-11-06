@@ -5,8 +5,8 @@
    3) Имена детей, почта и содержимое занятий в аналитику НЕ отправляются. */
 (function () {
   var IDS = {
-    gtm: "GTM-KWWRLXDB", // Google Tag Manager (GA4, пиксели и теги настраиваются внутри GTM)
-    ga4: "",        // Google Analytics 4, например "G-XXXXXXXXXX"
+    gtm: "",          // Google Tag Manager (пока нет своего контейнера, оставьте пустым)
+    ga4: "G-GVSNEHQGDE", // Google Analytics 4 (ресурс listik)
     meta: "",       // Meta (Facebook/Instagram) Pixel, например "1234567890123456"
     tiktok: "",     // TikTok Pixel, например "C1234567890ABCDEF"
     yandex: ""      // Яндекс.Метрика, например "12345678"
