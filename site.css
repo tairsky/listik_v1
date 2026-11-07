@@ -56,7 +56,6 @@ body { background:#FBFAF4 !important; color:#1E2A22; }
 /* тёмный подвал */
 .sf { background:#1E2A22; color:#E6F2E8; margin-top:48px; font-size:16px; }
 .sf-in { max-width:1120px; margin:0 auto; padding:56px 24px 32px; display:block; text-align:left; }
-.sf-top { display:flex; flex-wrap:wrap; justify-content:space-between; gap:32px; }
 .sf-col { flex:1 1 240px; min-width:0; display:flex; flex-direction:column; gap:6px; }
 .sf-col h4 { margin:0 0 6px; font-size:14px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:#BFDFC6; }
 .sf-col p { margin:0; color:#BFDFC6; }
@@ -91,3 +90,17 @@ h1, h2, h3 { font-family:"Nunito",system-ui,sans-serif !important; font-weight:8
 .sh-nav a[href="/listik.html#cabinet"]:hover,.mh-nav a[href="/listik.html#cabinet"]:hover{background:#EAF5EE;color:#15683A!important}
 .sh-nav a[href="/listik.html#cabinet"]::before,.mh-nav a[href="/listik.html#cabinet"]::before{content:"";position:absolute;left:-22px;top:50%;height:28px;width:1px;margin-top:-14px;background:#D5DBCF}
 }
+
+/* нижняя строка подвала: способы оплаты строго слева, авторские права строго по центру, реквизиты и контакты строго справа */
+.sf-bottom { display:grid; grid-template-columns:repeat(3,1fr); align-items:start; gap:20px 32px; border-top:1px solid #3A4A40; margin-top:32px; padding-top:20px; font-size:14px; color:#BFDFC6; line-height:1.6; }
+.sf-bottom .sf-pay { margin:0; display:flex; flex-direction:column; align-items:flex-start; gap:8px; font-size:14px; color:#BFDFC6; text-align:left; }
+.sf-bottom .sf-pay img { height:30px; width:auto; border-radius:4px; display:block; }
+.sf-bottom .sf-logos { display:flex; gap:10px; align-items:center; }
+.sf-bottom .sf-copy { margin:0; border:0; padding:0; text-align:center; font-size:14px; color:#BFDFC6; }
+.sf-bottom .sf-req { margin:0; font-size:14px; color:#BFDFC6; line-height:1.6; text-align:right; }
+@media (max-width:720px) { .sf-bottom { grid-template-columns:1fr; } .sf-bottom .sf-copy, .sf-bottom .sf-req { text-align:left; } }
+/* верхняя часть подвала: те же три колонки, что и в нижней строке (логотип слева, «Связаться с нами» по центру, «Документы» справа) */
+.sf-top, .sf-top3 { display:grid !important; grid-template-columns:repeat(3,1fr); gap:32px; }
+.sf-top > :nth-child(2), .sf-top3 > :nth-child(2) { align-items:center !important; text-align:center; }
+.sf-top > :nth-child(3), .sf-top3 > :nth-child(3) { align-items:flex-end !important; text-align:right; }
+@media (max-width:720px) { .sf-top, .sf-top3 { grid-template-columns:1fr; } .sf-top > :nth-child(2), .sf-top3 > :nth-child(2), .sf-top > :nth-child(3), .sf-top3 > :nth-child(3) { align-items:flex-start !important; text-align:left; } }

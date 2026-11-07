@@ -6,6 +6,7 @@
    node admin.js pin <почта> <PIN из 4 цифр>     задать новый PIN
    node admin.js plan <почта> <дней>             открыть платные задачи на N дней (от сегодня или от конца текущей подписки)
    node admin.js plan <почта> off                закрыть платные задачи
+   node admin.js payments                       список платежей (заказы онлайн-оплаты)
    node admin.js delete <почта>                  удалить кабинет вместе с прогрессом */
 "use strict";
 const fs = require("fs");
@@ -28,7 +29,12 @@ const [cmd, emailArg, value] = process.argv.slice(2);
 const email = (emailArg || "").trim().toLowerCase();
 const user = users.find(u => u.email === email);
 
-if (cmd === "list") {
+if (cmd === "payments") {
+  const PF = path.join(DIR, "payments.json");
+  const ords = fs.existsSync(PF) ? JSON.parse(fs.readFileSync(PF, "utf8")) : [];
+  console.log("Заказов: " + ords.length + " (оплачено: " + ords.filter(o => o.status === "paid").length + ")");
+  ords.forEach(o => console.log("- " + o.createdAt.slice(0, 16).replace("T", " ") + " | " + o.id + " | " + o.email + " | " + o.amount + " ₸ | " + o.status + (o.until ? " | до " + o.until.slice(0, 10) : "") + (o.problem ? " | ПРОБЛЕМА: " + o.problem : "")));
+} else if (cmd === "list") {
   console.log("Кабинетов: " + users.length);
   users.forEach(u => console.log("- " + u.email + " | ребёнок: " + u.child.name + " | создан: " + u.createdAt.slice(0, 10) + " | занятий: " + ((u.progress && u.progress.lessons.length) || 0) + " | подписка: " + (u.plan && Date.parse(u.plan.until) > Date.now() ? "до " + u.plan.until.slice(0, 10) : "нет")));
 } else if (cmd === "password" && user && value) {

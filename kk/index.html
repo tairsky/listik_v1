@@ -200,7 +200,7 @@ svg .lk-blink{transform-box:fill-box;transform-origin:center;animation:lkblink 5
 <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:32px">
 <div style="flex:1 1 420px;min-width:0;max-width:none;display:flex;flex-direction:column;gap:14px">
 <h2 style="margin:0;font-size:34.2px;line-height:1.2;font-weight:800">Оқуды бастаудың 4 қарапайым қадамы</h2>
-<p style="margin:0;color:#4B5A50">Одан әрі Листиктің өзі баланы қадам-қадаммен жетелеп, қажет болғанда кеңес беріп отырады.</p>
+<p style="margin:0;color:#4B5A50">Одан әрі Листиктің өзі баланы қадам-қадаммен жетелеп, кеңес беріп, жігерлендіріп отырады.</p>
 </div>
 
 </div>
@@ -244,7 +244,7 @@ svg .lk-blink{transform-box:fill-box;transform-origin:center;animation:lkblink 5
 </details>
 <details class="lk-faq">
 <summary><h3 style="margin:0;font-size:18px;font-weight:800">Қай сыныптар мен пәндерге арналған?</h3></summary>
-<p style="margin:12px 0 0;font-size:16px;color:#4B5A50">Листик біздің жаттығуларымыз бойынша оқытады. Пәндер мен жаттығулар біртіндеп қосылады: әдіскерлеріміз оларды тексеріп, барлық мүмкін қателерді алып тастағаннан кейін.</p>
+<p style="margin:12px 0 0;font-size:16px;color:#4B5A50">Листик біздің жаттығуларымыз бойынша оқытады. Листик — әртүрлі мектеп пәндерінен репетитор. Пәндер мен жаттығулар біртіндеп қосылады: алдымен әдіскерлеріміз оларды тексеріп, барлық мүмкін қателерді жояды.</p>
 </details>
 <details class="lk-faq">
 <summary><h3 style="margin:0;font-size:18px;font-weight:800">Қасында отыру керек пе?</h3></summary>
@@ -280,9 +280,23 @@ svg .lk-blink{transform-box:fill-box;transform-origin:center;animation:lkblink 5
 </div>
 
 <!-- Футер -->
+<style>/* нижняя строка подвала: способы оплаты строго слева, авторские права строго по центру, реквизиты и контакты строго справа */
+.sf-bottom { display:grid; grid-template-columns:repeat(3,1fr); align-items:start; gap:20px 32px; border-top:1px solid #3A4A40; margin-top:32px; padding-top:20px; font-size:14px; color:#BFDFC6; line-height:1.6; }
+.sf-bottom .sf-pay { margin:0; display:flex; flex-direction:column; align-items:flex-start; gap:8px; font-size:14px; color:#BFDFC6; text-align:left; }
+.sf-bottom .sf-pay img { height:30px; width:auto; border-radius:4px; display:block; }
+.sf-bottom .sf-logos { display:flex; gap:10px; align-items:center; }
+.sf-bottom .sf-copy { margin:0; border:0; padding:0; text-align:center; font-size:14px; color:#BFDFC6; }
+.sf-bottom .sf-req { margin:0; font-size:14px; color:#BFDFC6; line-height:1.6; text-align:right; }
+@media (max-width:720px) { .sf-bottom { grid-template-columns:1fr; } .sf-bottom .sf-copy, .sf-bottom .sf-req { text-align:left; } }
+/* верхняя часть подвала: те же три колонки, что и в нижней строке (логотип слева, «Связаться с нами» по центру, «Документы» справа) */
+.sf-top, .sf-top3 { display:grid !important; grid-template-columns:repeat(3,1fr); gap:32px; }
+.sf-top > :nth-child(2), .sf-top3 > :nth-child(2) { align-items:center !important; text-align:center; }
+.sf-top > :nth-child(3), .sf-top3 > :nth-child(3) { align-items:flex-end !important; text-align:right; }
+@media (max-width:720px) { .sf-top, .sf-top3 { grid-template-columns:1fr; } .sf-top > :nth-child(2), .sf-top3 > :nth-child(2), .sf-top > :nth-child(3), .sf-top3 > :nth-child(3) { align-items:flex-start !important; text-align:left; } }
+</style>
 <footer style="background:#1E2A22;color:#E6F2E8;padding:56px 24px 32px;box-sizing:border-box">
 <div style="max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:32px">
-<div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:32px">
+<div class="sf-top3">
 <div style="flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:12px">
 <div style="display:flex;align-items:center;gap:10px">
 <img src="/img/logo.png" alt="" width="48" height="44" style="height:44px;width:auto;display:block">
@@ -298,11 +312,10 @@ svg .lk-blink{transform-box:fill-box;transform-origin:center;animation:lkblink 5
 <div style="flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:4px">
 <div style="font-size:14px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:#BFDFC6;margin-bottom:4px">Құжаттар</div>
 <a href="/privacy.html" style="display:inline-flex;align-items:center;min-height:32px;font-size:16px;color:#FFFFFF;text-decoration:none">Құпиялылық саясаты</a>
-<a href="#" style="display:inline-flex;align-items:center;min-height:32px;font-size:16px;color:#FFFFFF;text-decoration:none">Пайдаланушы келісімі</a>
-<a href="#" style="display:inline-flex;align-items:center;min-height:32px;font-size:16px;color:#FFFFFF;text-decoration:none">Жария оферта</a>
+<a href="/terms.html" style="display:inline-flex;align-items:center;min-height:32px;font-size:16px;color:#FFFFFF;text-decoration:none">Пайдаланушы келісімі</a>
 </div>
 </div>
-<div style="border-top:1px solid #3A4A40;padding-top:20px;font-size:14px;color:#BFDFC6">© 2026. ЖИ-репетитор «Листик»</div>
+<div class="sf-bottom"><div class="sf-pay"><span>Банк карталарымен төлеу</span><div class="sf-logos"><img src="/img/pay/visa.svg" alt="Visa" width="47" height="30"><img src="/img/pay/mastercard.svg" alt="Mastercard" width="47" height="30"></div></div><div class="sf-copy">© 2026. ЖИ-репетитор «Листик»</div><div class="sf-req">ЖК «Феникс», ЖСН 460104400918<br>Алматы қ., Өтеген батыр к-сі 17б<br>info@listik.kz · +7 (775) 971-41-63</div></div>
 </div>
 </footer>
 

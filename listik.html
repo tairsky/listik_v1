@@ -596,7 +596,7 @@
         <a href="/terms.html">Пользовательское соглашение</a>
       </div>
     </div>
-    <div class="sf-copy">© 2026. ИИ-репетитор «Листик»</div>
+    <div class="sf-bottom"><div class="sf-pay"><span>Оплата банковскими картами</span><div class="sf-logos"><img src="/img/pay/visa.svg" alt="Visa" width="47" height="30"><img src="/img/pay/mastercard.svg" alt="Mastercard" width="47" height="30"></div></div><div class="sf-copy">© 2026. ИИ-репетитор «Листик»</div><div class="sf-req">ИП «Феникс», ИИН 460104400918<br>г. Алматы, ул. Утеген батыра 17б<br>info@listik.kz · +7 (775) 971-41-63</div></div>
   </div>
 </footer>
 
@@ -1212,9 +1212,9 @@ const meter = (label, used, max, text) => {
 };
 function planCard(c, withCancel) {
   const p = c.plan;
-  if (p.active && withCancel) return '<div class="pc-card pc-plan on"><b>Платный тариф активен</b><span>Действует до ' + fmtDate(p.until) + ', осталось ' + p.daysLeft + ' ' + plural(p.daysLeft, "день", "дня", "дней") + '.' + (p.cancelAt ? ' Продление отключено ' + fmtDate(p.cancelAt) + ': после этой даты подписка продлеваться не будет.' : '') + '</span>' + (p.cancelAt ? '<button class="btn ghost small" data-action="cab-cancel-undo">Вернуть продление</button>' : '<button class="btn ghost small" data-action="cab-cancel">Отказаться от продления</button>') + '<a class="btn ghost small" href="/pricing.html">О тарифе</a></div>';
+  if (p.active && withCancel) return '<div class="pc-card pc-plan on"><b>Платный тариф активен</b><span>Действует до ' + fmtDate(p.until) + ', осталось ' + p.daysLeft + ' ' + plural(p.daysLeft, "день", "дня", "дней") + '.' + (p.cancelAt ? ' Продление отключено ' + fmtDate(p.cancelAt) + ': после этой даты подписка продлеваться не будет.' : '') + '</span>' + (p.cancelAt ? '<button class="btn ghost small" data-action="cab-cancel-undo">Вернуть продление</button>' : '<button class="btn ghost small" data-action="cab-cancel">Отказаться от продления</button>') + (PAYCFG.enabled && p.daysLeft <= 7 ? payBtn("/listik.html", "Продлить на месяц") : '') + '<a class="btn ghost small" href="/pricing.html">О тарифе</a></div>';
   if (p.active) return '<div class="pc-card pc-plan on"><b>Платный тариф активен</b><span>Действует до ' + fmtDate(p.until) + ', осталось ' + p.daysLeft + ' ' + plural(p.daysLeft, "день", "дня", "дней") + '.</span><a class="btn ghost small" href="/pricing.html">О тарифе</a></div>';
-  return '<div class="pc-card pc-plan"><b>' + (p.until ? 'Подписка закончилась ' + fmtDate(p.until) : 'Сейчас пробный доступ') + '</b><span>Бесплатно доступно задач: ' + p.freeTasks + ' из ' + c.summary.tasksTotal + '. Платный тариф открывает все задачи.</span><a class="btn small" href="/pricing.html">Посмотреть тарифы</a></div>';
+  return '<div class="pc-card pc-plan"><b>' + (p.until ? 'Подписка закончилась ' + fmtDate(p.until) : 'Сейчас пробный доступ') + '</b><span>Бесплатно доступно задач: ' + p.freeTasks + ' из ' + c.summary.tasksTotal + '. Платный тариф открывает все задачи.</span>' + (PAYCFG.enabled ? payBtn("/listik.html") + '<a class="btn ghost small" href="/pricing.html">О тарифе</a>' : '<a class="btn small" href="/pricing.html">Посмотреть тарифы</a>') + '</div>';
 }
 function tipsBlock(c) {
   const rep = c.skills.filter(k => k.level === "repeat"), good = c.skills.filter(k => k.level === "good");
@@ -1368,6 +1368,21 @@ async function openCabinet(tab, flash) {
   S.err = NET; render();
 }
 
+/* ---- оплата подписки: кнопки показываем, только если на сервере включена онлайн-оплата (/api/pay/config) ---- */
+let PAYCFG = { enabled: false, price: 9900 };
+const payLabel = () => "Оплатить " + String(PAYCFG.price).replace(/\B(?=(\d{3})+$)/g, "\u00A0") + "\u00A0₸";
+function payBtn(ret, label, ghost) { return '<button class="btn small' + (ghost ? ' ghost' : '') + '" data-action="pay" data-ret="' + esc(ret || "") + '">' + esc(label || payLabel()) + '</button>'; }
+async function startPay(ret) {
+  if (!USER) { S = { view: "auth", mode: "register", err: "Сначала создайте кабинет: подписка привязывается к нему." }; return render(); }
+  const back = ret || (location.pathname + "");
+  const r = await call("/api/pay/create", { returnTo: back, lang: document.documentElement.lang === "kk" ? "kk" : "ru" });
+  if (r.status === 200 && r.data.url) { location.href = r.data.url; return; }
+  if (r.status === 403) { S = { view: "pin", flash: "Оплачивает взрослый: введите PIN-код родителя.", afterPin: "pay", payRet: back }; return render(); }
+  if (r.status === 401) { USER = null; S = { view: "auth", mode: "login", err: "Войдите заново." }; return render(); }
+  const msg = r.status === 0 ? NET : r.status === 429 ? "Слишком много попыток. Подождите немного." : (r.data.message || "Не получилось начать оплату. Попробуйте ещё раз.");
+  if (S && S.view === "cabinet") { S.err = msg; return render(); }
+  S = { view: "pin", flash: msg }; render();
+}
 async function call(path, payload) {
   try { return await api(path, payload); } catch (e) { return { status: 0, data: {} }; }
 }
@@ -1455,10 +1470,12 @@ async function doReset() {
   render();
 }
 async function doPinEnter() {
+  const after = S && S.afterPin, ret = S && S.payRet;
   const r = await call("/api/parent/enter", { pin: val("fPin").trim() });
-  if (r.status === 200 && r.data.ok) { USER = r.data.user; return openCabinet("progress"); }
+  if (r.status === 200 && r.data.ok) { USER = r.data.user; if (after === "pay") return startPay(ret); return openCabinet("progress"); }
   if (r.status === 401) { USER = null; S = { view: "auth", mode: "login", err: "Войдите заново." }; return render(); }
   S.err = r.status === 0 ? NET : r.status === 429 ? LOCKED : "Неверный PIN-код.";
+  S.afterPin = after; S.payRet = ret;
   render();
 }
 async function doPinChange(fromCabinet) {
@@ -2036,6 +2053,7 @@ app.addEventListener("click", e => {
   if (a === "login") return doAuth("login");
   if (a === "register") return doAuth("register");
   if (a === "cab-open") { if (!USER) { S = { view: "auth", mode: "login", err: "" }; return render(); } S = { view: "pin" }; return render(); }
+  if (a === "pay") return startPay(b.dataset.ret || "");
   if (a === "pin-enter") return doPinEnter();
   if (a === "pin-forgot") { S = { view: "pinreset" }; return render(); }
   if (a === "pin-reset") return doPinChange(false);
@@ -2738,9 +2756,9 @@ function renderPaywall() {
   const wa = "https://wa.me/77759714163?text=" + encodeURIComponent("Здравствуйте! Хочу оформить подписку на Листик.");
   let h = header(true);
   h += '<div class="form"><h2 class="sec">Эта задача по подписке</h2>' +
-    '<p class="lead">Пробные задачи открыты без оплаты. Остальные задачи разделов откроются с подпиской, её оплачивает взрослый.</p>' +
+    '<p class="lead">Пробные задачи открыты без оплаты. Остальные задачи разделов откроются с подпиской, её оплачивает взрослый.</p>' + (PAYCFG.enabled && USER ? '<p class="lead" style="font-size:15px;opacity:.75">Для оплаты понадобится PIN-код родителя.</p>' : '') +
     (USER ? '' : '<p class="lead" style="font-size:15px;opacity:.75">Уже оформили подписку? Войдите в кабинет родителя, и задачи откроются.</p>') +
-    '<div class="row"><a class="btn" href="/pricing.html">Посмотреть тарифы</a>' +
+    '<div class="row">' + (PAYCFG.enabled ? '<button class="btn" data-action="pay" data-ret="' + esc(location.pathname + (S && TASKS[S.t] ? "?task=" + encodeURIComponent(TASKS[S.t].id) : "")) + '">' + esc(payLabel()) + '</button><a class="btn ghost" href="/pricing.html">О тарифе</a>' : '<a class="btn" href="/pricing.html">Посмотреть тарифы</a>') +
     (USER ? '' : '<button class="btn ghost" data-action="auth" data-mode="login">Войти</button>') +
     '<button class="btn ghost" data-action="home">К задачам</button></div></div>';
   app.innerHTML = h; window.scrollTo(0, 0);
@@ -2797,10 +2815,11 @@ async function loadData() {
 async function boot() {
   /* при переходе на «Регистрацию» или «Войти» не мигаем надписью про задачи */
   let notIn = true; try { notIn = localStorage.getItem("listik_in") !== "1"; } catch (e) {}
-  const quiet = notIn || /^#(register|login|cabinet|reset=|verify=)/.test(location.hash);
+  const quiet = notIn || /^#(register|login|cabinet|pay|reset=|verify=)/.test(location.hash);
   app.innerHTML = quiet ? '' : '<div class="top"><div class="brand hand">' + LOGO + 'Листик</div></div><p class="lead">Загружаю задачи…</p>';
   try {
     await loadData();
+    try { const pc = await call("/api/pay/config"); if (pc.status === 200 && pc.data) PAYCFG = pc.data; } catch (e) {}
     const vm = /^#verify=([A-Za-z0-9._-]+)$/.exec(location.hash);
     if (vm) {                                   // ссылка из письма «Подтвердите почту»
       history.replaceState(null, "", location.pathname);
@@ -2818,6 +2837,12 @@ async function boot() {
     if (hm && !USER) {                          // кнопки «Регистрация» и «Войти» на других страницах сайта
       history.replaceState(null, "", location.pathname);
       S = { view: "auth", mode: hm[1], err: "" };
+      return render();
+    }
+    if (location.hash === "#pay") {              // кнопка «Оплатить» на странице тарифов
+      history.replaceState(null, "", location.pathname);
+      if (PAYCFG.enabled) return startPay(location.pathname);
+      S = USER ? { view: "pin" } : { view: "auth", mode: "login", err: "" };
       return render();
     }
     if (location.hash === "#cabinet") {
@@ -2847,7 +2872,7 @@ async function boot() {
 }
 boot();
 </script>
-<script>window.addEventListener("hashchange",function(){if(/^#(cabinet|register|login)$/.test(location.hash))location.reload();});</script>
+<script>window.addEventListener("hashchange",function(){if(/^#(cabinet|register|login|pay)$/.test(location.hash))location.reload();});</script>
 <script>
 /* Вошедшему родителю кнопка «Регистрация» в шапке не нужна */
 (function(){try{fetch("/api/me",{cache:"no-store",credentials:"same-origin"}).then(function(r){return r.json()}).then(function(d){var u=d&&(d.user||(d.data&&d.data.user));try{if(u)localStorage.setItem("listik_in","1");else localStorage.removeItem("listik_in")}catch(e){}if(!u)return;document.querySelectorAll('.sh-btn[href="/listik.html#register"],.mh-btn[href="/listik.html#register"]').forEach(function(a){a.style.display="none"})}).catch(function(){})}catch(e){}})();

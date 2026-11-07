@@ -7,7 +7,7 @@
 <meta charset="utf-8">
 <meta name="format-detection" content="telephone=no">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Листик: мектеп пәндері бойынша ЖИ-репетитор</title>
+<title>Листик: мектеп оқушыларына арналған ЖИ-репетитор</title>
 <meta name="description" content="Листик — мектеп пәндері бойынша ЖИ-репетитор: баланы қадамдап жетелейді, оның орнына шешпейді. Ата-ана кабинетін бір минутта жасаңыз.">
 <style>
 @font-face { font-family: "Manrope"; src: url("/fonts/Manrope-cyrillic-ext.woff2") format("woff2"); font-weight: 200 800; font-display: swap; unicode-range: U+0460-052F,U+1C80-1C8A,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F; }
@@ -593,11 +593,10 @@
       <div class="sf-col">
         <h4>Құжаттар</h4>
         <a href="/privacy.html">Құпиялылық саясаты</a>
-        <a href="#">Пайдаланушы келісімі</a>
-        <a href="#">Жария оферта</a>
+        <a href="/terms.html">Пайдаланушы келісімі</a>
       </div>
     </div>
-    <div class="sf-copy">© 2026. ЖИ-репетитор «Листик»</div>
+    <div class="sf-bottom"><div class="sf-pay"><span>Банк карталарымен төлеу</span><div class="sf-logos"><img src="/img/pay/visa.svg" alt="Visa" width="47" height="30"><img src="/img/pay/mastercard.svg" alt="Mastercard" width="47" height="30"></div></div><div class="sf-copy">© 2026. ЖИ-репетитор «Листик»</div><div class="sf-req">ЖК «Феникс», ЖСН 460104400918<br>Алматы қ., Өтеген батыр к-сі 17б<br>info@listik.kz · +7 (775) 971-41-63</div></div>
   </div>
 </footer>
 
@@ -1113,13 +1112,13 @@ function renderAuth() {
   if (reg) {
     h += '<label>4 саннан тұратын PIN-код<span class="hint">Ол кабинетті және ересекке арналған кеңестерді ашады. Есте сақтаңыз, балаға айтпаңыз.</span>' + pinInput("fPin").replace('placeholder=', 'value="' + esc(f.pin || '') + '" placeholder=') + '</label>';
   }
-  if (reg) h += '<label class="chk"><input type="checkbox" id="fAgree"' + (f.agree ? ' checked' : '') + '><span>Мен құпиялылық саясатымен және пайдаланушы келісімімен келісемін</span></label>';
+  if (reg) h += '<label class="chk"><input type="checkbox" id="fAgree"' + (f.agree ? ' checked' : '') + '><span>Мен баланың ата-анасымын немесе заңды өкілімін, мен 18 жастамын, <a href="/terms.html" target="_blank" rel="noopener">пайдаланушы келісімін</a> және <a href="/privacy.html" target="_blank" rel="noopener">құпиялылық саясатын</a> қабылдаймын</span></label>';
   h += errBox(S.err);
   h += '<div class="row"><button class="btn" data-action="' + en + '">' + (reg ? 'Тіркелу' : 'Кіру') + '</button></div>';
   if (!reg) h += '<p class="hint" style="margin-top:16px">Құпиясөзді ұмыттыңыз ба? <button class="btn ghost small" data-action="forgot">Поштаға сілтеме алу</button></p>';
   h += '</div></div>';
   h += '<aside class="auth-side">' +
-       '<div class="auth-bubble">' + (reg ? 'Сәлеметсіз бе! Мен — Листик. Балаңызға әртүрлі пәндер бойынша сабақты түсінуге көмектесемін, ал сіз істердің қалай жүріп жатқанын көресіз.' : 'Сәлеметсіз бе! Мұнда баланың менімен қалай оқып жатқаны көрінеді.') + '</div>' +
+       '<div class="auth-bubble">' + (reg ? 'Сәлеметсіз бе! Мен Листикпін. Балаға әртүрлі пәндер бойынша сабақты түсінуге көмектесемін, ал сіз істің қалай жүріп жатқанын көріп отырасыз.' : 'Сәлеметсіз бе! Мұнда баланың менімен қалай оқып жатқаны көрінеді.') + '</div>' +
        '<ul class="auth-points">' +
          '<li>' + CHECK + '<span>Әр нөмір бойынша прогресс көрінеді</span></li>' +
          '<li>' + CHECK + '<span>PIN-код ересекке арналған кеңестерді ашады</span></li>' +
@@ -1211,10 +1210,11 @@ const meter = (label, used, max, text) => {
   const pct = max > 0 ? Math.min(100, Math.round(100 * used / max)) : 100;
   return '<div class="pc-meter"><div class="top2"><span>' + label + '</span><span>' + text + '</span></div><div class="bar" aria-hidden="true"><i style="width:' + pct + '%' + (pct >= 100 ? ';background:' + PC.amber : '') + '"></i></div></div>';
 };
-function planCard(c) {
+function planCard(c, withCancel) {
   const p = c.plan;
+  if (p.active && withCancel) return '<div class="pc-card pc-plan on"><b>Ақылы тариф белсенді</b><span>Әрекет ету мерзімі: ' + fmtDate(p.until) + ', қалғаны: ' + p.daysLeft + ' ' + plural(p.daysLeft, "күн", "күн", "күн") + '.' + (p.cancelAt ? ' Ұзарту өшірілген ' + fmtDate(p.cancelAt) + ': осы күннен кейін жазылым ұзартылмайды.' : '') + '</span>' + (p.cancelAt ? '<button class="btn ghost small" data-action="cab-cancel-undo">Ұзартуды қайтару</button>' : '<button class="btn ghost small" data-action="cab-cancel">Ұзартудан бас тарту</button>') + (PAYCFG.enabled && p.daysLeft <= 7 ? payBtn("/kk/listik.html", "Айға ұзарту") : '') + '<a class="btn ghost small" href="/kk/pricing.html">Тариф туралы</a></div>';
   if (p.active) return '<div class="pc-card pc-plan on"><b>Ақылы тариф белсенді</b><span>Әрекет ету мерзімі: ' + fmtDate(p.until) + ', қалғаны: ' + p.daysLeft + ' ' + plural(p.daysLeft, "күн", "күн", "күн") + '.</span><a class="btn ghost small" href="/kk/pricing.html">Тариф туралы</a></div>';
-  return '<div class="pc-card pc-plan"><b>' + (p.until ? 'Жазылым аяқталды: ' + fmtDate(p.until) : 'Қазір байқап көру қолжетімділігі') + '</b><span>Тегін қолжетімді есептер: ' + p.freeTasks + ' / ' + c.summary.tasksTotal + '. Ақылы тариф барлық есептерді ашады.</span><a class="btn small" href="/kk/pricing.html">Тарифтерді қарау</a></div>';
+  return '<div class="pc-card pc-plan"><b>' + (p.until ? 'Жазылым аяқталды: ' + fmtDate(p.until) : 'Қазір байқап көру қолжетімділігі') + '</b><span>Тегін қолжетімді есептер: ' + p.freeTasks + ' / ' + c.summary.tasksTotal + '. Ақылы тариф барлық есептерді ашады.</span>' + (PAYCFG.enabled ? payBtn("/kk/listik.html") + '<a class="btn ghost small" href="/kk/pricing.html">Тариф туралы</a>' : '<a class="btn small" href="/kk/pricing.html">Тарифтерді қарау</a>') + '</div>';
 }
 function tipsBlock(c) {
   const rep = c.skills.filter(k => k.level === "repeat"), good = c.skills.filter(k => k.level === "good");
@@ -1348,7 +1348,7 @@ function renderCabinet() {
     h += '<div class="form"><h2 class="sec">Бала</h2>';
     h += '<label>Аты немесе лақап аты <span class="hint">тегінсіз, мектепсіз және мекенжайсыз</span><input id="fChild" class="inp" maxlength="30" value="' + esc(c.child.name) + '" data-enter="cab-child"></label>';
     h += '<div class="row"><button class="btn small" data-action="cab-child">Сақтау</button></div>';
-    h += '<h2 class="sec">Жазылым</h2>' + planCard(c);
+    h += '<h2 class="sec">Жазылым</h2>' + planCard(c, true);
     h += '<h2 class="sec">PIN-кодты ауыстыру</h2><label>Кабинеттің құпиясөзі<input id="fPass" class="inp" type="password" autocomplete="current-password"></label>';
     h += '<label>Жаңа PIN-код' + pinInput("fPin") + '</label><label>PIN-кодты қайталаңыз' + pinInput("fPin2") + '</label>';
     h += '<div class="row"><button class="btn small" data-action="cab-pin">PIN-ді ауыстыру</button></div>';
@@ -1368,6 +1368,21 @@ async function openCabinet(tab, flash) {
   S.err = NET; render();
 }
 
+/* ---- оплата подписки: кнопки показываем, только если на сервере включена онлайн-оплата (/api/pay/config) ---- */
+let PAYCFG = { enabled: false, price: 9900 };
+const payLabel = () => "Төлеу " + String(PAYCFG.price).replace(/\B(?=(\d{3})+$)/g, "\u00A0") + "\u00A0₸";
+function payBtn(ret, label, ghost) { return '<button class="btn small' + (ghost ? ' ghost' : '') + '" data-action="pay" data-ret="' + esc(ret || "") + '">' + esc(label || payLabel()) + '</button>'; }
+async function startPay(ret) {
+  if (!USER) { S = { view: "auth", mode: "register", err: "Алдымен кабинет жасаңыз: жазылым сол кабинетке тіркеледі." }; return render(); }
+  const back = ret || (location.pathname + "");
+  const r = await call("/api/pay/create", { returnTo: back, lang: document.documentElement.lang === "kk" ? "kk" : "ru" });
+  if (r.status === 200 && r.data.url) { location.href = r.data.url; return; }
+  if (r.status === 403) { S = { view: "pin", flash: "Төлемді ересек жасайды: ата-ананың PIN-кодын енгізіңіз.", afterPin: "pay", payRet: back }; return render(); }
+  if (r.status === 401) { USER = null; S = { view: "auth", mode: "login", err: "Қайтадан кіріңіз." }; return render(); }
+  const msg = r.status === 0 ? NET : r.status === 429 ? "Әрекет тым көп. Сәл күтіңіз." : (r.data.message || "Төлемді бастау мүмкін болмады. Қайта көріңіз.");
+  if (S && S.view === "cabinet") { S.err = msg; return render(); }
+  S = { view: "pin", flash: msg }; render();
+}
 async function call(path, payload) {
   try { return await api(path, payload); } catch (e) { return { status: 0, data: {} }; }
 }
@@ -1455,10 +1470,12 @@ async function doReset() {
   render();
 }
 async function doPinEnter() {
+  const after = S && S.afterPin, ret = S && S.payRet;
   const r = await call("/api/parent/enter", { pin: val("fPin").trim() });
-  if (r.status === 200 && r.data.ok) { USER = r.data.user; return openCabinet("progress"); }
+  if (r.status === 200 && r.data.ok) { USER = r.data.user; if (after === "pay") return startPay(ret); return openCabinet("progress"); }
   if (r.status === 401) { USER = null; S = { view: "auth", mode: "login", err: "Қайтадан кіріңіз." }; return render(); }
   S.err = r.status === 0 ? NET : r.status === 429 ? LOCKED : "PIN-код дұрыс емес.";
+  S.afterPin = after; S.payRet = ret;
   render();
 }
 async function doPinChange(fromCabinet) {
@@ -1467,6 +1484,13 @@ async function doPinChange(fromCabinet) {
   const r = await call("/api/pin/change", { password: pass, newPin: pin });
   if (r.status === 200 && r.data.ok) { if (fromCabinet) return openCabinet("settings", "PIN-код өзгертілді."); S = { view: "pin", flash: "PIN-код өзгертілді. Оны енгізіңіз." }; return render(); }
   S.err = r.status === 0 ? NET : r.status === 429 ? LOCKED : r.status === 400 ? r.data.message : r.status === 401 ? "Қайтадан кіріңіз." : "Құпиясөз дұрыс емес.";
+  render();
+}
+async function doCancelRenewal(undo) {
+  const r = await call("/api/parent/cancel-renewal", { undo: !!undo });
+  if (r.status === 200) return openCabinet("settings", undo ? "Ұзарту қайта қосылды." : "Ұзарту өшірілді. Төленген кезең соңына дейін жарамды, сізге хат жібердік.");
+  if (r.status === 403) { S = { view: "pin" }; return render(); }
+  S.err = r.status === 0 ? NET : r.status === 429 ? "Әрекет тым көп. Сәл күтіңіз." : (r.data.message || "Болмады. Қайта көріңіз.");
   render();
 }
 async function doChild() {
@@ -2029,11 +2053,14 @@ app.addEventListener("click", e => {
   if (a === "login") return doAuth("login");
   if (a === "register") return doAuth("register");
   if (a === "cab-open") { if (!USER) { S = { view: "auth", mode: "login", err: "" }; return render(); } S = { view: "pin" }; return render(); }
+  if (a === "pay") return startPay(b.dataset.ret || "");
   if (a === "pin-enter") return doPinEnter();
   if (a === "pin-forgot") { S = { view: "pinreset" }; return render(); }
   if (a === "pin-reset") return doPinChange(false);
   if (a === "cab-pin") return doPinChange(true);
   if (a === "cab-child") return doChild();
+  if (a === "cab-cancel") return doCancelRenewal(false);
+  if (a === "cab-cancel-undo") return doCancelRenewal(true);
   if (a === "logout") { try{localStorage.removeItem("listik_in")}catch(e){} call("/api/logout", {}).then(reloadTasks).then(() => { if (S.view === "home") render(); }); USER = null; S = { view: "home", flash: "Сіз кабинеттен шықтыңыз." }; return render(); }
   if (a === "ttstoggle") { TTS.on = !TTS.on; if (!TTS.on) stopSpeech(); return render(); }
   if (a === "voicetoggle") { if (VOICE.active || VOICE.connecting) VOICE.stop(); else VOICE.start(); return; }
@@ -2731,9 +2758,9 @@ function renderPaywall() {
   const wa = "https://wa.me/77759714163?text=" + encodeURIComponent("Сәлеметсіз бе! Листикке жазылым рәсімдегім келеді.");
   let h = header(true);
   h += '<div class="form"><h2 class="sec">Бұл есеп жазылым бойынша</h2>' +
-    '<p class="lead">Байқап көру есептері төлемсіз ашық. Бөлімдердің қалған есептері жазылыммен ашылады, оны ересек төлейді.</p>' +
+    '<p class="lead">Байқап көру есептері төлемсіз ашық. Бөлімдердің қалған есептері жазылыммен ашылады, оны ересек төлейді.</p>' + (PAYCFG.enabled && USER ? '<p class="lead" style="font-size:15px;opacity:.75">Төлеу үшін ата-ананың PIN-коды керек.</p>' : '') +
     (USER ? '' : '<p class="lead" style="font-size:15px;opacity:.75">Жазылым рәсімдедіңіз бе? Ата-ана кабинетіне кіріңіз, есептер ашылады.</p>') +
-    '<div class="row"><a class="btn" href="/kk/pricing.html">Тарифтерді қарау</a>' +
+    '<div class="row">' + (PAYCFG.enabled ? '<button class="btn" data-action="pay" data-ret="' + esc(location.pathname + (S && TASKS[S.t] ? "?task=" + encodeURIComponent(TASKS[S.t].id) : "")) + '">' + esc(payLabel()) + '</button><a class="btn ghost" href="/kk/pricing.html">Тариф туралы</a>' : '<a class="btn" href="/kk/pricing.html">Тарифтерді қарау</a>') +
     (USER ? '' : '<button class="btn ghost" data-action="auth" data-mode="login">Кіру</button>') +
     '<button class="btn ghost" data-action="home">Есептерге</button></div></div>';
   app.innerHTML = h; window.scrollTo(0, 0);
@@ -2790,10 +2817,11 @@ async function loadData() {
 async function boot() {
   /* при переходе на «Регистрацию» или «Войти» не мигаем надписью про задачи */
   let notIn = true; try { notIn = localStorage.getItem("listik_in") !== "1"; } catch (e) {}
-  const quiet = notIn || /^#(register|login|cabinet|reset=|verify=)/.test(location.hash);
+  const quiet = notIn || /^#(register|login|cabinet|pay|reset=|verify=)/.test(location.hash);
   app.innerHTML = quiet ? '' : '<div class="top"><div class="brand hand">' + LOGO + 'Листик</div></div><p class="lead">Есептерді жүктеп жатырмын…</p>';
   try {
     await loadData();
+    try { const pc = await call("/api/pay/config"); if (pc.status === 200 && pc.data) PAYCFG = pc.data; } catch (e) {}
     const vm = /^#verify=([A-Za-z0-9._-]+)$/.exec(location.hash);
     if (vm) {                                   // ссылка из письма «Подтвердите почту»
       history.replaceState(null, "", location.pathname);
@@ -2811,6 +2839,12 @@ async function boot() {
     if (hm && !USER) {                          // кнопки «Регистрация» и «Войти» на других страницах сайта
       history.replaceState(null, "", location.pathname);
       S = { view: "auth", mode: hm[1], err: "" };
+      return render();
+    }
+    if (location.hash === "#pay") {              // кнопка «Оплатить» на странице тарифов
+      history.replaceState(null, "", location.pathname);
+      if (PAYCFG.enabled) return startPay(location.pathname);
+      S = USER ? { view: "pin" } : { view: "auth", mode: "login", err: "" };
       return render();
     }
     if (location.hash === "#cabinet") {
@@ -2840,7 +2874,7 @@ async function boot() {
 }
 boot();
 </script>
-<script>window.addEventListener("hashchange",function(){if(/^#(cabinet|register|login)$/.test(location.hash))location.reload();});</script>
+<script>window.addEventListener("hashchange",function(){if(/^#(cabinet|register|login|pay)$/.test(location.hash))location.reload();});</script>
 <script>
 /* Вошедшему родителю кнопка «Регистрация» в шапке не нужна */
 (function(){try{fetch("/api/me",{cache:"no-store",credentials:"same-origin"}).then(function(r){return r.json()}).then(function(d){var u=d&&(d.user||(d.data&&d.data.user));try{if(u)localStorage.setItem("listik_in","1");else localStorage.removeItem("listik_in")}catch(e){}if(!u)return;document.querySelectorAll('.sh-btn[href="/kk/listik.html#register"],.mh-btn[href="/kk/listik.html#register"]').forEach(function(a){a.style.display="none"})}).catch(function(){})}catch(e){}})();

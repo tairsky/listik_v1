@@ -89,4 +89,15 @@ function renewalChange(email, childName, until, undo) {
   ]);
 }
 
-module.exports = { sendMail, welcome, verifyEmail, passwordReset, renewalChange, configured: !!KEY };
+/* квитанция об оплате подписки */
+function paymentReceipt(email, childName, amount, until, orderId) {
+  const d = new Date(until).toLocaleDateString("ru-RU");
+  const text = "Здравствуйте!\n\nОплата получена: " + amount + " ₸. Подписка Листика для ребёнка " + (childName || "—") + " действует до " + d + ".\n\nНомер платежа: " + orderId +
+    "\n\nЕсли что-то не так, напишите на " + BILLING + ". Возврат: условия в разделе 7 Пользовательского соглашения.";
+  const html = wrap("Оплата получена",
+    "<p>Спасибо! Оплата <b>" + esc(amount) + " ₸</b> получена. Подписка для ребёнка <b>" + esc(childName || "—") + "</b> действует до <b>" + esc(d) + "</b>.</p>" +
+    "<p style='font-size:14px;color:#445'>Номер платежа: " + esc(orderId) + ". Если что-то не так, напишите на " + esc(BILLING) + ".</p>", "Открыть Листик", (process.env.SITE_URL || "") + "/listik.html");
+  return sendMail({ to: email, subject: "Листик: оплата получена", text, html });
+}
+
+module.exports = { sendMail, welcome, verifyEmail, passwordReset, renewalChange, paymentReceipt, configured: !!KEY };

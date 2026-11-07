@@ -429,7 +429,7 @@ const hasPlan = a => !!(a && a.user.plan && a.user.plan.until && Date.parse(a.us
 const taskLocked = (t, a) => !a || (isPaidTask(t) && !hasPlan(a));   // гостям задачи не отдаём: только после регистрации
 /* Список задач для страницы: только то, что нужно для каталога (номер, название, раздел, короткое условие, статус).
    При сотнях задач целиком каждую отдавать нельзя: шаги и урок приходят по запросу /api/task/<id> при открытии задачи. */
-/* Упражнения раздела открываются по очереди: следующее доступно, только когда предыдущее в этом же разделе решено.
+/* Упражнения раздела открываются по очереди (только пока нет оплаченной подписки: с подпиской открыто всё): следующее доступно, только когда предыдущее в этом же разделе решено.
    Первое упражнение раздела открыто сразу. Уже начатые и решённые остаются открытыми (чтобы не закрыть то, что ребёнок уже проходил). */
 const PREV_IN_SECTION = (() => { const last = {}, m = new Map(); TASKS.forEach(t => { const k = t.section || "_other"; if (last[k]) m.set(t.id, last[k]); last[k] = t.id; }); return m; })();
 const seqClosed = (t, P) => {
@@ -445,7 +445,7 @@ const tasksFor = a => {
   return TASKS.map(t => {
     const locked = taskLocked(t, a);
     const o = { id: t.id, no: t.no, title: t.title, section: t.section, cond: locked ? "" : shortCond(t), locked };
-    if (!locked && P && seqClosed(t, P)) { o.closed = true; o.after = seqPrevNo(t); }
+    if (!locked && P && !hasPlan(a) && seqClosed(t, P)) { o.closed = true; o.after = seqPrevNo(t); }
     if (R[t.id]) { o.rec = R[t.id].kind; o.why = R[t.id].why; }
     if (P) { const x = P[t.id]; o.st = x && x.completions ? "done" : x && x.inProgress ? "progress" : "new"; }
     return o;
@@ -1052,6 +1052,10 @@ const STATIC = {
   "/about.html": ["about.html", "text/html; charset=utf-8"],
   "/privacy.html": ["privacy.html", "text/html; charset=utf-8"],
   "/terms.html": ["terms.html", "text/html; charset=utf-8"],
+  "/img/pay/visa.svg": ["img/pay/visa.svg", "image/svg+xml"],
+  "/img/pay/mastercard.svg": ["img/pay/mastercard.svg", "image/svg+xml"],
+  "/pay/result": ["pay-result.html", "text/html; charset=utf-8"],
+  "/kk/pay/result": ["kk/pay-result.html", "text/html; charset=utf-8"],
   "/hidden-blocks.html": ["hidden-blocks.html", "text/html; charset=utf-8"],
   "/admin": ["admin.html", "text/html; charset=utf-8"],
   "/admin.html": ["admin.html", "text/html; charset=utf-8"],
@@ -1192,6 +1196,10 @@ const usageView = key => {
 const studyOver = key => usageOf(key).study >= limitsFor(key).study;
 const voiceOver = key => usageOf(key).voice >= limitsFor(key).voice;
 
+/* ---------- оплата подписки (описание в pay.js) ---------- */
+const PAY = require("./pay.js")({ STORE_DIR, getUsers: () => USERS, saveUsers, hasPlan, isParent, MAIL, siteUrl, send, tooMany, hit, MIN });
+console.log(PAY.mode ? "Оплата: режим «" + PAY.mode + "»" + (PAY.mode === "stub" ? " (заглушка банка, деньги не списываются)" : "") : "Оплата: выключена (PAY_MODE не задан), подписку выдаёт владелец");
+
 async function api(req, res, url) {
   const ip = clientIp(req);
   const a = currentAuth(req);
@@ -1204,10 +1212,13 @@ async function api(req, res, url) {
       const t = taskById(id);
       if (!t) return send(res, 404, { error: "not_found" });
       if (taskLocked(t, a)) return send(res, 403, { error: "paid_only" });
-      if (seqClosed(t, a && progress(a.user).tasks)) return send(res, 403, { error: "sequence", after: seqPrevNo(t) });
+      if (!hasPlan(a) && seqClosed(t, a && progress(a.user).tasks)) return send(res, 403, { error: "sequence", after: seqPrevNo(t) });
       return send(res, 200, { task: Object.assign({}, publicById.get(id), { locked: false }) });
     }
     if (url === "/api/me") return send(res, 200, { user: a ? publicUser(a) : null });
+    if (url === "/api/pay/config") return PAY.config(res);
+    if (url === "/api/pay/status") return PAY.status(req, res, a);
+    if (url === "/api/pay/stub") return PAY.stubPage(req, res, a);
     if (url === "/api/quiz/offer") return send(res, 200, a ? quizOffer(a.user) : { diag: false, warm: 0 });
     if (url === "/api/chat/available") return send(res, 200, { ok: SITECHAT.available() });
     if (url === "/api/voice/available") return send(res, 200, { ok: !!OPENAI_KEY && SETTINGS.voiceEnabled && (!!a || VOICE_GUESTS) });
@@ -1216,12 +1227,16 @@ async function api(req, res, url) {
     if (url === "/api/cabinet") return isParent(a) ? send(res, 200, cabinetView(a.user)) : send(res, a ? 403 : 401, { error: "parent_required" });
     return send(res, 404, { error: "not_found" });
   }
+  if (url === "/api/pay/callback" && req.method === "POST") return PAY.callback(req, res);   // вызывает банк: своя проверка (подпись)
   if (req.method !== "POST" || !sameOrigin(req) || !String(req.headers["content-type"] || "").includes("application/json"))
     return send(res, 403, { error: "forbidden" });
   if (url === "/api/voice/turn") return voiceTurn(req, res, ip, a);
   if (url === "/api/chat") return SITECHAT.handle(req, res, ip, a);
   let b;
   try { b = await body(req); } catch (e) { return send(res, 400, { error: "bad_request" }); }
+
+  if (url === "/api/pay/create") return PAY.create(req, res, a, b);
+  if (url === "/api/pay/stub-confirm") return PAY.stubConfirm(req, res, a, b);
 
   /* --- админ-панель владельца (вход по отдельному паролю ADMIN_PASSWORD из .env) --- */
   if (url.startsWith("/api/admin/")) return ADMIN(req, res, url, ip, b);
@@ -1447,7 +1462,7 @@ async function api(req, res, url) {
   const task = taskAny(ps, b.task);
   if (!task) return send(res, 400, { error: "bad_step" });
   if ((url === "/api/start" || url === "/api/check") && taskLocked(task, a)) return send(res, 403, { error: "paid_only" });
-  if ((url === "/api/start" || url === "/api/check") && !task.quiz && seqClosed(task, a && progress(a.user).tasks)) return send(res, 403, { error: "sequence", after: seqPrevNo(task) });
+  if ((url === "/api/start" || url === "/api/check") && !task.quiz && !hasPlan(a) && seqClosed(task, a && progress(a.user).tasks)) return send(res, 403, { error: "sequence", after: seqPrevNo(task) });
   if ((url === "/api/start" || url === "/api/check") && studyOver(usageKey(a, ip))) return send(res, 403, { error: "day_limit" });
   if (url === "/api/start") {
     /* продолжение прерванного упражнения: если ребёнок недавно (до 3 часов) вышел посреди него, возвращаем на первый нерешённый шаг и ничего не обнуляем */
