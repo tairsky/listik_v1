@@ -24,6 +24,9 @@ const ROOT = __dirname;
 const PORT = Number(process.env.PORT) || 3000;
 const TRUST_PROXY = process.env.TRUST_PROXY === "1";
 const COOKIE_SECURE = process.env.COOKIE_SECURE === "1";
+// Тестовый сайт: TEST_SITE=1 закрывает его от поисковиков, отключает аналитику и показывает красную полосу «ТЕСТОВАЯ ВЕРСИЯ».
+const TEST_SITE = process.env.TEST_SITE === "1";
+const TEST_JS = '(function(){window.lkTrack=function(){};function b(){var d=document.createElement("div");d.textContent="ТЕСТОВАЯ ВЕРСИЯ: не для семей";d.style.cssText="position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#c62828;color:#fff;font:700 13px system-ui,sans-serif;text-align:center;padding:6px;pointer-events:none";document.body.appendChild(d);}if(document.body)b();else document.addEventListener("DOMContentLoaded",b);})();';
 /* счётчики нагрузки для вкладки «Нагрузка» в админ-панели (подробнее ниже, у loadSnapshot) */
 const M = { logErr: 0, started: Date.now(), turns: 0, busy: 0, fail: 0, o429: 0, r429: 0, err: 0, peak: 0, saveMs: 0, saveBytes: 0, saveAt: 0, saveMax: 0, saveCount: 0, hist: [] };
 
@@ -1675,7 +1678,9 @@ function serveClip(req, res, id) {
 const NOT_FOUND_HTML = '<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>Страница не найдена — Листик</title></head><body style="margin:0;font-family:system-ui,sans-serif;background:#FBF9F2;color:#1B2A20;display:flex;min-height:100vh;align-items:center;justify-content:center;text-align:center;padding:24px"><div><h1 style="margin:0 0 12px;font-size:32px">Такой страницы нет</h1><p style="margin:0 0 24px;color:#4B5A50">Возможно, ссылка устарела или в адресе опечатка.</p><a href="/" style="display:inline-block;background:#1F7A45;color:#fff;padding:14px 28px;border-radius:999px;text-decoration:none;font-weight:700">На главную</a></div></body></html>';
 http.createServer((req, res) => {
   res.setHeader("X-Content-Type-Options", "nosniff"); res.setHeader("X-Frame-Options", "SAMEORIGIN"); res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  if (TEST_SITE) res.setHeader("X-Robots-Tag", "noindex, nofollow");
   const url = req.url.split("?")[0];
+  if (TEST_SITE && url === "/robots.txt") { res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" }); return res.end("User-agent: *\nDisallow: /\n"); }
   if (url.startsWith("/api/")) return api(req, res, url).catch(e => { console.error(e); if (!res.headersSent) send(res, 500, { error: "server" }); });
   const cm = /^\/clips\/([0-9a-f]{16})\.mp3$/.exec(url);
   if (cm && req.method === "GET" && FAST_ON) return serveClip(req, res, cm[1]);
@@ -1685,6 +1690,7 @@ http.createServer((req, res) => {
   if (!f || req.method !== "GET") { res.writeHead(404, { "Content-Type": "text/html; charset=utf-8" }); return res.end(NOT_FOUND_HTML); }
   fs.readFile(path.join(ROOT, f[0]), (err, data) => {
     if (err) { res.writeHead(404, { "Content-Type": "text/html; charset=utf-8" }); return res.end(NOT_FOUND_HTML); }
+    if (TEST_SITE && f[0] === "analytics.js") data = Buffer.from(TEST_JS);
     const hdr = { "Content-Type": f[1], "Cache-Control": f[0] === "admin.html" ? "no-store" : "no-cache" };
     if (f[0] === "admin.html") hdr["X-Robots-Tag"] = "noindex, nofollow";
     if (/^(text\/|application\/javascript)/.test(f[1]) && data.length > 1024 && /\bgzip\b/.test(req.headers["accept-encoding"] || "")) {
@@ -1701,6 +1707,7 @@ http.createServer((req, res) => {
   console.log("Быстрый голос (готовые реплики): " + (FAST_ON ? "включён, известных текстов " + CLIPS.registry.size + ", готовых mp3 " + [...CLIPS.registry.keys()].filter(CLIPS.have).length : "выключен (VOICE_FAST=0)"));
   console.log(MAIL.configured ? "Почта: подтверждение адреса при регистрации включено" : "ВНИМАНИЕ: RESEND_API_KEY не задан, письма не уходят (пишутся в storage/outbox.log), поэтому подтверждение почты выключено. Задайте ключ в .env или на Render.");
   console.log("Чат на сайте: " + (SITECHAT.available() ? "включён (до " + (process.env.SITE_CHAT_GLOBAL_DAY || 3000) + " сообщений в сутки)" : "выключен (нет ключа OpenAI или SITE_CHAT=0)"));
+  if (TEST_SITE) console.log("ТЕСТОВЫЙ САЙТ: TEST_SITE=1 (noindex, аналитика выключена, красная полоса)");
   console.log("Кабинетов в базе: " + USERS.length + " (файл: " + USERS_FILE + ")");
   console.log(TRUST_PROXY ? "Прокси: TRUST_PROXY=1, TRUST_HOPS=" + TRUST_HOPS + " (DEBUG_IP=1 покажет, какой адрес выбирается)"
     : "Прокси: TRUST_PROXY не задан. Если сервер стоит за прокси (Render), все посетители будут выглядеть как один адрес!");
