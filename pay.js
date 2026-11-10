@@ -19,7 +19,7 @@ const path = require("path");
 const crypto = require("crypto");
 
 module.exports = function createPay(ctx) {
-  const { STORE_DIR, getUsers, saveUsers, hasPlan, isParent, MAIL, siteUrl, send, tooMany, hit, MIN } = ctx;
+  const { STORE_DIR, getUsers, saveUsers, hasPlan, isParent, MAIL, siteUrl, send, tooMany, hit, MIN, SUBJECT } = ctx;
   const PRICE = Math.round(Number(process.env.PAY_PRICE) || 9900);
   const DAYS = Math.round(Number(process.env.PAY_DAYS) || 30);
   const REQ = String(process.env.PAY_MODE || "").toLowerCase();
@@ -118,6 +118,8 @@ module.exports = function createPay(ctx) {
     if (!MODE) return send(res, 503, { error: "pay_disabled", message: "Онлайн-оплата пока не подключена. Напишите нам в WhatsApp." });
     if (!a) return send(res, 401, { error: "login" });
     if (!isParent(a)) return send(res, 403, { error: "parent_required" });
+    if (SUBJECT && a.user.child && a.user.child.grade && a.user.child.grade !== SUBJECT.grade)   // упражнений для этого класса пока нет: не берём деньги
+      return send(res, 403, { error: "grade", message: "Для класса вашего ребёнка упражнений пока нет, оплата недоступна." });
     if (tooMany("pay:" + a.user.id, 10, 60 * MIN)) return send(res, 429, { error: "too_many" });
     hit("pay:" + a.user.id);
     const o = { id: "L" + Date.now().toString(36) + crypto.randomBytes(4).toString("hex"), uid: a.user.id, email: a.user.email,

@@ -42,6 +42,7 @@ const TASKS = TASKS_FILE.tasks;
   TASKS.forEach((t, i) => { t.no = String(i + 1); });
 }
 const SUBJECT = { title: TASKS_FILE.subject_title || "Математика", grade: TASKS_FILE.grade || 3 };
+const cleanGrade = (v) => { const n = Number(v); return Number.isInteger(n) && n >= 1 && n <= 11 ? n : 0; };   // класс ребёнка 1–11, иначе 0
 const CONFIG = readJSON("data/private/config.json");
 const MAX_ATTEMPTS = 3;
 
@@ -1201,7 +1202,7 @@ const studyOver = key => usageOf(key).study >= limitsFor(key).study;
 const voiceOver = key => usageOf(key).voice >= limitsFor(key).voice;
 
 /* ---------- оплата подписки (описание в pay.js) ---------- */
-const PAY = require("./pay.js")({ STORE_DIR, getUsers: () => USERS, saveUsers, hasPlan, isParent, MAIL, siteUrl, send, tooMany, hit, MIN });
+const PAY = require("./pay.js")({ STORE_DIR, getUsers: () => USERS, saveUsers, hasPlan, isParent, MAIL, siteUrl, send, tooMany, hit, MIN, SUBJECT });
 console.log(PAY.mode ? "Оплата: режим «" + PAY.mode + "»" + (PAY.mode === "stub" ? " (заглушка банка, деньги не списываются)" : "") : "Оплата: выключена (PAY_MODE не задан), подписку выдаёт владелец");
 
 async function api(req, res, url) {
@@ -1341,6 +1342,21 @@ async function api(req, res, url) {
     return send(res, 200, { ok: true });
   }
 
+  /* --- первая настройка кабинета после регистрации: имя, класс и PIN (один раз, без пароля) --- */
+  if (url === "/api/setup") {
+    if (!a) return send(res, 401, { error: "login" });
+    if (a.user.pin) return send(res, 409, { error: "done", message: "Кабинет уже настроен. Измените данные в разделе «Настройки»." });
+    if (tooMany("setup:" + a.user.id, 10, 60 * MIN)) return send(res, 429, { error: "too_many" });
+    hit("setup:" + a.user.id);
+    const name = cleanName(b.childName), grade = cleanGrade(b.grade), pp = pinProblem(b.pin);
+    if (!name) return send(res, 400, { error: "child", message: "Введите имя или псевдоним ребёнка (без фамилии)." });
+    if (!grade) return send(res, 400, { error: "grade", message: "Выберите класс ребёнка." });
+    if (pp) return send(res, 400, { error: "pin", message: pp });
+    a.user.child = { name, grade };
+    a.user.pin = await hashSecret(b.pin, "pin"); saveUsers();
+    a.s.parentUntil = Date.now() + PARENT_TTL;
+    return send(res, 200, { ok: true, user: publicUser(a) });
+  }
   /* --- кабинет: вход в режим родителя по PIN --- */
   if (url === "/api/parent/enter") {
     if (!a) return send(res, 401, { error: "login" });
@@ -1365,7 +1381,9 @@ async function api(req, res, url) {
     if (!isParent(a)) return send(res, 403, { error: "parent_required" });
     const name = cleanName(b.childName);
     if (!name) return send(res, 400, { error: "child", message: "Введите имя или псевдоним ребёнка (без фамилии)." });
-    a.user.child.name = name; saveUsers();
+    a.user.child.name = name;
+    if (b.grade !== undefined) { const g = cleanGrade(b.grade); if (!g) return send(res, 400, { error: "grade", message: "Выберите класс ребёнка." }); a.user.child.grade = g; }
+    saveUsers();
     return send(res, 200, { ok: true, user: publicUser(a) });
   }
   /* отказ от продления подписки (и возврат продления): отметка в кабинете + письма родителю и в billing@ */

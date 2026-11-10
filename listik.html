@@ -613,6 +613,10 @@
    note — строка в тетрадь, skill — тема шага (единственное, что знает ИИ).
    ============================================================ */
 let TASKS = [];        // с сервера, без ответов
+const OPEN_GRADE = 3;   // класс, для которого есть упражнения
+const wrongGrade = () => !!(USER && USER.child && USER.child.grade && USER.child.grade !== OPEN_GRADE);
+const gradeSelect = (id, cur) => '<select id="' + id + '" class="inp">' + (cur ? '' : '<option value="">Выберите класс</option>') +
+  Array.from({ length: 11 }, (_, i) => '<option value="' + (i + 1) + '"' + (+cur === i + 1 ? ' selected' : '') + '>' + (i + 1) + ' класс</option>').join("") + '</select>';
 let USER = null;       // вошедший кабинет: { email, child, parent } или null
 let OFFER = { diag: false, warm: 0 };   // что предложить ребёнку: знакомство или разминка (только после входа)
 async function loadOffer() {
@@ -1054,10 +1058,10 @@ function render() {
   const navCab = document.getElementById("navCab");
   document.querySelectorAll('.sh-btn[href="/listik.html#register"]').forEach(a => { a.style.display = (typeof USER !== "undefined" && USER) ? "none" : ""; });
   if (navCab) { const nt = navCab.querySelector(".navcab-t"); if (nt) nt.textContent = (typeof USER !== "undefined" && USER) ? "Кабинет родителя" : "Войти"; }
-  if (navCab) { const on = S.view === "auth" || S.view === "pin" || S.view === "pinreset" || S.view === "cabinet"; navCab.classList.toggle("is-active", on); if (on) navCab.setAttribute("aria-current", "page"); else navCab.removeAttribute("aria-current"); }
+  if (navCab) { const on = S.view === "auth" || S.view === "pin" || S.view === "pinreset" || S.view === "setup" || S.view === "cabinet"; navCab.classList.toggle("is-active", on); if (on) navCab.setAttribute("aria-current", "page"); else navCab.removeAttribute("aria-current"); }
   document.body.classList.toggle("plain", lesson);
   /* режим ребёнка: вошедшему кабинету не показываем меню сайта (тарифы, кабинет); оно возвращается в родительских экранах */
-  const parentScreen = S.view === "cabinet" || S.view === "pin" || S.view === "pinreset" || S.view === "auth";
+  const parentScreen = S.view === "cabinet" || S.view === "setup" || S.view === "pin" || S.view === "pinreset" || S.view === "auth";
   const kid = !!USER && !parentScreen;
   const shNav = document.querySelector(".sh-nav"); if (shNav) shNav.style.display = kid ? "none" : "";
   const shLogo = document.querySelector(".sh-logo"); if (shLogo) shLogo.setAttribute("href", kid ? "/listik.html" : "/");
@@ -1073,6 +1077,7 @@ function render() {
   if (S.view === "verify") return renderVerify();
   if (S.view === "forgot") return renderForgot();
   if (S.view === "reset") return renderReset();
+  if (S.view === "setup") return renderSetup();
   if (S.view === "pin") return renderPin();
   if (S.view === "pinreset") return renderPinReset();
   if (S.view === "cabinet") return renderCabinet();
@@ -1124,8 +1129,43 @@ function renderAuth() {
        '</aside></div>';
   app.innerHTML = h; window.scrollTo(0, 0);
 }
+/* первая настройка после регистрации: имя, класс, PIN (один раз) */
+function renderSetup() {
+  const f = S.form || {};
+  let h = header(true);
+  h += '<h2 class="sec">Кабинет родителя</h2><div class="form"><p class="lead">Расскажите немного о ребёнке. Всё это можно изменить позже в «Настройках».</p>';
+  if (S.flash) { h += '<div class="fb ok">' + esc(S.flash) + '</div>'; S.flash = ""; }
+  h += '<label>Имя вашего ребёнка <span class="hint">без фамилии, школы и адреса</span><input id="fChild" class="inp" maxlength="30" autocomplete="off" value="' + esc(f.childName || (USER && USER.child && USER.child.name) || "") + '" data-enter="setup-save"></label>';
+  h += '<label>Класс, в котором учится ребёнок' + gradeSelect("fGrade", f.grade || (USER && USER.child && USER.child.grade && USER.child.name ? USER.child.grade : "")) + '</label>';
+  h += '<label>PIN-код из 4 цифр<span class="hint">Он защищает кабинет родителя и оплату от ребёнка. Запомните его и не говорите ребёнку.</span>' + pinInput("fPin").replace('class="inp pin"', 'class="inp pin" data-enter="setup-save"') + '</label>';
+  h += errBox(S.err);
+  h += '<div class="row"><button class="btn" data-action="setup-save">Сохранить</button></div></div>';
+  app.innerHTML = h; window.scrollTo(0, 0);
+}
+async function doSetup() {
+  const name = val("fChild").trim(), grade = val("fGrade"), pin = val("fPin").trim();
+  S.form = { childName: name, grade };
+  if (!need("Введите имя или псевдоним ребёнка.", name)) return;
+  if (!need("Выберите класс ребёнка.", grade)) return;
+  const r = await call("/api/setup", { childName: name, grade: +grade, pin });
+  if (r.status === 200 && r.data.ok) { USER = r.data.user; S.form = null; return openCabinet("progress", "Данные сохранены. Запомните PIN-код: он нужен для входа в кабинет."); }
+  if (r.status === 401) { USER = null; S = { view: "auth", mode: "login", err: "Войдите заново." }; return render(); }
+  if (r.status === 409) { S = { view: "pin" }; return render(); }
+  S.err = r.status === 0 ? NET : r.status === 429 ? "Слишком много попыток. Подождите немного." : (r.data.message || "Не получилось сохранить.");
+  render();
+}
+function renderNoGrade() {
+  const g = USER.child.grade;
+  let h = header(false);
+  h += '<div class="cat-title"><h1>' + (USER.child.name ? 'Привет, ' + esc(USER.child.name) + '! ' : '') + 'Для ' + g + ' класса пока нет упражнений</h1></div>';
+  h += '<div class="mark"><p>Сейчас в Листике есть тренажёр только по математике для ' + OPEN_GRADE + ' класса. Мы запомнили, что ребёнок учится в ' + g + ' классе.</p>' +
+    '<p>Ошиблись с классом? Родитель может изменить его в кабинете, раздел «Настройки» (нужен PIN-код).</p>' +
+    '<div class="row"><button class="btn ghost small" data-action="logout">Выйти из аккаунта</button></div></div>';
+  if (S.flash) { h += '<div class="fb ok">' + esc(S.flash) + '</div>'; S.flash = ""; }
+  app.innerHTML = h; window.scrollTo(0, 0);
+}
 function renderPin() {
-  if (USER && USER.hasPin === false) return renderPinReset(true);   // PIN ещё не придуман: сначала придумываем
+  if (USER && USER.hasPin === false) return renderSetup();   // PIN ещё не придуман: сначала первая настройка
   let h = header(true);
   h += '<h2 class="sec">Кабинет родителя</h2><div class="form"><p class="lead">Введите PIN-код.</p>';
   if (S.flash) { h += '<div class="fb ok">' + esc(S.flash) + '</div>'; S.flash = ""; }
@@ -1210,9 +1250,9 @@ const meter = (label, used, max, text) => {
 };
 function planCard(c, withCancel) {
   const p = c.plan;
-  if (p.active && withCancel) return '<div class="pc-card pc-plan on"><b>Платный тариф активен</b><span>Действует до ' + fmtDate(p.until) + ', осталось ' + p.daysLeft + ' ' + plural(p.daysLeft, "день", "дня", "дней") + '.' + (p.cancelAt ? ' Продление отключено ' + fmtDate(p.cancelAt) + ': после этой даты подписка продлеваться не будет.' : '') + '</span>' + (p.cancelAt ? '<button class="btn ghost small" data-action="cab-cancel-undo">Вернуть продление</button>' : '<button class="btn ghost small" data-action="cab-cancel">Отказаться от продления</button>') + (PAYCFG.enabled && p.daysLeft <= 7 ? payBtn("/listik.html", "Продлить на месяц") : '') + '<a class="btn ghost small" href="/pricing.html">О тарифе</a></div>';
+  if (p.active && withCancel) return '<div class="pc-card pc-plan on"><b>Платный тариф активен</b><span>Действует до ' + fmtDate(p.until) + ', осталось ' + p.daysLeft + ' ' + plural(p.daysLeft, "день", "дня", "дней") + '.' + (p.cancelAt ? ' Продление отключено ' + fmtDate(p.cancelAt) + ': после этой даты подписка продлеваться не будет.' : '') + '</span>' + (p.cancelAt ? '<button class="btn ghost small" data-action="cab-cancel-undo">Вернуть продление</button>' : '<button class="btn ghost small" data-action="cab-cancel">Отказаться от продления</button>') + (PAYCFG.enabled && !wrongGrade() && p.daysLeft <= 7 ? payBtn("/listik.html", "Продлить на месяц") : '') + '<a class="btn ghost small" href="/pricing.html">О тарифе</a></div>';
   if (p.active) return '<div class="pc-card pc-plan on"><b>Платный тариф активен</b><span>Действует до ' + fmtDate(p.until) + ', осталось ' + p.daysLeft + ' ' + plural(p.daysLeft, "день", "дня", "дней") + '.</span><a class="btn ghost small" href="/pricing.html">О тарифе</a></div>';
-  return '<div class="pc-card pc-plan"><b>' + (p.until ? 'Подписка закончилась ' + fmtDate(p.until) : 'Сейчас пробный доступ') + '</b><span>Бесплатно доступно задач: ' + p.freeTasks + ' из ' + c.summary.tasksTotal + '. Платный тариф открывает все задачи.</span>' + (PAYCFG.enabled ? payBtn("/listik.html") + '<a class="btn ghost small" href="/pricing.html">О тарифе</a>' : '<a class="btn small" href="/pricing.html">Посмотреть тарифы</a>') + '</div>';
+  return '<div class="pc-card pc-plan"><b>' + (p.until ? 'Подписка закончилась ' + fmtDate(p.until) : 'Сейчас пробный доступ') + '</b><span>Бесплатно доступно задач: ' + p.freeTasks + ' из ' + c.summary.tasksTotal + '. Платный тариф открывает все задачи.</span>' + (PAYCFG.enabled && !wrongGrade() ? payBtn("/listik.html") + '<a class="btn ghost small" href="/pricing.html">О тарифе</a>' : '<a class="btn small" href="/pricing.html">Посмотреть тарифы</a>') + '</div>';
 }
 function tipsBlock(c) {
   const rep = c.skills.filter(k => k.level === "repeat"), good = c.skills.filter(k => k.level === "good");
@@ -1345,6 +1385,7 @@ function renderCabinet() {
   if (tab === "settings") {
     h += '<div class="form"><h2 class="sec">Ребёнок</h2>';
     h += '<label>Имя или псевдоним <span class="hint">без фамилии, школы и адреса</span><input id="fChild" class="inp" maxlength="30" value="' + esc(c.child.name) + '" data-enter="cab-child"></label>';
+    h += '<label>Класс' + gradeSelect("fGrade", c.child.grade) + '</label>';
     h += '<div class="row"><button class="btn small" data-action="cab-child">Сохранить</button></div>';
     h += '<h2 class="sec">Подписка</h2>' + planCard(c, true);
     h += '<h2 class="sec">' + (USER && USER.hasPin === false ? 'Придумать PIN-код' : 'Сменить PIN-код') + '</h2><label>Пароль от кабинета<input id="fPass" class="inp" type="password" autocomplete="current-password"></label>';
@@ -1401,7 +1442,7 @@ async function doAuth(mode) {
   if (mode === "register" && r.status === 200 && window.lkTrack) window.lkTrack("sign_up");
   if (r.status === 200 && r.data.pending) { S = { view: "verify", email: r.data.email || email, err: "", flash: "" }; return render(); }
   if (r.status === 403 && r.data.error === "unverified") { S = { view: "verify", email, err: "", flash: "Почта ещё не подтверждена. Откройте ссылку из письма или отправьте его ещё раз." }; return render(); }
-  if (r.status === 200) { USER = r.data.user; await reloadTasks(); S = { view: "home", flash: mode === "register" ? "Кабинет создан. Имя ребёнка и PIN-код можно задать позже в кабинете родителя." : "" }; return render(); }
+  if (r.status === 200) { USER = r.data.user; await reloadTasks(); S = (mode === "register" || USER.hasPin === false) ? { view: "setup", flash: mode === "register" ? "Кабинет создан. Осталось указать данные ребёнка." : "" } : { view: "home", flash: "" }; return render(); }
   S.err = r.status === 0 ? NET : r.status === 429 ? "Слишком много попыток. Подождите немного." : (r.data.message || "Не получилось. Проверьте данные.");
   render();
 }
@@ -1492,7 +1533,7 @@ async function doCancelRenewal(undo) {
   render();
 }
 async function doChild() {
-  const r = await call("/api/parent/child", { childName: val("fChild") });
+  const r = await call("/api/parent/child", { childName: val("fChild"), grade: +val("fGrade") || undefined });
   if (r.status === 200) { USER = r.data.user; return openCabinet("settings", "Сохранено."); }
   if (r.status === 403) { S = { view: "pin" }; return render(); }
   S.err = r.status === 0 ? NET : (r.data.message || "Не получилось сохранить.");
@@ -1568,6 +1609,7 @@ async function startQuiz(kind) {
   return startTask(TASKS.length - 1);
 }
 function renderHome() {
+  if (wrongGrade()) return renderNoGrade();
   let h = header(false);
   h += quizCard();
   h += leavesCard();
@@ -2058,6 +2100,7 @@ app.addEventListener("click", e => {
   if (a === "pin-forgot") { S = { view: "pinreset" }; return render(); }
   if (a === "pin-reset") return doPinChange(false);
   if (a === "cab-pin") return doPinChange(true);
+  if (a === "setup-save") return doSetup();
   if (a === "cab-child") return doChild();
   if (a === "cab-cancel") return doCancelRenewal(false);
   if (a === "cab-cancel-undo") return doCancelRenewal(true);
@@ -2824,7 +2867,7 @@ async function boot() {
     if (vm) {                                   // ссылка из письма «Подтвердите почту»
       history.replaceState(null, "", location.pathname);
       const r = await call("/api/verify", { token: vm[1] });
-      if (r.status === 200) { USER = r.data.user; try { localStorage.setItem("listik_in", "1"); } catch (e) {} await reloadTasks(); S = { view: "home", flash: "Почта подтверждена, кабинет создан. Имя ребёнка и PIN-код можно задать позже в кабинете родителя." }; return render(); }
+      if (r.status === 200) { USER = r.data.user; try { localStorage.setItem("listik_in", "1"); } catch (e) {} await reloadTasks(); S = { view: "setup", flash: "Почта подтверждена, кабинет создан. Осталось указать данные ребёнка." }; return render(); }
       S = { view: "auth", mode: "login", err: r.status === 0 ? NET : (r.data.message || "Ссылка не подошла. Войдите, и мы отправим новую.") };
       return render();
     }
@@ -2856,7 +2899,7 @@ async function boot() {
       return render();
     }
     buildQueue();
-    if (QUEUE) {
+    if (QUEUE && !wrongGrade()) {
       const want = PARAMS.get("task"), k = want ? TASKS.findIndex(t => t.id === want) : -1;
       let go = k >= 0 && QUEUE.indexOf(k) >= 0 ? k : QUEUE[0];
       if (TASKS[go].closed) go = QUEUE.find(i => !TASKS[i].closed && TASKS[i].st !== "done") ?? QUEUE.find(i => !TASKS[i].closed) ?? go;   // закрытое упражнение не открываем: ведём к первому доступному
