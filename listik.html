@@ -613,6 +613,10 @@
    note — строка в тетрадь, skill — тема шага (единственное, что знает ИИ).
    ============================================================ */
 let TASKS = [];        // с сервера, без ответов
+const OPEN_GRADE = 3;   // класс, для которого есть упражнения
+const wrongGrade = () => !!(USER && USER.child && USER.child.grade && USER.child.grade !== OPEN_GRADE);
+const gradeSelect = (id, cur) => '<select id="' + id + '" class="inp">' + (cur ? '' : '<option value="">Выберите класс</option>') +
+  Array.from({ length: 11 }, (_, i) => '<option value="' + (i + 1) + '"' + (+cur === i + 1 ? ' selected' : '') + '>' + (i + 1) + ' класс</option>').join("") + '</select>';
 let USER = null;       // вошедший кабинет: { email, child, parent } или null
 let OFFER = { diag: false, warm: 0 };   // что предложить ребёнку: знакомство или разминка (только после входа)
 async function loadOffer() {
@@ -1106,6 +1110,7 @@ function renderAuth() {
        '<button class="btn ghost' + (reg ? ' on' : '') + '" data-action="auth" data-mode="register">Регистрация</button></div>';
   h += '<div class="form">';
   if (reg) h += '<label>Имя или псевдоним ребёнка <span class="hint">без фамилии, школы и адреса</span><input id="fChild" class="inp" maxlength="30" autocomplete="off" value="' + esc(f.childName || "") + '" data-enter="register"></label>';
+  if (reg) h += '<label>Класс ребёнка' + gradeSelect("fGrade", f.grade) + '</label>';
   h += '<label>Почта<input id="fEmail" class="inp" type="email" autocomplete="username" autocapitalize="none" placeholder="name@mail.com" value="' + esc(f.email || "") + '" data-enter="' + en + '"></label>';
   h += '<label>Пароль' + (reg ? ' <span class="hint">не короче 8 символов</span>' : '') + '<input id="fPass" class="inp" type="password" value="' + esc(f.pass || '') + '" autocomplete="' + (reg ? 'new-password' : 'current-password') + '" data-enter="' + en + '"></label>';
   h += '<label class="chk"><input type="checkbox" data-action="showpw"><span>Показать пароль</span></label>';
@@ -1212,9 +1217,9 @@ const meter = (label, used, max, text) => {
 };
 function planCard(c, withCancel) {
   const p = c.plan;
-  if (p.active && withCancel) return '<div class="pc-card pc-plan on"><b>Платный тариф активен</b><span>Действует до ' + fmtDate(p.until) + ', осталось ' + p.daysLeft + ' ' + plural(p.daysLeft, "день", "дня", "дней") + '.' + (p.cancelAt ? ' Продление отключено ' + fmtDate(p.cancelAt) + ': после этой даты подписка продлеваться не будет.' : '') + '</span>' + (p.cancelAt ? '<button class="btn ghost small" data-action="cab-cancel-undo">Вернуть продление</button>' : '<button class="btn ghost small" data-action="cab-cancel">Отказаться от продления</button>') + (PAYCFG.enabled && p.daysLeft <= 7 ? payBtn("/listik.html", "Продлить на месяц") : '') + '<a class="btn ghost small" href="/pricing.html">О тарифе</a></div>';
+  if (p.active && withCancel) return '<div class="pc-card pc-plan on"><b>Платный тариф активен</b><span>Действует до ' + fmtDate(p.until) + ', осталось ' + p.daysLeft + ' ' + plural(p.daysLeft, "день", "дня", "дней") + '.' + (p.cancelAt ? ' Продление отключено ' + fmtDate(p.cancelAt) + ': после этой даты подписка продлеваться не будет.' : '') + '</span>' + (p.cancelAt ? '<button class="btn ghost small" data-action="cab-cancel-undo">Вернуть продление</button>' : '<button class="btn ghost small" data-action="cab-cancel">Отказаться от продления</button>') + (PAYCFG.enabled && !wrongGrade() && p.daysLeft <= 7 ? payBtn("/listik.html", "Продлить на месяц") : '') + '<a class="btn ghost small" href="/pricing.html">О тарифе</a></div>';
   if (p.active) return '<div class="pc-card pc-plan on"><b>Платный тариф активен</b><span>Действует до ' + fmtDate(p.until) + ', осталось ' + p.daysLeft + ' ' + plural(p.daysLeft, "день", "дня", "дней") + '.</span><a class="btn ghost small" href="/pricing.html">О тарифе</a></div>';
-  return '<div class="pc-card pc-plan"><b>' + (p.until ? 'Подписка закончилась ' + fmtDate(p.until) : 'Сейчас пробный доступ') + '</b><span>Бесплатно доступно задач: ' + p.freeTasks + ' из ' + c.summary.tasksTotal + '. Платный тариф открывает все задачи.</span>' + (PAYCFG.enabled ? payBtn("/listik.html") + '<a class="btn ghost small" href="/pricing.html">О тарифе</a>' : '<a class="btn small" href="/pricing.html">Посмотреть тарифы</a>') + '</div>';
+  return '<div class="pc-card pc-plan"><b>' + (p.until ? 'Подписка закончилась ' + fmtDate(p.until) : 'Сейчас пробный доступ') + '</b><span>Бесплатно доступно задач: ' + p.freeTasks + ' из ' + c.summary.tasksTotal + '. Платный тариф открывает все задачи.</span>' + (PAYCFG.enabled && !wrongGrade() ? payBtn("/listik.html") + '<a class="btn ghost small" href="/pricing.html">О тарифе</a>' : '<a class="btn small" href="/pricing.html">Посмотреть тарифы</a>') + '</div>';
 }
 function tipsBlock(c) {
   const rep = c.skills.filter(k => k.level === "repeat"), good = c.skills.filter(k => k.level === "good");
@@ -1347,6 +1352,7 @@ function renderCabinet() {
   if (tab === "settings") {
     h += '<div class="form"><h2 class="sec">Ребёнок</h2>';
     h += '<label>Имя или псевдоним <span class="hint">без фамилии, школы и адреса</span><input id="fChild" class="inp" maxlength="30" value="' + esc(c.child.name) + '" data-enter="cab-child"></label>';
+    h += '<label>Класс' + gradeSelect("fGrade", c.child.grade) + '</label>';
     h += '<div class="row"><button class="btn small" data-action="cab-child">Сохранить</button></div>';
     h += '<h2 class="sec">Подписка</h2>' + planCard(c, true);
     h += '<h2 class="sec">Сменить PIN-код</h2><label>Пароль от кабинета<input id="fPass" class="inp" type="password" autocomplete="current-password"></label>';
@@ -1392,14 +1398,15 @@ function need(v, x) { if (!x) { S.err = v; render(); return false; } return true
 
 async function doAuth(mode) {
   const email = val("fEmail").trim(), password = val("fPass");
-  S.form = { email, childName: val("fChild"), agree: !!(document.getElementById("fAgree") || {}).checked, pass: password, pin: (document.getElementById("fPin") || {}).value || "" };   /* пароль и PIN держим только в памяти страницы, чтобы не вводить заново после ошибки */
+  S.form = { email, childName: val("fChild"), grade: val("fGrade"), agree: !!(document.getElementById("fAgree") || {}).checked, pass: password, pin: (document.getElementById("fPin") || {}).value || "" };   /* пароль и PIN держим только в памяти страницы, чтобы не вводить заново после ошибки */
   S.err = "";
   let payload = { email, password };
   if (mode === "register") {
     const pin = val("fPin");
     if (!need("Введите имя или псевдоним ребёнка.", S.form.childName.trim())) return;
     if (!need("Нужно согласиться с политикой конфиденциальности и пользовательским соглашением.", S.form.agree)) return;
-    payload = { email, password, pin, childName: S.form.childName, agree: true };
+    if (!need("Выберите класс ребёнка.", S.form.grade)) return;
+    payload = { email, password, pin, childName: S.form.childName, grade: +S.form.grade, agree: true };
   }
   const r = await call(mode === "register" ? "/api/register" : "/api/login", payload);
   if (mode === "register" && r.status === 200 && window.lkTrack) window.lkTrack("sign_up");
@@ -1494,7 +1501,7 @@ async function doCancelRenewal(undo) {
   render();
 }
 async function doChild() {
-  const r = await call("/api/parent/child", { childName: val("fChild") });
+  const r = await call("/api/parent/child", { childName: val("fChild"), grade: +val("fGrade") || undefined });
   if (r.status === 200) { USER = r.data.user; return openCabinet("settings", "Сохранено."); }
   if (r.status === 403) { S = { view: "pin" }; return render(); }
   S.err = r.status === 0 ? NET : (r.data.message || "Не получилось сохранить.");
@@ -1569,7 +1576,19 @@ async function startQuiz(kind) {
   TASKS = TASKS.filter(t => !t.quiz); TASKS.push(r.data.task);
   return startTask(TASKS.length - 1);
 }
+function renderNoGrade() {
+  const g = USER.child.grade;
+  let h = header(false);
+  h += '<div class="cat-title"><h1>' + (USER.child.name ? 'Привет, ' + esc(USER.child.name) + '! ' : '') + 'Для ' + g + ' класса пока нет упражнений</h1></div>';
+  h += '<div class="mark"><p>Сейчас в Листике есть тренажёр только по математике для ' + OPEN_GRADE + ' класса. Мы запомнили, что ребёнок учится в ' + g + ' классе, и сообщим на почту, когда появятся занятия для него.</p>' +
+    '<p>Ошиблись с классом? Родитель может изменить его в кабинете, раздел «Настройки» (нужен PIN-код).</p>' +
+    '<div class="row"><button class="btn ghost small" data-action="logout">Выйти из аккаунта</button></div></div>';
+  if (S.flash) { h += '<div class="fb ok">' + esc(S.flash) + '</div>'; S.flash = ""; }
+  app.innerHTML = h;
+  window.scrollTo(0, 0);
+}
 function renderHome() {
+  if (wrongGrade()) return renderNoGrade();
   let h = header(false);
   h += quizCard();
   h += leavesCard();
@@ -2856,7 +2875,7 @@ async function boot() {
       return render();
     }
     buildQueue();
-    if (QUEUE) {
+    if (QUEUE && !wrongGrade()) {
       const want = PARAMS.get("task"), k = want ? TASKS.findIndex(t => t.id === want) : -1;
       let go = k >= 0 && QUEUE.indexOf(k) >= 0 ? k : QUEUE[0];
       if (TASKS[go].closed) go = QUEUE.find(i => !TASKS[i].closed && TASKS[i].st !== "done") ?? QUEUE.find(i => !TASKS[i].closed) ?? go;   // закрытое упражнение не открываем: ведём к первому доступному

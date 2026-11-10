@@ -42,6 +42,7 @@ const TASKS = TASKS_FILE.tasks;
   TASKS.forEach((t, i) => { t.no = String(i + 1); });
 }
 const SUBJECT = { title: TASKS_FILE.subject_title || "Математика", grade: TASKS_FILE.grade || 3 };
+const cleanGrade = (v) => { const n = Number(v); return Number.isInteger(n) && n >= 1 && n <= 11 ? n : 0; };   // класс ребёнка 1–11, иначе 0
 const CONFIG = readJSON("data/private/config.json");
 const MAX_ATTEMPTS = 3;
 
@@ -1200,7 +1201,7 @@ const studyOver = key => usageOf(key).study >= limitsFor(key).study;
 const voiceOver = key => usageOf(key).voice >= limitsFor(key).voice;
 
 /* ---------- оплата подписки (описание в pay.js) ---------- */
-const PAY = require("./pay.js")({ STORE_DIR, getUsers: () => USERS, saveUsers, hasPlan, isParent, MAIL, siteUrl, send, tooMany, hit, MIN });
+const PAY = require("./pay.js")({ STORE_DIR, getUsers: () => USERS, saveUsers, hasPlan, isParent, MAIL, siteUrl, send, tooMany, hit, MIN, SUBJECT });
 console.log(PAY.mode ? "Оплата: режим «" + PAY.mode + "»" + (PAY.mode === "stub" ? " (заглушка банка, деньги не списываются)" : "") : "Оплата: выключена (PAY_MODE не задан), подписку выдаёт владелец");
 
 async function api(req, res, url) {
@@ -1257,18 +1258,20 @@ async function api(req, res, url) {
     if (pp) return send(res, 400, { error: "pin", message: pp });
     const name = cleanName(b.childName);
     if (!name) return send(res, 400, { error: "child", message: "Введите имя или псевдоним ребёнка (без фамилии)." });
+    const grade = cleanGrade(b.grade);
+    if (!grade) return send(res, 400, { error: "grade", message: "Выберите класс ребёнка." });
     if (b.agree !== true) return send(res, 400, { error: "agree", message: "Нужно согласиться с политикой конфиденциальности и пользовательским соглашением." });
     const prev = USERS.find(u => u.email === email);
     if (prev && !unverified(prev)) return send(res, 409, { error: "exists", message: "Не получилось создать кабинет. Возможно, этот адрес уже занят: попробуйте войти." });
     const pass = await hashSecret(b.password, "pass"), pin = await hashSecret(b.pin, "pin");
     let user;
     if (prev) {                                  // адрес занят, но почту так и не подтвердили: даём зарегистрироваться заново
-      user = prev; user.pass = pass; user.pin = pin; user.child = { name, grade: 3 }; user.agreedAt = new Date().toISOString();
+      user = prev; user.pass = pass; user.pin = pin; user.child = { name, grade }; user.agreedAt = new Date().toISOString();
       if (!needVerify()) delete user.verified;
     } else {
       user = {
         id: crypto.randomBytes(8).toString("hex"), email, pass, pin,
-        child: { name, grade: 3 }, createdAt: new Date().toISOString(), agreedAt: new Date().toISOString(), progress: null
+        child: { name, grade }, createdAt: new Date().toISOString(), agreedAt: new Date().toISOString(), progress: null
       };
       if (needVerify()) user.verified = false;
       USERS.push(user);
@@ -1367,7 +1370,9 @@ async function api(req, res, url) {
     if (!isParent(a)) return send(res, 403, { error: "parent_required" });
     const name = cleanName(b.childName);
     if (!name) return send(res, 400, { error: "child", message: "Введите имя или псевдоним ребёнка (без фамилии)." });
-    a.user.child.name = name; saveUsers();
+    a.user.child.name = name;
+    if (b.grade !== undefined) { const g = cleanGrade(b.grade); if (!g) return send(res, 400, { error: "grade", message: "Выберите класс ребёнка." }); a.user.child.grade = g; }
+    saveUsers();
     return send(res, 200, { ok: true, user: publicUser(a) });
   }
   /* отказ от продления подписки (и возврат продления): отметка в кабинете + письма родителю и в billing@ */
