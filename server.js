@@ -42,7 +42,6 @@ const TASKS = TASKS_FILE.tasks;
   TASKS.forEach((t, i) => { t.no = String(i + 1); });
 }
 const SUBJECT = { title: TASKS_FILE.subject_title || "Математика", grade: TASKS_FILE.grade || 3 };
-const cleanGrade = (v) => { const n = Number(v); return Number.isInteger(n) && n >= 1 && n <= 11 ? n : 0; };   // класс ребёнка 1–11, иначе 0
 const CONFIG = readJSON("data/private/config.json");
 const MAX_ATTEMPTS = 3;
 
@@ -579,7 +578,7 @@ function startLogin(res, user) {
   setLoginCookie(res, token, AUTH_TTL / 1000);
 }
 const isParent = a => a && a.s.parentUntil > Date.now();
-const publicUser = (a) => ({ email: isParent(a) ? a.user.email : undefined, child: a.user.child, parent: isParent(a), plan: hasPlan(a) ? { until: a.user.plan.until } : null });
+const publicUser = (a) => ({ email: isParent(a) ? a.user.email : undefined, child: a.user.child, parent: isParent(a), hasPin: !!a.user.pin, plan: hasPlan(a) ? { until: a.user.plan.until } : null });
 
 const PLAY_MAX = 20000;
 function playState(key, ip) {
@@ -1135,6 +1134,7 @@ function sameOrigin(req) {
 
 async function verifyPin(res, a, pin) {
   const key = "pin:" + a.user.id;
+  if (!a.user.pin) { send(res, 200, { ok: false, nopin: true }); return false; }   // PIN ещё не придуман
   if (tooMany(key, 5, 10 * MIN)) { send(res, 429, { error: "locked" }); return false; }
   if (typeof pin !== "string" || !/^\d{4}$/.test(pin) || !(await checkSecret(pin, "pin", a.user.pin))) {
     hit(key); send(res, 200, { ok: false }); return false;
@@ -1201,7 +1201,7 @@ const studyOver = key => usageOf(key).study >= limitsFor(key).study;
 const voiceOver = key => usageOf(key).voice >= limitsFor(key).voice;
 
 /* ---------- оплата подписки (описание в pay.js) ---------- */
-const PAY = require("./pay.js")({ STORE_DIR, getUsers: () => USERS, saveUsers, hasPlan, isParent, MAIL, siteUrl, send, tooMany, hit, MIN, SUBJECT });
+const PAY = require("./pay.js")({ STORE_DIR, getUsers: () => USERS, saveUsers, hasPlan, isParent, MAIL, siteUrl, send, tooMany, hit, MIN });
 console.log(PAY.mode ? "Оплата: режим «" + PAY.mode + "»" + (PAY.mode === "stub" ? " (заглушка банка, деньги не списываются)" : "") : "Оплата: выключена (PAY_MODE не задан), подписку выдаёт владелец");
 
 async function api(req, res, url) {
@@ -1254,24 +1254,19 @@ async function api(req, res, url) {
     if (!EMAIL_RE.test(email)) return send(res, 400, { error: "email", message: "Проверьте адрес почты." });
     if (typeof b.password !== "string" || b.password.length < 8 || b.password.length > 100)
       return send(res, 400, { error: "password", message: "Пароль должен быть не короче 8 символов." });
-    const pp = pinProblem(b.pin);
-    if (pp) return send(res, 400, { error: "pin", message: pp });
-    const name = cleanName(b.childName);
-    if (!name) return send(res, 400, { error: "child", message: "Введите имя или псевдоним ребёнка (без фамилии)." });
-    const grade = cleanGrade(b.grade);
-    if (!grade) return send(res, 400, { error: "grade", message: "Выберите класс ребёнка." });
+    const name = cleanName(b.childName);          // имя и PIN теперь задаются позже, в кабинете родителя
     if (b.agree !== true) return send(res, 400, { error: "agree", message: "Нужно согласиться с политикой конфиденциальности и пользовательским соглашением." });
     const prev = USERS.find(u => u.email === email);
     if (prev && !unverified(prev)) return send(res, 409, { error: "exists", message: "Не получилось создать кабинет. Возможно, этот адрес уже занят: попробуйте войти." });
-    const pass = await hashSecret(b.password, "pass"), pin = await hashSecret(b.pin, "pin");
+    const pass = await hashSecret(b.password, "pass");
     let user;
     if (prev) {                                  // адрес занят, но почту так и не подтвердили: даём зарегистрироваться заново
-      user = prev; user.pass = pass; user.pin = pin; user.child = { name, grade }; user.agreedAt = new Date().toISOString();
+      user = prev; user.pass = pass; user.pin = null; user.child = { name, grade: 3 }; user.agreedAt = new Date().toISOString();
       if (!needVerify()) delete user.verified;
     } else {
       user = {
-        id: crypto.randomBytes(8).toString("hex"), email, pass, pin,
-        child: { name, grade }, createdAt: new Date().toISOString(), agreedAt: new Date().toISOString(), progress: null
+        id: crypto.randomBytes(8).toString("hex"), email, pass, pin: null,
+        child: { name, grade: 3 }, createdAt: new Date().toISOString(), agreedAt: new Date().toISOString(), progress: null
       };
       if (needVerify()) user.verified = false;
       USERS.push(user);
@@ -1283,7 +1278,7 @@ async function api(req, res, url) {
     }
     MAIL.welcome(email, name, siteUrl(req)).catch(mailFail);      // письмо не задерживает ответ и не ломает регистрацию, если почта недоступна
     startLogin(res, user);
-    return send(res, 200, { user: { email, child: user.child, parent: false } });
+    return send(res, 200, { user: { email, child: user.child, parent: false, hasPin: !!user.pin } });
   }
   /* --- подтверждение почты: ссылка из письма открывает кабинет --- */
   if (url === "/api/verify") {
@@ -1295,7 +1290,7 @@ async function api(req, res, url) {
     user.verified = true; user.verifiedAt = new Date().toISOString(); saveUsers();
     MAIL.welcome(user.email, user.child.name, siteUrl(req)).catch(mailFail);
     startLogin(res, user);
-    return send(res, 200, { user: { email: user.email, child: user.child, parent: false } });
+    return send(res, 200, { user: { email: user.email, child: user.child, parent: false, hasPin: !!user.pin } });
   }
   if (url === "/api/verify/resend") {
     const email = typeof b.email === "string" ? b.email.trim().toLowerCase() : "";
@@ -1317,7 +1312,7 @@ async function api(req, res, url) {
     if (user.blocked) return send(res, 403, { error: "blocked", message: "Доступ к этому кабинету закрыт. Напишите нам в WhatsApp, мы поможем." });
     if (unverified(user)) return send(res, 403, { error: "unverified", message: "Почта ещё не подтверждена. Откройте ссылку из письма." });
     startLogin(res, user);
-    return send(res, 200, { user: { email: user.email, child: user.child, parent: false, plan: hasPlan({ user }) ? { until: user.plan.until } : null } });
+    return send(res, 200, { user: { email: user.email, child: user.child, parent: false, hasPin: !!user.pin, plan: hasPlan({ user }) ? { until: user.plan.until } : null } });
   }
   /* --- забыли пароль: письмо со ссылкой (ответ всегда одинаковый, чтобы нельзя было выяснить, какие адреса зарегистрированы) --- */
   if (url === "/api/password/forgot") {
@@ -1338,7 +1333,7 @@ async function api(req, res, url) {
     user.pass = await hashSecret(b.password, "pass"); if (unverified(user)) { user.verified = true; user.verifiedAt = new Date().toISOString(); } saveUsers();
     for (const [k, v] of auth) if (v.uid === user.id) auth.delete(k);      // старые входы закрываем
     startLogin(res, user);
-    return send(res, 200, { user: { email: user.email, child: user.child, parent: false, plan: hasPlan({ user }) ? { until: user.plan.until } : null } });
+    return send(res, 200, { user: { email: user.email, child: user.child, parent: false, hasPin: !!user.pin, plan: hasPlan({ user }) ? { until: user.plan.until } : null } });
   }
   if (url === "/api/logout") {
     if (a) auth.delete(a.token);
@@ -1370,9 +1365,7 @@ async function api(req, res, url) {
     if (!isParent(a)) return send(res, 403, { error: "parent_required" });
     const name = cleanName(b.childName);
     if (!name) return send(res, 400, { error: "child", message: "Введите имя или псевдоним ребёнка (без фамилии)." });
-    a.user.child.name = name;
-    if (b.grade !== undefined) { const g = cleanGrade(b.grade); if (!g) return send(res, 400, { error: "grade", message: "Выберите класс ребёнка." }); a.user.child.grade = g; }
-    saveUsers();
+    a.user.child.name = name; saveUsers();
     return send(res, 200, { ok: true, user: publicUser(a) });
   }
   /* отказ от продления подписки (и возврат продления): отметка в кабинете + письма родителю и в billing@ */
@@ -1393,8 +1386,10 @@ async function api(req, res, url) {
     const pp = pinProblem(b.newPin);
     if (pp) return send(res, 400, { error: "pin", message: pp });
     if (!(await verifyPassword(res, a, b.password))) return;
+    const first = !a.user.pin;
     a.user.pin = await hashSecret(b.newPin, "pin"); saveUsers();
     buckets.delete("pin:" + a.user.id);
+    if (first) { a.s.parentUntil = Date.now() + PARENT_TTL; return send(res, 200, { ok: true, entered: true, user: publicUser(a) }); }   // первый PIN придумал тот, кто знает пароль: открываем кабинет
     return send(res, 200, { ok: true });
   }
 
