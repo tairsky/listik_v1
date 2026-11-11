@@ -11,8 +11,8 @@
   function init() {
     var css = document.createElement("style");
     css.textContent =
-      "#lkc-btn{position:fixed;right:18px;bottom:18px;z-index:2147483000;display:flex;align-items:center;gap:8px;min-height:52px;padding:0 20px;border:0;border-radius:999px;background:#1F7A45;color:#fff;font:800 16px/1 Nunito,system-ui,sans-serif;cursor:pointer;box-shadow:0 6px 20px rgba(30,42,34,.28)}" +
-      "#lkc-btn:hover{background:#15683A}#lkc-btn:focus-visible,#lkc-x:focus-visible,#lkc-send:focus-visible,.lkc-chip:focus-visible,#lkc-in:focus-visible{outline:3px solid #2B4BC4;outline-offset:2px}" +
+      "#lkc-btn{position:fixed;right:18px;bottom:18px;z-index:2147483000;display:flex;align-items:center;gap:8px;min-height:52px;padding:0 20px;border:0;border-radius:999px;background:#F2C14E;color:#1E2A22;font:800 16px/1 Nunito,system-ui,sans-serif;cursor:pointer;box-shadow:0 6px 20px rgba(30,42,34,.28)}" +
+      "#lkc-btn:hover{background:#E8B23A}#lkc-btn:focus-visible,#lkc-x:focus-visible,#lkc-send:focus-visible,.lkc-chip:focus-visible,#lkc-in:focus-visible{outline:3px solid #2B4BC4;outline-offset:2px}" +
       "#lkc-p{position:fixed;right:18px;bottom:82px;z-index:2147483001;width:370px;max-width:calc(100vw - 24px);height:520px;max-height:calc(100vh - 110px);display:none;flex-direction:column;background:#FBFAF4;border:1px solid #E3E8DC;border-radius:20px;box-shadow:0 12px 40px rgba(30,42,34,.3);overflow:hidden;font:500 16px/1.45 Nunito,system-ui,sans-serif;color:#1E2A22}" +
       "#lkc-p.open{display:flex}" +
       "#lkc-h{display:flex;align-items:center;justify-content:space-between;padding:12px 14px 12px 18px;background:#1F7A45;color:#fff}#lkc-h b{font-weight:800;font-size:17px}#lkc-h span{display:block;font-weight:500;font-size:13px;opacity:.9}" +
@@ -29,7 +29,7 @@
       "@media(max-width:520px){#lkc-p{right:8px;left:8px;width:auto;bottom:78px;height:calc(100vh - 100px);max-width:none}#lkc-btn{right:12px;bottom:12px}}";
     document.head.appendChild(css);
 
-    var btn = el("button", { id: "lkc-btn", type: "button", "aria-expanded": "false", "aria-controls": "lkc-p" }, "💬 Есть вопрос!");
+    var btn = el("button", { id: "lkc-btn", type: "button", "aria-expanded": "false", "aria-controls": "lkc-p" }, "💬 Вопросы");
     var panel = el("div", { id: "lkc-p", role: "dialog", "aria-label": "Чат-помощник" });
     var head = el("div", { id: "lkc-h" });
     var ht = el("div"); ht.appendChild(el("b", {}, "Помощник")); ht.appendChild(el("span", {}, "Отвечает на вопросы о сайте и тарифах"));

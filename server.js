@@ -572,10 +572,10 @@ function currentAuth(req) {
 function setLoginCookie(res, token, maxAgeSec) {
   res.setHeader("Set-Cookie", "lt=" + token + "; HttpOnly; SameSite=Lax; Path=/; Max-Age=" + maxAgeSec + (COOKIE_SECURE ? "; Secure" : ""));
 }
-function startLogin(res, user) {
+function startLogin(res, user, asParent) {
   user.lastLoginAt = new Date().toISOString(); scheduleSave();
   const token = crypto.randomBytes(32).toString("hex");
-  auth.set(token, { uid: user.id, exp: Date.now() + AUTH_TTL, parentUntil: 0 });
+  auth.set(token, { uid: user.id, exp: Date.now() + AUTH_TTL, parentUntil: asParent ? Date.now() + PARENT_TTL : 0 });   // вход по паролю уже доказывает, что это взрослый: PIN не спрашиваем
   setLoginCookie(res, token, AUTH_TTL / 1000);
 }
 const isParent = a => a && a.s.parentUntil > Date.now();
@@ -1084,6 +1084,7 @@ const STATIC = {
   "/img/aha-girl.webp": ["img/aha-girl.webp", "image/webp"],
   "/img/logo.png": ["img/logo.png", "image/png"],
   "/img/logo_footer.png": ["img/logo_footer.png", "image/png"],
+  "/img/email-logo.png": ["img/email-logo.png", "image/png"],
   "/img/hero-boy.webp": ["img/hero-boy.webp", "image/webp"],
   "/img/tired-girl.webp": ["img/tired-girl.webp", "image/webp"],
   "/img/happy-girl.webp": ["img/happy-girl.webp", "image/webp"],
@@ -1312,8 +1313,8 @@ async function api(req, res, url) {
     }
     if (user.blocked) return send(res, 403, { error: "blocked", message: "Доступ к этому кабинету закрыт. Напишите нам в WhatsApp, мы поможем." });
     if (unverified(user)) return send(res, 403, { error: "unverified", message: "Почта ещё не подтверждена. Откройте ссылку из письма." });
-    startLogin(res, user);
-    return send(res, 200, { user: { email: user.email, child: user.child, parent: false, hasPin: !!user.pin, plan: hasPlan({ user }) ? { until: user.plan.until } : null } });
+    startLogin(res, user, true);
+    return send(res, 200, { user: { email: user.email, child: user.child, parent: true, hasPin: !!user.pin, plan: hasPlan({ user }) ? { until: user.plan.until } : null } });
   }
   /* --- забыли пароль: письмо со ссылкой (ответ всегда одинаковый, чтобы нельзя было выяснить, какие адреса зарегистрированы) --- */
   if (url === "/api/password/forgot") {
@@ -1694,10 +1695,11 @@ function serveClip(req, res, id) {
   }).catch(e => { console.error("[клип]", e.message); if (!res.headersSent) { res.writeHead(502); res.end(); } });
 }
 const NOT_FOUND_HTML = '<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>Страница не найдена — Листик</title></head><body style="margin:0;font-family:system-ui,sans-serif;background:#FBF9F2;color:#1B2A20;display:flex;min-height:100vh;align-items:center;justify-content:center;text-align:center;padding:24px"><div><h1 style="margin:0 0 12px;font-size:32px">Такой страницы нет</h1><p style="margin:0 0 24px;color:#4B5A50">Возможно, ссылка устарела или в адресе опечатка.</p><a href="/" style="display:inline-block;background:#1F7A45;color:#fff;padding:14px 28px;border-radius:999px;text-decoration:none;font-weight:700">На главную</a></div></body></html>';
+const KK_ON = false; /* казахская версия скрыта (решение автора 11.11.2026); вернуть: true здесь и в lang.js */
 const SITE_ORIGIN = "https://listik.kz";
 const ROBOTS_TXT = "User-agent: *\nDisallow: /admin\nDisallow: /api/\nDisallow: /pay/\nDisallow: /kk/pay/\nDisallow: /listik.html\nDisallow: /kk/listik.html\nDisallow: /hidden-blocks.html\n\nSitemap: " + SITE_ORIGIN + "/sitemap.xml\n";
 const SITEMAP_XML = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
-  ["/", "/about.html", "/pricing.html", "/start.html", "/privacy.html", "/terms.html", "/kk/", "/kk/about.html", "/kk/pricing.html", "/kk/start.html"]
+  ["/", "/about.html", "/pricing.html", "/start.html", "/privacy.html", "/terms.html"].concat(KK_ON ? ["/kk/", "/kk/about.html", "/kk/pricing.html", "/kk/start.html"] : [])
     .map(u => "  <url><loc>" + SITE_ORIGIN + u + "</loc></url>").join("\n") + "\n</urlset>\n";
 http.createServer((req, res) => {
   res.setHeader("X-Content-Type-Options", "nosniff"); res.setHeader("X-Frame-Options", "SAMEORIGIN"); res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
@@ -1706,6 +1708,7 @@ http.createServer((req, res) => {
   if (TEST_SITE && url === "/robots.txt") { res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" }); return res.end("User-agent: *\nDisallow: /\n"); }
   if (!TEST_SITE && (req.method === "GET" || req.method === "HEAD") && url === "/robots.txt") { res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "public, max-age=3600" }); return res.end(ROBOTS_TXT); }
   if (!TEST_SITE && (req.method === "GET" || req.method === "HEAD") && url === "/sitemap.xml") { res.writeHead(200, { "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "public, max-age=3600" }); return res.end(SITEMAP_XML); }
+  if (!KK_ON && (url === "/kk" || url.startsWith("/kk/"))) { res.writeHead(404, { "Content-Type": "text/html; charset=utf-8" }); return res.end(NOT_FOUND_HTML); }
   if (url.startsWith("/api/")) return api(req, res, url).catch(e => { console.error(e); if (!res.headersSent) send(res, 500, { error: "server" }); });
   const cm = /^\/clips\/([0-9a-f]{16})\.mp3$/.exec(url);
   if (cm && req.method === "GET" && FAST_ON) return serveClip(req, res, cm[1]);

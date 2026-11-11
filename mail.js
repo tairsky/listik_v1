@@ -22,19 +22,40 @@ async function sendMail({ to, subject, text, html }) {
   const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: "Bearer " + KEY, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: FROM, to: [to], subject, text, html }),
+    body: JSON.stringify({ from: FROM, to: [to], subject, text: to === BILLING ? text : text + FOOT_TEXT, html }),
     signal: AbortSignal.timeout(10000)
   });
   if (!r.ok) throw new Error("Resend ответил " + r.status + ": " + (await r.text()).slice(0, 200));
   return { queued: true };
 }
 
+const SITE = (process.env.SITE_URL || "https://listik.kz").replace(/\/+$/, "");
+const TG = "https://t.me/tairsky";
+/* реквизиты и контакты: те же, что в подвале сайта */
+const FOOT_TEXT = "\n\n--\nЛистик, ИИ-репетитор для школьников\nИП «Феникс», ИИН 460104400918\nг. Алматы, ул. Утеген батыра 17б\ninfo@listik.kz, +7 (775) 971-41-63\nWhatsApp: " + WA + "\nTelegram: " + TG + "\nСайт: " + SITE + "\nЭто служебное письмо сервиса «Листик».";
+
+/* общий вид письма: таблицы и встроенные стили, чтобы одинаково открывалось в Gmail, Mail.ru, Яндексе и Outlook */
 const wrap = (title, bodyHtml, btnText, btnUrl) =>
-  '<div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#1E2A22;line-height:1.55">' +
-  '<div style="font-size:28px;font-weight:800;color:#006429;margin-bottom:12px">Листик</div>' +
-  '<h1 style="font-size:22px;margin:0 0 12px">' + title + '</h1>' + bodyHtml +
-  (btnUrl ? '<p style="margin:24px 0"><a href="' + esc(btnUrl) + '" style="display:inline-block;background:#1F7A45;color:#fff;font-weight:700;text-decoration:none;padding:12px 24px;border-radius:999px">' + btnText + '</a></p>' : "") +
-  '<p style="font-size:13px;color:#667;margin-top:28px">Если у вас есть вопросы, напишите нам в <a href="' + WA + '">WhatsApp</a>.</p></div>';
+  '<div style="margin:0;padding:24px 12px;background:#F3EFE0;font-family:Arial,Helvetica,sans-serif;color:#1E2A22;line-height:1.55">' +
+  '<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="width:100%;max-width:560px;margin:0 auto">' +
+  /* шапка: логотип и название */
+  '<tr><td style="padding:4px 4px 16px">' +
+    '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>' +
+    '<td style="vertical-align:middle"><a href="' + SITE + '" style="text-decoration:none"><img src="' + SITE + '/img/email-logo.png" width="48" height="44" alt="Листик" style="display:block;border:0;width:48px;height:44px"></a></td>' +
+    '<td style="vertical-align:middle;padding-left:10px;font-size:28px;font-weight:800;color:#006429;letter-spacing:-0.01em"><a href="' + SITE + '" style="color:#006429;text-decoration:none">Листик</a></td>' +
+    '</tr></table></td></tr>' +
+  /* карточка с содержанием */
+  '<tr><td style="background:#FFFFFF;border:1px solid #E3E0CF;border-top:4px solid #1F7A45;border-radius:16px;padding:28px 28px 24px;font-size:16px;color:#1E2A22">' +
+    '<h1 style="font-size:24px;line-height:1.25;margin:0 0 14px;color:#1E2A22">' + title + '</h1>' + bodyHtml +
+    (btnUrl ? '<p style="margin:26px 0 6px"><a href="' + esc(btnUrl) + '" style="display:inline-block;background:#1F7A45;color:#FFFFFF;font-weight:700;font-size:17px;text-decoration:none;padding:14px 30px;border-radius:999px">' + btnText + '</a></p>' : "") +
+  '</td></tr>' +
+  /* подвал: контакты и реквизиты */
+  '<tr><td style="padding:20px 8px 0;font-size:13px;line-height:1.6;color:#6B7A70;text-align:center">' +
+    '<p style="margin:0 0 8px">Есть вопросы? Напишите нам: <a href="' + WA + '" style="color:#1F7A45;font-weight:700">WhatsApp</a> · <a href="' + TG + '" style="color:#1F7A45;font-weight:700">Telegram</a> · <a href="mailto:info@listik.kz" style="color:#1F7A45;font-weight:700">info@listik.kz</a></p>' +
+    '<p style="margin:0 0 8px;border-top:1px solid #DDD8C3;padding-top:12px">Листик, ИИ-репетитор для школьников<br>ИП «Феникс», ИИН 460104400918<br>г. Алматы, ул. Утеген батыра 17б<br>+7 (775) 971-41-63</p>' +
+    '<p style="margin:0"><a href="' + SITE + '/privacy.html" style="color:#6B7A70">Политика конфиденциальности</a> · <a href="' + SITE + '/terms.html" style="color:#6B7A70">Пользовательское соглашение</a></p>' +
+    '<p style="margin:8px 0 0;font-size:12px;color:#8A968D">Это служебное письмо сервиса «Листик».</p>' +
+  '</td></tr></table></div>';
 
 /* письмо после регистрации */
 function welcome(email, childName, site) {

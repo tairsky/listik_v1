@@ -5,6 +5,8 @@
       сохраняя ?параметры и #якорь (например #cabinet, #verify=…);
    3) на русской странице, если раньше выбрали казахский, перенаправляет на казахскую версию. */
 (function () {
+  /* Казахская версия пока скрыта (решение автора 11.11.2026). Чтобы вернуть: KK_ON = true здесь и в server.js. */
+  var KK_ON = false;
   var KEY = "listik_lang";
   var PAGES = ["index", "about", "pricing", "start", "listik"];
   var p = location.pathname;
@@ -19,10 +21,18 @@
   }
 
   /* 3. автопереход на казахскую версию */
-  if (!isKk && known) {
+  if (KK_ON && !isKk && known) {
     var saved = null;
     try { saved = localStorage.getItem(KEY); } catch (e) {}
     if (saved === "kk") { location.replace(target(true)); return; }
+  }
+
+  if (!KK_ON) {
+    try { if (localStorage.getItem(KEY) === "kk") localStorage.setItem(KEY, "ru"); } catch (e) {}
+    if (isKk && known) { location.replace(target(false)); return; }
+    var hs = document.createElement("style"); hs.textContent = ".lang-sw{display:none!important}";
+    (document.head || document.documentElement).appendChild(hs);
+    return;
   }
 
   /* 1. стиль кнопки */

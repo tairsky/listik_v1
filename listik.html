@@ -8,7 +8,7 @@
 <meta name="format-detection" content="telephone=no">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Листик: ИИ-репетитор по школьным предметам</title>
-<meta name="description" content="Листик — ИИ-репетитор по школьным предметам: ведёт ребёнка по шагам, не решает за него. Создайте кабинет родителя за минуту.">
+<meta name="description" content="Листик, ИИ-репетитор по школьным предметам: ведёт ребёнка по шагам, не решает за него. Создайте кабинет родителя за минуту.">
 <style>
 @font-face { font-family: "Manrope"; src: url("fonts/Manrope-cyrillic-ext.woff2") format("woff2"); font-weight: 200 800; font-display: swap; unicode-range: U+0460-052F,U+1C80-1C8A,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F; }
 @font-face { font-family: "Manrope"; src: url("fonts/Manrope-cyrillic.woff2") format("woff2"); font-weight: 200 800; font-display: swap; unicode-range: U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116; }
@@ -199,11 +199,27 @@
     font: inherit; font-size: 18px; color: var(--text); width: 100%; max-width: 360px;
     padding: 10px 12px; border: 2px solid var(--line); border-radius: 10px; background: var(--card);
   }
+  select.inp {
+    font: inherit; font-size: 18px; color: var(--text); width: 100%; max-width: 360px; min-height: 52px; box-sizing: border-box;
+    padding: 10px 44px 10px 14px; border: 2px solid var(--line); border-radius: 14px; background-color: #fff; cursor: pointer;
+    -webkit-appearance: none; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='10' viewBox='0 0 16 10'%3E%3Cpath d='M2 2l6 6 6-6' fill='none' stroke='%231F7A45' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 16px center;
+  }
+  select.inp:hover { border-color: #1F7A45; }
+  select.inp:focus-visible { outline: 3px solid var(--red); outline-offset: 2px; border-color: #1F7A45; }
+  .setup-flash { margin: 0 0 18px; }
   input.pin { font-size: 26px; font-weight: 800; letter-spacing: 8px; width: 150px; text-align: center; color: var(--ink); border-color: var(--ink); }
   .form label { display: grid; gap: 4px; font-weight: 700; font-size: 16px; margin-bottom: 12px; }
   .form .hint { font-weight: 400; font-size: 14px; color: var(--muted); max-width: 46ch; }
   .form .chk { display: flex; gap: 10px; align-items: flex-start; font-weight: 400; font-size: 15px; }
   .form .chk input { width: 22px; height: 22px; margin-top: 2px; flex: none; }
+  .form .pw { position: relative; display: block; }
+  .form .pw input.inp:not(.pin) { padding-right: 104px; }
+  .form .pw-eye { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); min-height: 44px; padding: 0 12px; border: 0; background: transparent; color: #1F7A45; font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; border-radius: 12px; }
+  .form .pw-eye:hover { background: #EAF5EE; }
+  .form .pw-eye:focus-visible, .form .linkbtn:focus-visible { outline: 3px solid #2B4BC4; outline-offset: 2px; }
+  .form .linkbtn { min-height: 44px; padding: 0; border: 0; background: transparent; font: inherit; font-size: 16px; font-weight: 700; color: #1F7A45; text-decoration: underline; cursor: pointer; }
   .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
   .tabs .btn { min-height: 44px; padding: 6px 16px; font-size: 16px; }
   .tabs .btn.on { background: var(--ink); color: var(--btn-text); }
@@ -487,6 +503,16 @@
   #app { width:100%; flex:1 0 auto; }
   .sheet.wide { max-width:1160px; }  /* левый край урока совпадает с шапкой */
   .sf { margin-top:auto; }
+.sh-lessons{min-height:48px;padding:0 26px;border:0;border-radius:999px;background:#1F7A45;color:#fff;font-family:inherit;font-weight:800;font-size:17px;line-height:1;cursor:pointer}
+.sh-lessons:hover{background:#15683A}
+.sheet.wide.cabw{max-width:1120px}
+.sh-act{display:flex;gap:10px;align-items:center}
+.sh-act[hidden]{display:none}
+.sh-out{background:#fff;color:#1E2A22;box-shadow:inset 0 0 0 2px #1E2A22}
+.sh-out:hover{background:#F1F3EC}
+@media (max-width:720px){.sh-act{align-self:center;justify-content:center}
+.sh-lessons{flex:0 0 auto;width:auto;min-height:44px;padding:0 30px;font-size:16px}}
+.sh-nav[hidden]{display:none}
 </style>
 <link rel="stylesheet" href="/site.css">
 <style>
@@ -571,8 +597,9 @@
 <div class="sh-band">
 <header class="sh">
   <div class="sh-in">
-    <a class="sh-logo" href="/" aria-label="Листик — на главную"><img src="/img/logo.png" alt="" width="49" height="44" style="height:44px;width:auto;display:block"><b>Листик</b></a>
+    <a class="sh-logo" href="/" aria-label="Листик, на главную"><img src="/img/logo.png" alt="" width="49" height="44" style="height:44px;width:auto;display:block"><b>Листик</b></a>
     <nav class="sh-nav" aria-label="Главное меню"><a href="/about.html">О программе</a><a href="/pricing.html">Тарифы</a><a href="/listik.html#cabinet" id="navCab"><span class="navcab-t">Войти</span></a><a class="sh-btn" href="/listik.html#register">Регистрация</a><a class="lang-sw" href="/kk/listik.html" hreflang="kk" lang="kk" data-lang="kk" aria-label="Қазақша" title="Қазақша">ҚАЗ</a></nav>
+    <div class="sh-act" id="shAct" hidden><button type="button" class="sh-lessons" id="shLessons">К занятиям!</button><button type="button" class="sh-lessons sh-out" id="shOut">Выйти</button></div>
   </div>
 </header>
 </div>
@@ -588,7 +615,7 @@
       <div class="sf-col">
         <h4>Связаться с нами</h4>
         <a class="sf-tel" href="tel:+77759714163">+7 (775) 971-41-63</a>
-        <a class="sf-wa" href="https://wa.me/77759714163">Написать в WhatsApp</a>
+        <div class="sf-soc" style="display:flex;align-items:center;gap:8px"><a href="https://wa.me/77759714163" target="_blank" rel="noopener" aria-label="WhatsApp" title="WhatsApp" style="display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;text-decoration:none"><svg width="32" height="32" viewBox="0 0 24 24" aria-hidden="true"><path fill="#25D366" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg></a><a href="https://t.me/tairsky" target="_blank" rel="noopener" aria-label="Telegram" title="Telegram" style="display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;text-decoration:none"><svg width="32" height="32" viewBox="0 0 24 24" aria-hidden="true"><path fill="#2AABEE" d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg></a></div>
       </div>
       <div class="sf-col">
         <h4>Документы</h4>
@@ -1019,9 +1046,11 @@ function lvTiles(list, onId) {
   return '<div class="lvgrid">' + list.map(c => '<button class="lvtile' + (onId === c.id ? ' on' : '') + '" data-action="goal-pick" data-id="' + esc(c.id) + '"><span class="lvic">' + esc(c.icon || "🎁") + '</span><b>' + esc(c.title) + '</b></button>').join("") + '</div>';
 }
 function renderGoal() {
+  const par = S.from === "cabinet";
   let h = '<div class="top">' + BRAND + '<div class="tools"><button class="back" data-action="goal-back">' + ARROW_L + 'Назад</button></div></div>';
-  h += '<div class="cat-title"><h1>Выбери подарки</h1></div>';
-  h += '<p class="lead">Набирай листики за учёбу. Когда дойдёшь до цели, родители получат для тебя подарок.</p>';
+  h += '<div class="cat-title"><h1>' + (par ? 'Подарки за листики' : 'Выбери подарки') + '</h1></div>';
+  h += par ? '<p class="lead">Выберите подарки, к которым ребёнок будет идти. Ребёнок набирает листики за занятия, а когда дойдёт до цели, вы вручаете подарок.</p>'
+           : '<p class="lead">Набирай листики за учёбу. Когда дойдёшь до цели, родители получат для тебя подарок.</p>';
   if (LEAVES) {
     h += '<h2 class="sec">Простые подарки</h2><p class="lvnote">Каждые ' + LEAVES.cycle.small + ' ' + lvWord(LEAVES.cycle.small) + '.</p>' + lvTiles(LEAVES.catalog.small, LEAVES.goalSmall && LEAVES.goalSmall.id);
     h += '<h2 class="sec">Большие подарки</h2><p class="lvnote">Нужны листики и освоенные навыки.</p>' + lvTiles(LEAVES.catalog.big, LEAVES.goal && LEAVES.goal.id);
@@ -1036,7 +1065,7 @@ async function pickGoal(id) {
   if (r.status !== 200) { S.flash = "Не получилось выбрать. Попробуй ещё раз."; return render(); }
   LEAVES = r.data;
   const all = LEAVES.catalog.small.concat(LEAVES.catalog.big), c = all.find(x => x.id === id);
-  S = { view: "goal", flash: "Выбрано: " + (c ? c.title : "") };
+  S = { view: "goal", from: S && S.from, flash: "Выбрано: " + (c ? c.title : "") };
   render();
 }
 function lvParentBlock() {
@@ -1044,26 +1073,35 @@ function lvParentBlock() {
   if (!v) return "";
   let h = '<h2 class="sec">Листики</h2><div class="pc-card">';
   h += '<p><b>' + v.total + '</b> ' + lvWord(v.total) + ' всего. Сегодня: <b>' + v.today.earned + '</b>, упражнений за день: ' + v.today.exercises + '.</p>';
-  h += '<p>Простой подарок: ' + (v.goalSmall ? '<b>' + esc(v.goalSmall.icon || "🎁") + ' ' + esc(v.goalSmall.title) + '</b>' : 'ещё не выбран') + '</p>' + lvSmallProgress(v);
-  h += '<p style="margin-top:10px">Большой подарок: ' + (v.goal ? '<b>' + esc(v.goal.icon || "🎁") + ' ' + esc(v.goal.title) + '</b>' : 'ещё не выбран') + '</p>' + lvProgress(v);
+  if (!v.goalSmall && !v.goal) h += '<p style="margin-top:10px">Ребёнок ещё не выбрал подарки за прохождение занятий. Он сделает это сам, когда начнёт заниматься.</p>';
+  else {
+    if (v.goalSmall) h += '<p style="margin-top:10px">Простой подарок, который выбрал ребёнок: <b>' + esc(v.goalSmall.icon || "🎁") + ' ' + esc(v.goalSmall.title) + '</b></p>' + lvSmallProgress(v);
+    if (v.goal) h += '<p style="margin-top:10px">Большой подарок, который выбрал ребёнок: <b>' + esc(v.goal.icon || "🎁") + ' ' + esc(v.goal.title) + '</b></p>' + lvProgress(v);
+  }
   if (v.week && v.week.length) h += '<p style="margin-top:12px"><b>За что начислено на этой неделе</b></p><ul class="lvlist">' + v.week.map(x => '<li><span>' + esc(x.why) + '</span><b>+' + x.n + '</b></li>').join("") + '</ul>';
   if (v.rewards && v.rewards.length) h += '<p style="margin-top:12px"><b>Награды</b></p><ul class="lvlist">' + v.rewards.slice().reverse().map(r => '<li><span>' + (r.kind === "small" ? 'Простой подарок: ' : 'Большой подарок: ') + esc(r.title) + ' · ' + fmtDate(r.at) + '</span><b>' +
     (r.status === "ready" ? 'готов' : r.code ? 'промокод: ' + esc(r.code) : 'ждёт промокода') + '</b></li>').join("") + '</ul>';
   return h;
 }
+let LOGO_LOCK = false;
+(function () { const l = document.querySelector(".sh-logo"); if (l) l.addEventListener("click", e => { if (LOGO_LOCK) e.preventDefault(); }); })();
 function render() {
   if (S.view === "loading") return;
   const lesson = S.view === "task" || S.view === "done";
-  app.classList.toggle("wide", lesson);
+  app.classList.toggle("wide", lesson || S.view === "cabinet" || S.view === "home"); app.classList.toggle("cabw", S.view === "cabinet" || S.view === "home");   // кабинет родителя во всю ширину шапки
   const navCab = document.getElementById("navCab");
   document.querySelectorAll('.sh-btn[href="/listik.html#register"]').forEach(a => { a.style.display = (typeof USER !== "undefined" && USER) ? "none" : ""; });
   if (navCab) { const nt = navCab.querySelector(".navcab-t"); if (nt) nt.textContent = (typeof USER !== "undefined" && USER) ? "Кабинет родителя" : "Войти"; }
   if (navCab) { const on = S.view === "auth" || S.view === "pin" || S.view === "pinreset" || S.view === "setup" || S.view === "cabinet"; navCab.classList.toggle("is-active", on); if (on) navCab.setAttribute("aria-current", "page"); else navCab.removeAttribute("aria-current"); }
   document.body.classList.toggle("plain", lesson);
   /* режим ребёнка: вошедшему кабинету не показываем меню сайта (тарифы, кабинет); оно возвращается в родительских экранах */
-  const parentScreen = S.view === "cabinet" || S.view === "setup" || S.view === "pin" || S.view === "pinreset" || S.view === "auth";
+  const parentScreen = S.view === "cabinet" || S.view === "paypage" || S.view === "setup" || S.view === "pin" || S.view === "pinreset" || S.view === "auth";
   const kid = !!USER && !parentScreen;
-  const shNav = document.querySelector(".sh-nav"); if (shNav) shNav.style.display = kid ? "none" : "";
+  const lessonsOnly = !!USER && (S.view === "cabinet" || S.view === "setup" || S.view === "paypage" || S.view === "pin" || S.view === "pinreset");   // в кабинете вместо меню одна кнопка «К занятиям!»
+  const shNav = document.querySelector(".sh-nav"); if (shNav) shNav.style.display = (kid || lessonsOnly) ? "none" : "";
+  const shF = document.querySelector("footer.sf"); if (shF) shF.style.display = (kid || lessonsOnly) ? "none" : "";   // у ребёнка подвала нет
+  const shL = document.getElementById("shAct"); if (shL) shL.hidden = !(lessonsOnly && S.view !== "setup");
+  LOGO_LOCK = lessonsOnly;   // в кабинете родителя логотип никуда не ведёт
   const shLogo = document.querySelector(".sh-logo"); if (shLogo) shLogo.setAttribute("href", kid ? "/listik.html" : "/");
   /* режим ребёнка: ссылки в подвале (телефон, WhatsApp, документы) не нажимаются; для родителя и гостя возвращаются */
   document.querySelectorAll(".sf a").forEach(a => {
@@ -1080,6 +1118,7 @@ function render() {
   if (S.view === "setup") return renderSetup();
   if (S.view === "pin") return renderPin();
   if (S.view === "pinreset") return renderPinReset();
+  if (S.view === "paypage") return renderPayPage();
   if (S.view === "cabinet") return renderCabinet();
   if (S.view === "done") return renderDone();
   if (S.view === "rest") return renderRest();
@@ -1111,12 +1150,11 @@ function renderAuth() {
        '<button class="btn ghost' + (reg ? ' on' : '') + '" data-action="auth" data-mode="register">Регистрация</button></div>';
   h += '<div class="form">';
   h += '<label>Почта<input id="fEmail" class="inp" type="email" autocomplete="username" autocapitalize="none" placeholder="name@mail.com" value="' + esc(f.email || "") + '" data-enter="' + en + '"></label>';
-  h += '<label>Пароль' + (reg ? ' <span class="hint">не короче 8 символов</span>' : '') + '<input id="fPass" class="inp" type="password" value="' + esc(f.pass || '') + '" autocomplete="' + (reg ? 'new-password' : 'current-password') + '" data-enter="' + en + '"></label>';
-  h += '<label class="chk"><input type="checkbox" data-action="showpw"><span>Показать пароль</span></label>';
+  h += '<label>Пароль' + (reg ? ' <span class="hint">не короче 8 символов</span>' : '') + '<span class="pw"><input id="fPass" class="inp" type="password" value="' + esc(f.pass || '') + '" autocomplete="' + (reg ? 'new-password' : 'current-password') + '" data-enter="' + en + '"><button type="button" class="pw-eye" data-action="pwtoggle" aria-pressed="false">Показать</button></span></label>';
   if (reg) h += '<label class="chk"><input type="checkbox" id="fAgree"' + (f.agree ? ' checked' : '') + '><span>Я родитель или законный представитель ребёнка, мне есть 18 лет, я принимаю <a href="/terms.html" target="_blank" rel="noopener">пользовательское соглашение</a> и <a href="/privacy.html" target="_blank" rel="noopener">политику конфиденциальности</a></span></label>';
   h += errBox(S.err);
   h += '<div class="row"><button class="btn" data-action="' + en + '">' + (reg ? 'Регистрация' : 'Войти') + '</button></div>';
-  if (!reg) h += '<p class="hint" style="margin-top:16px">Забыли пароль? <button class="btn ghost small" data-action="forgot">Получить ссылку на почту</button></p>';
+  if (!reg) h += '<p style="margin:12px 0 0"><button type="button" class="linkbtn" data-action="forgot">Забыли пароль?</button></p>';
   h += '</div></div>';
   h += '<aside class="auth-side">' +
        '<div class="auth-bubble">' + (reg ? 'Здравствуйте! Я Листик. Помогу ребёнку разобраться с уроками по разным предметам, а вы будете видеть, как идут дела.' : 'Здравствуйте! Здесь видно, как ребёнок занимается со мной.') + '</div>' +
@@ -1132,9 +1170,10 @@ function renderAuth() {
 /* первая настройка после регистрации: имя, класс, PIN (один раз) */
 function renderSetup() {
   const f = S.form || {};
-  let h = header(true);
+  let h = "";
+  if (S.flash) { h += '<div class="fb ok setup-flash" role="status">' + esc(S.flash) + '</div>'; S.flash = ""; }
+  h += '<div class="top">' + BRAND + '</div>';   // «Все номера» не показываем, пока родитель не нажал «Сохранить»
   h += '<h2 class="sec">Кабинет родителя</h2><div class="form"><p class="lead">Расскажите немного о ребёнке. Всё это можно изменить позже в «Настройках».</p>';
-  if (S.flash) { h += '<div class="fb ok">' + esc(S.flash) + '</div>'; S.flash = ""; }
   h += '<label>Имя вашего ребёнка <span class="hint">без фамилии, школы и адреса</span><input id="fChild" class="inp" maxlength="30" autocomplete="off" value="' + esc(f.childName || (USER && USER.child && USER.child.name) || "") + '" data-enter="setup-save"></label>';
   h += '<label>Класс, в котором учится ребёнок' + gradeSelect("fGrade", f.grade || (USER && USER.child && USER.child.grade && USER.child.name ? USER.child.grade : "")) + '</label>';
   h += '<label>PIN-код из 4 цифр<span class="hint">Он защищает кабинет родителя и оплату от ребёнка. Запомните его и не говорите ребёнку.</span>' + pinInput("fPin").replace('class="inp pin"', 'class="inp pin" data-enter="setup-save"') + '</label>';
@@ -1166,7 +1205,7 @@ function renderNoGrade() {
 }
 function renderPin() {
   if (USER && USER.hasPin === false) return renderSetup();   // PIN ещё не придуман: сначала первая настройка
-  let h = header(true);
+  let h = '<div class="top">' + BRAND + '</div>';
   h += '<h2 class="sec">Кабинет родителя</h2><div class="form"><p class="lead">Введите PIN-код.</p>';
   if (S.flash) { h += '<div class="fb ok">' + esc(S.flash) + '</div>'; S.flash = ""; }
   h += pinInput("fPin").replace('class="inp pin"', 'class="inp pin" data-enter="pin-enter"');
@@ -1176,7 +1215,7 @@ function renderPin() {
   const el = document.getElementById("fPin"); if (el) el.focus({ preventScroll: true });
 }
 function renderPinReset(first) {
-  let h = header(true);
+  let h = '<div class="top">' + BRAND + '</div>';
   h += first ? '<h2 class="sec">Придумайте PIN-код</h2><div class="form"><p class="lead">PIN-код защищает кабинет родителя и оплату от ребёнка. Введите пароль от кабинета и придумайте 4 цифры.</p>'
     : '<h2 class="sec">Новый PIN-код</h2><div class="form"><p class="lead">Введите пароль от кабинета и придумайте новый PIN.</p>';
   h += '<label>Пароль<input id="fPass" class="inp" type="password" autocomplete="current-password"></label>';
@@ -1252,7 +1291,7 @@ function planCard(c, withCancel) {
   const p = c.plan;
   if (p.active && withCancel) return '<div class="pc-card pc-plan on"><b>Платный тариф активен</b><span>Действует до ' + fmtDate(p.until) + ', осталось ' + p.daysLeft + ' ' + plural(p.daysLeft, "день", "дня", "дней") + '.' + (p.cancelAt ? ' Продление отключено ' + fmtDate(p.cancelAt) + ': после этой даты подписка продлеваться не будет.' : '') + '</span>' + (p.cancelAt ? '<button class="btn ghost small" data-action="cab-cancel-undo">Вернуть продление</button>' : '<button class="btn ghost small" data-action="cab-cancel">Отказаться от продления</button>') + (PAYCFG.enabled && !wrongGrade() && p.daysLeft <= 7 ? payBtn("/listik.html", "Продлить на месяц") : '') + '<a class="btn ghost small" href="/pricing.html">О тарифе</a></div>';
   if (p.active) return '<div class="pc-card pc-plan on"><b>Платный тариф активен</b><span>Действует до ' + fmtDate(p.until) + ', осталось ' + p.daysLeft + ' ' + plural(p.daysLeft, "день", "дня", "дней") + '.</span><a class="btn ghost small" href="/pricing.html">О тарифе</a></div>';
-  return '<div class="pc-card pc-plan"><b>' + (p.until ? 'Подписка закончилась ' + fmtDate(p.until) : 'Сейчас пробный доступ') + '</b><span>Бесплатно доступно задач: ' + p.freeTasks + ' из ' + c.summary.tasksTotal + '. Платный тариф открывает все задачи.</span>' + (PAYCFG.enabled && !wrongGrade() ? payBtn("/listik.html") + '<a class="btn ghost small" href="/pricing.html">О тарифе</a>' : '<a class="btn small" href="/pricing.html">Посмотреть тарифы</a>') + '</div>';
+  return '<div class="pc-card pc-plan"><b>' + (p.until ? 'Подписка закончилась ' + fmtDate(p.until) : 'Сейчас пробный доступ') + '</b><span>Бесплатно доступно задач: ' + p.freeTasks + ' из ' + c.summary.tasksTotal + '. Платный тариф открывает все задачи.</span>' + (wrongGrade() ? '<a class="btn small" href="/pricing.html">О тарифе</a>' : '<button class="btn small" data-action="pay-page">Оплатить доступ</button>') + '</div>';
 }
 function tipsBlock(c) {
   const rep = c.skills.filter(k => k.level === "repeat"), good = c.skills.filter(k => k.level === "good");
@@ -1274,13 +1313,29 @@ function trendInfo(hist) {
   const now = pc(hist.slice(-k)), before = pc(hist.slice(-2 * k, -k)), d = now - before;
   return { now, before, d, k, word: d >= 3 ? "растёт" : d <= -3 ? "снижается" : "держится на одном уровне" };
 }
+function renderPayPage() {
+  const price = String(PAYCFG.price).replace(/\B(?=(\d{3})+$)/g, "\u00A0");
+  const wa = "https://wa.me/77759714163?text=" + encodeURIComponent("Здравствуйте! Хочу оплатить доступ к Листику.");
+  let h = '<div class="top">' + BRAND + '<div class="tools"><button class="back" data-action="pay-back">' + ARROW_L + 'Назад в кабинет</button></div></div>';
+  h += '<h2 class="sec">Оплата доступа</h2><div class="form">';
+  h += '<div class="pc-card"><p><b>Платный доступ на 1 месяц, 1 предмет</b></p><p style="font-size:28px;margin:6px 0"><b>' + price + '\u00A0₸</b></p><p>Открывает все задачи предмета. Оплачивает взрослый.</p></div>';
+  if (PAYCFG.enabled) {
+    h += '<p class="lead">Принимаем карты казахстанских банков. Для оплаты понадобится PIN-код родителя.</p><div class="row">' + payBtn("/listik.html", "Оплатить " + price + "\u00A0₸") + '</div>';
+  } else {
+    h += '<div class="mark"><b>Онлайн-оплата картой скоро заработает.</b> Пока платёжная страница банка не подключена, доступ подключаем вручную: напишите нам, и мы откроем его в вашем кабинете.</div>';
+    h += '<div class="row"><a class="btn" href="' + wa + '" target="_blank" rel="noopener">Написать в WhatsApp</a></div>';
+  }
+  h += '<div class="row"><button class="btn ghost" data-action="pay-back">Назад в кабинет</button></div></div>';
+  app.innerHTML = h; window.scrollTo(0, 0);
+}
 function renderCabinet() {
   const c = S.cab, tab = S.tab || "progress", sm = c.summary;
-  let h = header(true);
+  let h = "";
+  if (S.flash) { h += '<div class="fb ok setup-flash" role="status">' + esc(S.flash) + '</div>'; S.flash = ""; }   // сообщение сверху всего
+  h += '<div class="top">' + BRAND + '</div>';
   h += '<h2 class="sec">Кабинет родителя</h2>';
   const TABS = [["progress", "Обзор"], ["perf", "Успеваемость"], ["tasks", "Задачи и темы"], ["settings", "Настройки"]];
   h += '<div class="tabs">' + TABS.map(t => '<button class="btn ghost' + (tab === t[0] ? ' on' : '') + '" data-action="cab-tab" data-tab="' + t[0] + '">' + t[1] + '</button>').join("") + '</div>';
-  if (S.flash) { h += '<div class="fb ok">' + esc(S.flash) + '</div>'; S.flash = ""; }
   const started = c.startedAt && (sm.lessons || c.tasks.some(t => t.status !== "new") || c.skills.length);
 
   if (tab === "progress") {
@@ -1324,7 +1379,7 @@ function renderCabinet() {
   }
 
   if (tab === "perf") {
-    h += '<h2 class="sec">График успеваемости</h2><p>Здесь видно, как меняются результаты. «С первого раза» — доля шагов, которые ребёнок решил без ошибок и без помощи.</p>';
+    h += '<h2 class="sec">График успеваемости</h2><p>Здесь видно, как меняются результаты. «С первого раза» это доля шагов, которые ребёнок решил без ошибок и без помощи.</p>';
     if (!c.history.length) {
       h += '<p class="mark">Графики появятся после первого законченного занятия.</p>';
     } else {
@@ -1442,7 +1497,7 @@ async function doAuth(mode) {
   if (mode === "register" && r.status === 200 && window.lkTrack) window.lkTrack("sign_up");
   if (r.status === 200 && r.data.pending) { S = { view: "verify", email: r.data.email || email, err: "", flash: "" }; return render(); }
   if (r.status === 403 && r.data.error === "unverified") { S = { view: "verify", email, err: "", flash: "Почта ещё не подтверждена. Откройте ссылку из письма или отправьте его ещё раз." }; return render(); }
-  if (r.status === 200) { USER = r.data.user; await reloadTasks(); S = (mode === "register" || USER.hasPin === false) ? { view: "setup", flash: mode === "register" ? "Кабинет создан. Осталось указать данные ребёнка." : "" } : { view: "home", flash: "" }; return render(); }
+  if (r.status === 200) { USER = r.data.user; await reloadTasks(); if (mode === "login" && USER.hasPin !== false) return openCabinet("progress"); S = (mode === "register" || USER.hasPin === false) ? { view: "setup", flash: mode === "register" ? "Кабинет создан. Осталось указать данные ребёнка." : "" } : { view: "home", flash: "" }; return render(); }
   S.err = r.status === 0 ? NET : r.status === 429 ? "Слишком много попыток. Подождите немного." : (r.data.message || "Не получилось. Проверьте данные.");
   render();
 }
@@ -1482,9 +1537,8 @@ async function doVerifyResend() {
 }
 function renderReset() {
   let h = '<h1 class="auth-h">Новый пароль</h1><p class="auth-sub">Придумайте пароль не короче 8 символов.</p><div class="form">' +
-    '<label>Новый пароль<input id="fPass" class="inp" type="password" autocomplete="new-password"></label>' +
-    '<label>Повторите пароль<input id="fPass2" class="inp" type="password" autocomplete="new-password" data-enter="reset-send"></label>' +
-    '<label class="chk"><input type="checkbox" data-action="showpw"><span>Показать пароль</span></label>' + errBox(S.err) +
+    '<label>Новый пароль<span class="pw"><input id="fPass" class="inp" type="password" autocomplete="new-password"><button type="button" class="pw-eye" data-action="pwtoggle" aria-pressed="false">Показать</button></span></label>' +
+    '<label>Повторите пароль<span class="pw"><input id="fPass2" class="inp" type="password" autocomplete="new-password" data-enter="reset-send"><button type="button" class="pw-eye" data-action="pwtoggle" aria-pressed="false">Показать</button></span></label>' + errBox(S.err) +
     '<div class="row"><button class="btn" data-action="reset-send">Сохранить пароль</button></div></div>';
   app.innerHTML = authShell(h); window.scrollTo(0, 0);
 }
@@ -1511,9 +1565,9 @@ async function doPinEnter() {
   const r = await call("/api/parent/enter", { pin: val("fPin").trim() });
   if (r.status === 200 && r.data.ok) { USER = r.data.user; if (after === "pay") return startPay(ret); return openCabinet("progress"); }
   if (r.status === 401) { USER = null; S = { view: "auth", mode: "login", err: "Войдите заново." }; return render(); }
-  S.err = r.status === 0 ? NET : r.status === 429 ? LOCKED : "Неверный PIN-код.";
+  S.err = r.status === 0 ? NET : r.status === 429 ? LOCKED : "Неверный PIN-код. Попробуйте ещё раз.";
   S.afterPin = after; S.payRet = ret;
-  render();
+  render();   // остаёмся на экране PIN, никуда не переходим
 }
 async function doPinChange(fromCabinet) {
   const after = S && S.afterPin, ret = S && S.payRet;
@@ -2074,6 +2128,7 @@ function readNum(id) {
   return /^\d+$/.test(v) ? parseInt(v, 10) : NaN;
 }
 
+[["shLessons", "home"], ["shOut", "logout"]].forEach(x => { const b = document.getElementById(x[0]); if (b) b.addEventListener("click", () => { const t = document.createElement("button"); t.dataset.action = x[1]; app.appendChild(t); t.click(); t.remove(); }); });
 app.addEventListener("click", e => {
   const b = e.target.closest("[data-action]");
   if (!b) return;
@@ -2086,6 +2141,7 @@ app.addEventListener("click", e => {
   if (a === "list" && listHref()) { stopSpeech(); VOICE.stop(null, true); location.href = listHref(); return; }
   if (a === "home" || a === "list") { leavesLoad().then(() => { if (S && S.view === "home") render(); }); stopSpeech(); VOICE.stop(null, true); if (S.view === "cabinet" && USER) call("/api/parent/leave", {}); S = { view: "home" }; render(); loadOffer().then(() => { if (S.view === "home") render(); }); return; }
   if (a === "auth") { S = { view: "auth", mode: b.dataset.mode || "login", err: "", form: S.form }; return render(); }
+  if (a === "pwtoggle") { const el = b.parentNode.querySelector("input"); if (el) { const show = el.type === "password"; el.type = show ? "text" : "password"; b.textContent = show ? "Скрыть" : "Показать"; b.setAttribute("aria-pressed", show ? "true" : "false"); } return; }
   if (a === "showpw") { ["fPass", "fPass2"].forEach(id => { const el = document.getElementById(id); if (el) el.type = b.checked ? "text" : "password"; }); return; }
   if (a === "cab-tab") { S.tab = b.dataset.tab; S.err = ""; return render(); }
   if (a === "forgot") { S = { view: "forgot", err: "", form: S.form }; return render(); }
@@ -2132,7 +2188,9 @@ app.addEventListener("click", e => {
     return speak(spokenMath(cards.map(c => plain(c.text)).join(" ")), true);
   }
   if (a === "goal-open") { S = { view: "goal" }; return render(); }
-  if (a === "goal-back") { S = { view: "home" }; return render(); }
+  if (a === "goal-back") { if (S.from === "cabinet") return openCabinet("progress"); S = { view: "home" }; return render(); }
+  if (a === "pay-page") { S = { view: "paypage" }; return render(); }
+  if (a === "pay-back") return openCabinet("progress");
   if (a === "goal-pick") return pickGoal(b.dataset.id);
   if (a === "next") return nextStep();
   if (a === "prev") return prevStep();

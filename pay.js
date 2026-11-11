@@ -11,9 +11,10 @@
    Режимы (переменная PAY_MODE):
      не задана  — оплата выключена, кнопки на сайте не показываются (работает старая схема через WhatsApp);
      stub       — «заглушка банка» для проверки без денег. На Render включается только с PAY_ALLOW_STUB=1;
-     live       — настоящий банк. ПОКА НЕ ПОДКЛЮЧЁН: ждём схему PayLink (см. LIVE ниже), без неё режим остаётся выключенным.
+     live       — PayLink (счёт + страница оплаты PayLink). Нужен PAYLINK_KEY; без него режим остаётся выключенным.
 
-   Настройки (в хостинге, не в коде): PAY_MODE, PAY_PRICE (по умолчанию 9900), PAY_DAYS (30), PAY_SECRET (ключ подписи). */
+   Настройки (в хостинге, не в коде): PAY_MODE, PAY_PRICE (по умолчанию 9900), PAY_DAYS (30), PAY_SECRET (ключ подписи, только для заглушки),
+   PAYLINK_KEY (X-API-KEY магазина), PAYLINK_URL (по умолчанию тестовый https://s-core.paylink.kz, боевой https://core.paylink.kz). */
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
@@ -24,11 +25,40 @@ module.exports = function createPay(ctx) {
   const DAYS = Math.round(Number(process.env.PAY_DAYS) || 30);
   const REQ = String(process.env.PAY_MODE || "").toLowerCase();
   const STUB_OK = REQ === "stub" && !(process.env.RENDER && process.env.PAY_ALLOW_STUB !== "1");
-  /* LIVE: сюда подключается PayLink, когда будет их документация. Нужны две функции:
-       create(order, resultUrl) -> адрес платёжной страницы (строка);
-       verify(req, raw)         -> { order, status: "paid"|"failed", amount, ref } или null, если подпись не сошлась.
-     Пока null: режим live не включается. */
-  const LIVE = null;
+  /* LIVE: PayLink (документация: documenter.getpostman.com/view/48600752/2sBXqCPjCm).
+     Сервер создаёт счёт (POST /api/v1/invoices), родитель платит на странице PayLink (paymentUrl), карта через наш сервер не проходит.
+     В уведомлении (callback) подписи нет, поэтому ему НЕ верим: берём из него только номер счёта и сами спрашиваем PayLink
+     (GET /api/v1/invoices/:uid) своим ключом. Оплата считается состоявшейся, если счёт SUBMITTED, транзакция SUCCESSFUL,
+     номер заказа и сумма совпали. Не доверять уведомлению нас заставляет отсутствие подписи в документации (не проверено у PayLink). */
+  const PL_KEY = process.env.PAYLINK_KEY || "";
+  const PL_URL = String(process.env.PAYLINK_URL || "https://s-core.paylink.kz").replace(/\/+$/, "");
+  async function plFetch(method, p, body) {
+    const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 8000);   // PayLink ждёт ответ на callback не дольше 10 с
+    try {
+      const r = await fetch(PL_URL + p, { method, signal: ctl.signal, headers: { "X-API-KEY": PL_KEY, "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
+      const text = await r.text(); let j = null; try { j = JSON.parse(text); } catch (e) {}
+      if (!r.ok) throw new Error("PayLink " + r.status + (j && j.message ? ": " + String(j.message).slice(0, 120) : ""));
+      return j || {};
+    } finally { clearTimeout(t); }
+  }
+  const LIVE = PL_KEY ? {
+    /* создать счёт -> { uid, url } */
+    async create(o, resultUrl, callbackUrl) {
+      const j = await plFetch("POST", "/api/v1/invoices", { amount: o.amount, currency: "KZT", description: "Листик: подписка на " + o.days + " дней",
+        requestId: o.reqId, trackingId: o.id, transactionType: "PAYMENT", callbackUrl, successUrl: resultUrl, failureUrl: resultUrl, customer: { email: o.email } });
+      if (!j.uid || !j.paymentUrl) throw new Error("PayLink: в ответе нет uid или paymentUrl");
+      return { uid: j.uid, url: j.paymentUrl };
+    },
+    /* спросить PayLink о счёте -> { order, status: "paid"|"failed"|"pending", amount, ref, txn } */
+    async check(uid) {
+      const inv = await plFetch("GET", "/api/v1/invoices/" + encodeURIComponent(uid));
+      const tx = inv.transaction || {};
+      let status = "pending";
+      if (inv.status === "SUBMITTED" && tx.status === "SUCCESSFUL") status = "paid";
+      else if (tx.status === "FAILED" || inv.status === "EXPIRED") status = "failed";
+      return { order: String(inv.trackingId || ""), status, amount: inv.currency && inv.currency !== "KZT" ? -1 : inv.amount, ref: tx.rrn, txn: tx.uid };
+    }
+  } : null;
   const MODE = STUB_OK ? "stub" : (REQ === "live" && LIVE ? "live" : "");
   const SECRET = process.env.PAY_SECRET || crypto.randomBytes(32).toString("hex");   // без PAY_SECRET подписать уведомление снаружи невозможно
 
@@ -99,11 +129,23 @@ module.exports = function createPay(ctx) {
     if (!MODE) return send(res, 404, { error: "not_found" });
     let raw = "", big = false;
     req.on("data", c => { raw += c; if (raw.length > 16384) { big = true; req.destroy(); } });
-    req.on("end", () => {
+    req.on("end", async () => {
       if (big) return;
-      const d = LIVE && MODE === "live" ? LIVE.verify(req, raw) : verifyDefault(req, raw);
-      if (!d) { console.error("[оплата] уведомление отклонено: подпись не сошлась"); return send(res, 403, { error: "signature" }); }
+      let d;
+      try {
+        if (MODE === "live") {
+          let n = null; try { n = JSON.parse(raw); } catch (e) {}
+          const uid = n && typeof n.uid === "string" ? n.uid : "";
+          const o = uid && ORDERS.find(x => x.inv === uid);
+          if (!o) { console.error("[оплата] уведомление: такого счёта у нас нет"); return send(res, 404, { error: "not_found" }); }
+          d = await LIVE.check(uid);                                   // телу уведомления не верим: спрашиваем PayLink
+          if (d.order !== o.id) d = null;
+        } else d = verifyDefault(req, raw);
+      } catch (e) { console.error("[оплата] не удалось проверить счёт:", e.message); return send(res, 502, { error: "upstream" }); }   // PayLink повторит уведомление позже
+      if (!d) { console.error("[оплата] уведомление отклонено: " + (MODE === "live" ? "номер заказа не совпал" : "подпись не сошлась")); return send(res, 403, { error: "signature" }); }
+      if (d.status === "pending") return send(res, 200, { ok: true, pending: true });
       const r = settle(d.order, d.status, d.amount, d.ref);
+      if (d.txn && r.order && !r.order.txn) { r.order.txn = d.txn; saveOrders(); }   // нужен для возврата денег
       console.log("[оплата] заказ " + d.order + ": " + d.status + " -> " + r.code);
       send(res, r.code, { ok: r.code === 200 });
     });
@@ -114,7 +156,7 @@ module.exports = function createPay(ctx) {
   const config = (res) => send(res, 200, { enabled: !!MODE, price: PRICE, days: DAYS });
 
   /* POST /api/pay/create (только режим родителя) */
-  function create(req, res, a, b) {
+  function create(req, res, a, b) {   // (возвращает промис в режиме live)
     if (!MODE) return send(res, 503, { error: "pay_disabled", message: "Онлайн-оплата пока не подключена. Напишите нам в WhatsApp." });
     if (!a) return send(res, 401, { error: "login" });
     if (!isParent(a)) return send(res, 403, { error: "parent_required" });
@@ -124,17 +166,34 @@ module.exports = function createPay(ctx) {
     hit("pay:" + a.user.id);
     const o = { id: "L" + Date.now().toString(36) + crypto.randomBytes(4).toString("hex"), uid: a.user.id, email: a.user.email,
       amount: PRICE, days: DAYS, status: "pending", lang: b.lang === "kk" ? "kk" : "ru", returnTo: cleanReturn(b.returnTo), createdAt: iso() };
+    o.reqId = crypto.randomUUID();
     ORDERS.push(o); saveOrders();
-    const url = MODE === "stub" ? "/api/pay/stub?order=" + o.id : LIVE.create(o, resultUrl(req, o));
-    send(res, 200, { ok: true, url, order: o.id });
+    if (MODE === "stub") return send(res, 200, { ok: true, url: "/api/pay/stub?order=" + o.id, order: o.id });
+    return LIVE.create(o, resultUrl(req, o), siteUrl(req) + "/api/pay/callback").then(r => {
+      o.inv = r.uid; saveOrders();
+      send(res, 200, { ok: true, url: r.url, order: o.id });
+    }).catch(e => {
+      console.error("[оплата] счёт не создан:", e.message);
+      o.status = "failed"; o.problem = "счёт не создан"; o.problemAt = iso(); saveOrders();
+      send(res, 502, { error: "pay_unavailable", message: "Не удалось открыть страницу оплаты. Попробуйте ещё раз чуть позже." });
+    });
   }
 
-  /* GET /api/pay/status?order=...: страница результата ждёт подтверждения от банка */
+  const lastAsk = {};
+  /* GET /api/pay/status?order=...: страница результата ждёт подтверждения от банка (в live при необходимости сама спрашивает PayLink) */
   function status(req, res, a) {
     if (!a) return send(res, 401, { error: "login" });
     const o = findOrder(query(req).get("order") || "");
     if (!o || o.uid !== a.user.id) return send(res, 404, { error: "not_found" });
-    send(res, 200, { status: o.status, until: o.until || null, returnTo: o.returnTo, amount: o.amount, lang: o.lang });
+    const reply = () => send(res, 200, { status: o.status, until: o.until || null, returnTo: o.returnTo, amount: o.amount, lang: o.lang });
+    if (MODE === "live" && o.inv && o.status !== "paid" && Date.now() - (lastAsk[o.id] || 0) > 3000) {
+      lastAsk[o.id] = Date.now();
+      return LIVE.check(o.inv)
+        .then(d => { if (d.order === o.id && d.status !== "pending") { settle(o.id, d.status, d.amount, d.ref); if (d.txn && !o.txn) { o.txn = d.txn; saveOrders(); } } })
+        .catch(e => console.error("[оплата] не удалось спросить PayLink:", e.message))
+        .then(reply);
+    }
+    reply();
   }
 
   /* ---------- заглушка банка (только PAY_MODE=stub) ---------- */
