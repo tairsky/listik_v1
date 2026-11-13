@@ -32,17 +32,27 @@ const M = { logErr: 0, started: Date.now(), turns: 0, busy: 0, fail: 0, o429: 0,
 
 const readJSON = f => JSON.parse(fs.readFileSync(path.join(ROOT, f), "utf8"));
 const TASKS_FILE = readJSON("data/private/tasks.json");
-const TASKS = TASKS_FILE.tasks;
-/* Сквозная нумерация: задачи идут по порядку разделов, номер не начинается заново в новом разделе.
+/* Упражнения лежат отдельными файлами по классам: tasks.json (3 класс), math-2.json (2 класс).
+   Если файла класса нет, этот класс просто не открыт. У каждого упражнения и раздела появляется поле grade. */
+const TASKS_FILE_2 = (() => { try { return readJSON("data/private/math-2.json"); } catch (e) { return null; } })();
+const GRADE_FILES = [TASKS_FILE, TASKS_FILE_2].filter(Boolean);
+GRADE_FILES.forEach(f => { const g = f.grade || 3; (f.tasks || []).forEach(t => { t.grade = g; }); (f.sections || []).forEach(s => { s.grade = g; }); });
+const TASKS = GRADE_FILES.flatMap(f => f.tasks || []);
+const ALL_SECTIONS = GRADE_FILES.flatMap(f => f.sections || []);
+const OPEN_GRADES = GRADE_FILES.map(f => f.grade || 3);
+/* Сквозная нумерация: задачи идут по порядку разделов, номер не начинается заново в новом разделе, но у каждого класса своя.
    Номер считается сам, поэтому при добавлении задач порядковые номера править руками не нужно. */
 {
-  const secOrder = new Map((TASKS_FILE.sections || []).map((x, i) => [x.id, i]));
+  const secOrder = new Map(ALL_SECTIONS.map((x, i) => [x.id, i]));
   const pos = x => (secOrder.has(x.section) ? secOrder.get(x.section) : 1e9);
   TASKS.sort((a, b) => pos(a) - pos(b));
-  TASKS.forEach((t, i) => { t.no = String(i + 1); });
+  const cnt = {};
+  TASKS.forEach(t => { cnt[t.grade] = (cnt[t.grade] || 0) + 1; t.no = String(cnt[t.grade]); });
 }
-const SUBJECT = { title: TASKS_FILE.subject_title || "Математика", grade: TASKS_FILE.grade || 3 };
+const SUBJECT = { title: TASKS_FILE.subject_title || "Математика", grade: TASKS_FILE.grade || 3, grades: OPEN_GRADES };
 const cleanGrade = (v) => { const n = Number(v); return Number.isInteger(n) && n >= 1 && n <= 11 ? n : 0; };   // класс ребёнка 1–11, иначе 0
+const gradeOf = u => (u && u.child && u.child.grade) || 3;   // класс ребёнка; у старых кабинетов и гостей считаем 3
+const subjectFor = u => { const g = gradeOf(u); return { ...SUBJECT, grade: OPEN_GRADES.includes(g) ? g : SUBJECT.grade }; };
 const CONFIG = readJSON("data/private/config.json");
 const MAX_ATTEMPTS = 3;
 
@@ -446,7 +456,7 @@ const seqPrevNo = t => { const p = taskById(PREV_IN_SECTION.get(t.id)); return p
 const shortCond = t => String(t.condition || "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim().slice(0, 110);
 const tasksFor = a => {
   const P = a && progress(a.user).tasks, R = a ? recommendations(a.user) : {};
-  return TASKS.map(t => {
+  return TASKS.filter(t => t.grade === gradeOf(a && a.user)).map(t => {
     const locked = taskLocked(t, a);
     const o = { id: t.id, no: t.no, title: t.title, section: t.section, cond: locked ? "" : shortCond(t), locked };
     if (!locked && P && !hasPlan(a) && seqClosed(t, P)) { o.closed = true; o.after = seqPrevNo(t); }
@@ -651,9 +661,9 @@ const mainSkill = t => {
   const c = {}; t.steps.forEach(x => { if (x.skill !== "проверка" && x.skill !== "объяснение") c[x.skill] = (c[x.skill] || 0) + 1; });
   return Object.entries(c).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
 };
-const SKILL_TASKS = {};
-TASKS.forEach(t => { const k = mainSkill(t); if (k) (SKILL_TASKS[k] = SKILL_TASKS[k] || []).push(t); });
-Object.values(SKILL_TASKS).forEach(a => a.sort((x, y) => (x.level || 2) - (y.level || 2)));
+const SKILL_TASKS_BY = {};   // по классам: названия навыков в 2 и 3 классе могут совпадать
+TASKS.forEach(t => { const k = mainSkill(t); if (!k) return; const m = (SKILL_TASKS_BY[t.grade] = SKILL_TASKS_BY[t.grade] || {}); (m[k] = m[k] || []).push(t); });
+Object.values(SKILL_TASKS_BY).forEach(m => Object.values(m).forEach(a => a.sort((x, y) => (x.level || 2) - (y.level || 2))));
 
 /* шаги-опоры (scaf), которые можно не показывать, если ребёнок уже уверенно владеет навыком */
 function skipFor(user, task) {
@@ -672,6 +682,7 @@ function skipFor(user, task) {
 /* что порекомендовать: повторить навык (подошёл срок) или перейти на уровень выше/ниже */
 function recommendations(user) {
   const P = progress(user), out = {}, now = Date.now();
+  const SKILL_TASKS = SKILL_TASKS_BY[gradeOf(user)] || {};
   const due = Object.entries(P.skills).filter(([n, sk]) => sk.due && Date.parse(sk.due) <= now && SKILL_TASKS[n] && mastery(sk) !== null && mastery(sk) < 0.9)
     .sort((x, y) => Date.parse(x[1].due) - Date.parse(y[1].due));
   for (const [n] of due.slice(0, 2)) {
@@ -728,6 +739,7 @@ function warmSkills(user) {
 }
 function quizOffer(user) {
   const P = progress(user), today = dayStamp(), o = { diag: false, warm: 0 };
+  if (gradeOf(user) !== 3) return o;   // вопросы знакомства и разминки (quick.js) пока только для 3 класса
   if (!P.diagAt) o.diag = P.diagLater !== today;
   else if (P.warmDay !== today && dayOf(P.diagAt) !== today) o.warm = warmSkills(user).length;
   return o;
@@ -888,6 +900,31 @@ const taskAny = (ps, id) => taskById(id) || (ps && ps.dyn && ps.dyn[id]) || null
 function progress(u) {
   return u.progress || (u.progress = { firstLessonAt: null, lastLessonAt: null, tasks: {}, skills: {}, lessons: [] });
 }
+/* ---------- защита от накрутки листиков: сигналы «слишком быстро» (watch.js). Ничего не блокирует, только ставит пометку «проверить» ---------- */
+const WATCH = require("./watch.js");
+const watchMail = { day: null, n: 0 };
+function watchStep(user, ps, task, ms, st, fin) {
+  try {
+    const W = WATCH.stateOf(progress(user)), L = leavesOf(user), t = new Date(Date.now() + 5 * 3600 * 1000);
+    const local = { day: ymd(0), week: weekStart(), hour: t.getUTCHours() };
+    WATCH.onStep(W, local, ms, st.errors === 0 && !st.helped);
+    if (fin) {
+      let n = 0; task.steps.forEach((_, k) => { const x = ps.steps.get(task.id + ":" + k); if (x && x.solved && !x.skipped) n++; });
+      if (ps.exAt) WATCH.onExercise(W, local, (Date.now() - ps.exAt) / 1000, n);
+    }
+    WATCH.onEarned(W, local, L.dayEarned);
+    const fl = WATCH.check(W, local);
+    if (fl) {
+      logEvent({ kind: "watch", u: "u" + user.id, signals: fl.signals }); console.log("[watch] кабинет u" + user.id + " помечен: " + fl.signals.join(", "));
+      const day = ymd(0); if (watchMail.day !== day) { watchMail.day = day; watchMail.n = 0; }
+      if (++watchMail.n <= 20) {      // не больше 20 писем в сутки, чтобы не завалить почту
+        MAIL.watchAlert({ email: user.email, child: user.child && user.child.name, signals: fl.signals, leavesTotal: L.total || 0, pending: (L.rewards || []).filter(r => r.status === "pending").length })
+          .catch(e => console.log("[watch] письмо владельцу не ушло: " + e.message));
+      }
+    }
+    scheduleSave();
+  } catch (e) { console.log("[watch] ошибка: " + e.message); }
+}
 function recordSolved(user, task, ps, i, st) {
   let completed = false;
   const P = progress(user), now = new Date().toISOString();
@@ -936,7 +973,7 @@ function cabinetExtra(user, tasksView) {
   for (; i >= 0 && st(d90[i]) > 0; i--) streak++;
   const week = { minutes: Math.round(sum(w1, st) / 60), prev: Math.round(sum(w0, st) / 60), activeDays: w1.filter(d => st(d) > 0).length,
     voice: Math.round(sum(w1, vo) / 60) };
-  const sections = (TASKS_FILE.sections || []).map(s => {
+  const sections = ALL_SECTIONS.filter(s => s.grade === gradeOf(user)).map(s => {
     const ts = TASKS.filter(x => x.section === s.id);
     const v = ts.map(x => tasksView.find(y => y.id === x.id));
     return { id: s.id, title: s.title, tasksTotal: ts.length, tasksDone: v.filter(x => x && x.status === "done").length,
@@ -958,7 +995,7 @@ function cabinetExtra(user, tasksView) {
   const active = hasPlan({ user }), key = "u:" + user.id, uv = usageView(key);
   return {
     plan: { active, until: user.plan && user.plan.until || null, cancelAt: user.cancelRenewal && user.cancelRenewal.at || null, daysLeft: active ? Math.ceil((Date.parse(user.plan.until) - now) / 86400000) : 0,
-      freeTasks: TASKS.filter(x => !isPaidTask(x)).length },
+      freeTasks: TASKS.filter(x => x.grade === gradeOf(user) && !isPaidTask(x)).length },
     today: { studyUsed: Math.round(uv.studyMax - uv.studyLeft), studyMax: uv.studyMax, voiceUsed: Math.round(uv.voiceMax - uv.voiceLeft), voiceMax: uv.voiceMax },
     createdAt: user.createdAt || null,
     activity, streak, week, sections, history, weeks: weeksOut, hardTop,
@@ -967,7 +1004,7 @@ function cabinetExtra(user, tasksView) {
 }
 function cabinetView(user) {
   const P = progress(user);
-  const tasks = TASKS.map(t => {
+  const tasks = TASKS.filter(t => t.grade === gradeOf(user)).map(t => {
     const x = P.tasks[t.id] || {};
     return { id: t.id, no: t.no, title: t.title, total: t.steps.length, completions: x.completions || 0,
       status: x.completions ? "done" : x.inProgress ? "progress" : "new",
@@ -993,8 +1030,8 @@ function cabinetView(user) {
   const recOut = Object.entries(recs).map(([id, r]) => { const t = taskById(id) || {}; return { id, no: t.no, title: t.title, kind: r.kind, why: r.why }; });
   return {
     errorsTop, recs: recOut, diagAt: P.diagAt || null, warmDay: P.warmDay || null,
-    email: user.email, child: user.child, subject: SUBJECT, startedAt: P.firstLessonAt, lastAt: P.lastLessonAt,
-    summary: { tasksTotal: TASKS.length, tasksDone: tasks.filter(t => t.status === "done").length, lessons: P.lessons.length,
+    email: user.email, child: user.child, subject: subjectFor(user), startedAt: P.firstLessonAt, lastAt: P.lastLessonAt,
+    summary: { tasksTotal: tasks.length, tasksDone: tasks.filter(t => t.status === "done").length, lessons: P.lessons.length,
       firstTryPct: totalSteps ? Math.round(100 * first / totalSteps) : null },
     tasks, skills, lessons, ...cabinetExtra(user, tasks)
   };
@@ -1030,6 +1067,14 @@ function isCorrect(step, a) {
   if (step.type === "number") return Number.isInteger(a) && a === step.answer;
   return Array.isArray(a) && a.length === step.answer.length && a.every((v, i) => Number.isInteger(v) && v === step.answer[i]);
 }
+/* короткая запись для тетради: если у шага нет своей, пишем сам ответ, но только когда он короткий */
+function shortNote(step, quiz) {
+  if (quiz || step.type === "explain" || /Ответ:/.test(step.ok || "")) return null;
+  if (step.type === "choice") { const o = String(step.options[step.correct] || "").trim(); return o && o.length <= 25 ? o : null; }
+  if (step.type === "pair" && Array.isArray(step.answer)) return step.answer.join(" и ");
+  return null;
+}
+
 function answerText(step) {
   if (step.type === "choice") return step.options[step.correct];
   if (step.type === "number") return String(step.answer);
@@ -1212,11 +1257,11 @@ async function api(req, res, url) {
   const who = a ? "u" + a.user.id : ip;   // лимиты частоты: по кабинету, если вошли (школа и мобильный интернет дают одному адресу много детей)
 
   if (req.method === "GET") {
-    if (url === "/api/tasks") return send(res, 200, { tasks: tasksFor(a), sections: TASKS_FILE.sections || [] });
+    if (url === "/api/tasks") return send(res, 200, { tasks: tasksFor(a), sections: ALL_SECTIONS.filter(s => s.grade === gradeOf(a && a.user)) });
     if (url.startsWith("/api/task/")) {
       let id = ""; try { id = decodeURIComponent(url.slice(10)); } catch (e) {}
       const t = taskById(id);
-      if (!t) return send(res, 404, { error: "not_found" });
+      if (!t || t.grade !== gradeOf(a && a.user)) return send(res, 404, { error: "not_found" });
       if (taskLocked(t, a)) return send(res, 403, { error: "paid_only" });
       if (!hasPlan(a) && seqClosed(t, a && progress(a.user).tasks)) return send(res, 403, { error: "sequence", after: seqPrevNo(t) });
       return send(res, 200, { task: Object.assign({}, publicById.get(id), { locked: false }) });
@@ -1382,8 +1427,14 @@ async function api(req, res, url) {
     if (!isParent(a)) return send(res, 403, { error: "parent_required" });
     const name = cleanName(b.childName);
     if (!name) return send(res, 400, { error: "child", message: "Введите имя или псевдоним ребёнка (без фамилии)." });
+    let g = 0;
+    if (b.grade !== undefined) {
+      g = cleanGrade(b.grade); if (!g) return send(res, 400, { error: "grade", message: "Выберите класс ребёнка." });
+      /* смену класса подтверждает пароль от кабинета (не только PIN): класс меняет набор упражнений (13.11.2026) */
+      if (g !== gradeOf(a.user) && !(await verifyPassword(res, a, b.password))) return;
+    }
     a.user.child.name = name;
-    if (b.grade !== undefined) { const g = cleanGrade(b.grade); if (!g) return send(res, 400, { error: "grade", message: "Выберите класс ребёнка." }); a.user.child.grade = g; }
+    if (g) a.user.child.grade = g;
     saveUsers();
     return send(res, 200, { ok: true, user: publicUser(a) });
   }
@@ -1464,6 +1515,7 @@ async function api(req, res, url) {
     if (studyOver(usageKey(a, ip))) return send(res, 403, { error: "day_limit" });
     const kind = b.kind === "warm" ? "warm" : b.kind === "diag" ? "diag" : null;
     if (!kind) return send(res, 400, { error: "bad_kind" });
+    if (gradeOf(a.user) !== 3) return send(res, 409, { error: "nothing_due" });
     let steps;
     if (kind === "diag") steps = QUICK.buildDiag();
     else { const sk = warmSkills(a.user); if (!sk.length) return send(res, 409, { error: "nothing_due" }); steps = QUICK.buildWarm(sk); }
@@ -1506,7 +1558,7 @@ async function api(req, res, url) {
     if (a) { const P = progress(a.user); if (!P.firstLessonAt) P.firstLessonAt = new Date().toISOString(); scheduleSave(); }
     const skip = skipFor(a && a.user, task);
     skip.forEach(i => { const x = stepState(ps, task.id, i); x.solved = true; x.skipped = true; });
-    ps.lastAt = Date.now(); ps.recent = []; ps.lrun = null;
+    ps.lastAt = Date.now(); ps.exAt = Date.now(); ps.recent = []; ps.lrun = null;
     logEvent({ kind: "start", u: logWho(a, stateKey), task: logTask(task), skip });
     return send(res, 200, { ok: true, skip });
   }
@@ -1535,8 +1587,8 @@ async function api(req, res, url) {
       st.attempts = 0;
       logEvent({ kind: "check", u: wlog, task: logTask(task), step: b.step, skill: step.skill, ok: true, ans: shown, att: st.errors + 1, ms, ch });
       let lv;
-      if (!st.solved) { st.solved = true; if (a) { if (quiz) quizRecord(a.user, step, st); else { const s0 = ps.lrun ? ps.lrun.sum : 0; leavesStep(a.user, ps, task, step, st, b.step); const fin = recordSolved(a.user, task, ps, b.step, st); lv = leavesBrief(a.user, ps, (ps.lrun ? ps.lrun.sum : 0) - s0, fin); } } }
-      return send(res, 200, { correct: true, leaves: lv, ok: step.ok, say: [clipFor(step.ok)].filter(Boolean), note: step.note || null, col: step.col || null, quizDone: quiz && a ? quizDone(a.user, task, ps) : undefined });
+      if (!st.solved) { st.solved = true; if (a) { if (quiz) quizRecord(a.user, step, st); else { const s0 = ps.lrun ? ps.lrun.sum : 0; leavesStep(a.user, ps, task, step, st, b.step); const fin = recordSolved(a.user, task, ps, b.step, st); lv = leavesBrief(a.user, ps, (ps.lrun ? ps.lrun.sum : 0) - s0, fin); watchStep(a.user, ps, task, ms, st, fin); } } }
+      return send(res, 200, { correct: true, leaves: lv, ok: step.ok, say: [clipFor(step.ok)].filter(Boolean), note: step.note || shortNote(step, quiz), col: step.col || null, quizDone: quiz && a ? quizDone(a.user, task, ps) : undefined });
     }
     st.errors++; st.attempts++;
     const trapInfo = judge ? null : findTrap(step, b.answer), code = trapInfo ? trapInfo.code : null;
@@ -1568,7 +1620,7 @@ async function api(req, res, url) {
       tired = tail.length >= 6 && bad >= 5 ? "break" : "ease"; ps.tiredAt = ps.nChecks;
       logEvent({ kind: "tired", u: wlog, task: logTask(task), level: tired });
     }
-    const simTxt = st.attempts >= 2 ? task.similar : null;
+    const simTxt = null;   /* «похожий пример» убран (13.11.2026) */
     return send(res, 200, { correct: false, attempts: st.attempts, locked: st.locked, rule, similar: simTxt, tired, say: st.locked ? [] : [clipFor(rule), clipFor(simTxt)].filter(Boolean) });
   }
   if (url === "/api/unlock") {
@@ -1682,7 +1734,7 @@ const SITECHAT = require("./sitechat.js")({ modelCall, outputText, Upstream, too
 
 const ADMIN = require("./admin_panel.js")({
   users: () => USERS, metrics: loadSnapshot, saveUsers, usage: () => USAGE, usageOf, flushUsage, dayStamp, limitsFor, SETTINGS, saveSettings,
-  cabinetView, hasPlan, hashSecret, TASKS, SECTIONS: () => TASKS_FILE.sections || [], SUBJECT, EMAIL_RE, auth, tooMany, hit, buckets, send, STORE_DIR, COOKIE_SECURE, parseCookies, voiceSessions,
+  cabinetView, hasPlan, hashSecret, TASKS, SECTIONS: () => ALL_SECTIONS, SUBJECT, EMAIL_RE, auth, tooMany, hit, buckets, send, STORE_DIR, COOKIE_SECURE, parseCookies, voiceSessions,
   envDefaults: { study: Number(process.env.STUDY_DAY_MIN || 60), voice: Number(process.env.VOICE_DAY_MIN || 60) }
 });
 

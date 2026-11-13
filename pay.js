@@ -160,7 +160,7 @@ module.exports = function createPay(ctx) {
     if (!MODE) return send(res, 503, { error: "pay_disabled", message: "Онлайн-оплата пока не подключена. Напишите нам в WhatsApp." });
     if (!a) return send(res, 401, { error: "login" });
     if (!isParent(a)) return send(res, 403, { error: "parent_required" });
-    if (SUBJECT && a.user.child && a.user.child.grade && a.user.child.grade !== SUBJECT.grade)   // упражнений для этого класса пока нет: не берём деньги
+    if (SUBJECT && a.user.child && a.user.child.grade && !(SUBJECT.grades || [SUBJECT.grade]).includes(a.user.child.grade))   // упражнений для этого класса пока нет: не берём деньги
       return send(res, 403, { error: "grade", message: "Для класса вашего ребёнка упражнений пока нет, оплата недоступна." });
     if (tooMany("pay:" + a.user.id, 10, 60 * MIN)) return send(res, 429, { error: "too_many" });
     hit("pay:" + a.user.id);

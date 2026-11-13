@@ -640,8 +640,8 @@
    note — строка в тетрадь, skill — тема шага (единственное, что знает ИИ).
    ============================================================ */
 let TASKS = [];        // с сервера, без ответов
-const OPEN_GRADE = 3;   // класс, для которого есть упражнения
-const wrongGrade = () => !!(USER && USER.child && USER.child.grade && USER.child.grade !== OPEN_GRADE);
+const OPEN_GRADES = [2, 3];   // классы, для которых есть упражнения
+const wrongGrade = () => !!(USER && USER.child && USER.child.grade && !OPEN_GRADES.includes(USER.child.grade));
 const gradeSelect = (id, cur) => '<select id="' + id + '" class="inp">' + (cur ? '' : '<option value="">Выберите класс</option>') +
   Array.from({ length: 11 }, (_, i) => '<option value="' + (i + 1) + '"' + (+cur === i + 1 ? ' selected' : '') + '>' + (i + 1) + ' класс</option>').join("") + '</select>';
 let USER = null;       // вошедший кабинет: { email, child, parent } или null
@@ -857,6 +857,7 @@ async function startTask(i) {
   if (USAGE.studyLeft === 0) { S = { view: "rest" }; return render(); }
   if (!(await ensureTask(i))) return;
   QPOS = QUEUE ? QUEUE.indexOf(i) : -1;
+  EP++; HS = false;
   let skip = [], resume = -1;
   try { const sr = await api("/api/start", { task: TASKS[i].id }); if (sr.status === 403 && sr.data && sr.data.error === "sequence") { await refreshLocks(); S = { view: "home", flash: seqMsg(sr.data.after) }; return render(); } if (sr.status === 200 && sr.data && Array.isArray(sr.data.skip)) skip = sr.data.skip; if (sr.status === 200 && sr.data && Number.isInteger(sr.data.resume)) resume = sr.data.resume; } catch (e) {}
   applySkip(TASKS[i], skip);
@@ -935,18 +936,18 @@ function colHTML(T) {
 }
 function notebookAside(T, done) {
   if (T.quiz) return '';
-  let h = '<aside class="nbcol" aria-label="Тетрадь"><div class="nbno hand">№ ' + T.no +
-    (QPOS >= 0 ? ' · ' + (QPOS + 1) + ' из ' + QUEUE.length : '') + (done ? ' · решена' : '') + '</div>';
+  let h = '<aside class="nbcol" aria-label="Тетрадь"><div class="nbno hand">Упражнение ' + T.no +
+    (QPOS >= 0 ? ' · ' + (QPOS + 1) + ' из ' + QUEUE.length : '') + (done ? ' · решено' : '') + '</div>';
   const grid = (PARAMS.get("subject") || "math") === "math";   // математика — в клетку, остальное — в линейку
   const acts = T.steps.filter(x => x.type !== "choice" && x.skill !== "проверка ответа").length;
-  h += '<div class="nb' + (grid ? ' grid' : '') + (T.long ? ' long' : '') + '"><div class="ln cond">' + T.condition + '</div>';
+  h += '<div class="nb' + (grid ? ' grid' : '') + (T.long ? ' long' : '') + '">';
   if (T.column) h += colHTML(T);
   const cur = (!done && S.stage !== "right" && T.steps[S.s]) ? T.steps[S.s].cond : "";   // пример текущего шага: тот же, что в вопросе слева
   if (S.notes.length) h += '<div class="ln">Решение.</div>';
   let k = 0;
   S.notes.forEach(x => {
     const solution = !/^(Ответ|Проверка)/.test(x);
-    h += '<div class="ln">' + (solution && acts > 1 ? (++k) + ') ' : '') + x + '</div>';
+    h += '<div class="ln">' + (solution ? (++k) + ') ' : '') + x + '</div>';
   });
   if (cur) h += '<div class="ln cur">' + cur + '</div>';
   h += '</div><p class="nbcap">Решай сам и переписывай в свою тетрадь: запись появляется после каждого верного шага.</p></aside>';
@@ -1187,7 +1188,7 @@ async function doSetup() {
   if (!need("Введите имя или псевдоним ребёнка.", name)) return;
   if (!need("Выберите класс ребёнка.", grade)) return;
   const r = await call("/api/setup", { childName: name, grade: +grade, pin });
-  if (r.status === 200 && r.data.ok) { USER = r.data.user; S.form = null; return openCabinet("progress", "Данные сохранены. Запомните PIN-код: он нужен для входа в кабинет."); }
+  if (r.status === 200 && r.data.ok) { USER = r.data.user; S.form = null; await reloadTasks(); return openCabinet("progress", "Данные сохранены. Запомните PIN-код: он нужен для входа в кабинет."); }
   if (r.status === 401) { USER = null; S = { view: "auth", mode: "login", err: "Войдите заново." }; return render(); }
   if (r.status === 409) { S = { view: "pin" }; return render(); }
   S.err = r.status === 0 ? NET : r.status === 429 ? "Слишком много попыток. Подождите немного." : (r.data.message || "Не получилось сохранить.");
@@ -1197,7 +1198,7 @@ function renderNoGrade() {
   const g = USER.child.grade;
   let h = header(false);
   h += '<div class="cat-title"><h1>' + (USER.child.name ? 'Привет, ' + esc(USER.child.name) + '! ' : '') + 'Для ' + g + ' класса пока нет упражнений</h1></div>';
-  h += '<div class="mark"><p>Сейчас в Листике есть тренажёр только по математике для ' + OPEN_GRADE + ' класса. Мы запомнили, что ребёнок учится в ' + g + ' классе.</p>' +
+  h += '<div class="mark"><p>Сейчас в Листике есть тренажёр только по математике для ' + OPEN_GRADES.join(' и ') + ' классов. Мы запомнили, что ребёнок учится в ' + g + ' классе.</p>' +
     '<p>Ошиблись с классом? Родитель может изменить его в кабинете, раздел «Настройки» (нужен PIN-код).</p>' +
     '<div class="row"><button class="btn ghost small" data-action="logout">Выйти из аккаунта</button></div></div>';
   if (S.flash) { h += '<div class="fb ok">' + esc(S.flash) + '</div>'; S.flash = ""; }
@@ -1441,6 +1442,7 @@ function renderCabinet() {
     h += '<div class="form"><h2 class="sec">Ребёнок</h2>';
     h += '<label>Имя или псевдоним <span class="hint">без фамилии, школы и адреса</span><input id="fChild" class="inp" maxlength="30" value="' + esc(c.child.name) + '" data-enter="cab-child"></label>';
     h += '<label>Класс' + gradeSelect("fGrade", c.child.grade) + '</label>';
+    h += '<label>Пароль от кабинета <span class="hint">нужен только при смене класса</span><input id="fPassG" class="inp" type="password" autocomplete="current-password"></label>';
     h += '<div class="row"><button class="btn small" data-action="cab-child">Сохранить</button></div>';
     h += '<h2 class="sec">Подписка</h2>' + planCard(c, true);
     h += '<h2 class="sec">' + (USER && USER.hasPin === false ? 'Придумать PIN-код' : 'Сменить PIN-код') + '</h2><label>Пароль от кабинета<input id="fPass" class="inp" type="password" autocomplete="current-password"></label>';
@@ -1587,8 +1589,15 @@ async function doCancelRenewal(undo) {
   render();
 }
 async function doChild() {
-  const r = await call("/api/parent/child", { childName: val("fChild"), grade: +val("fGrade") || undefined });
-  if (r.status === 200) { USER = r.data.user; return openCabinet("settings", "Сохранено."); }
+  const newG = +val("fGrade") || undefined, curG = (USER && USER.child && USER.child.grade) || 3, changed = !!newG && newG !== curG;
+  if (changed) {   // смена класса меняет упражнения: нужен пароль и подтверждение (13.11.2026)
+    if (!need("Для смены класса введите пароль от кабинета.", val("fPassG"))) return;
+    if (!confirm("Вы меняете класс ребёнка: {a} → {b}. Упражнения изменятся на упражнения выбранного класса. Прежние результаты не удаляются. Продолжить?".replace("{a}", curG).replace("{b}", newG))) return;
+  }
+  const r = await call("/api/parent/child", { childName: val("fChild"), grade: newG, password: changed ? val("fPassG") : undefined });
+  if (r.status === 200 && r.data.ok) { USER = r.data.user; await reloadTasks(); return openCabinet("settings", "Сохранено."); }
+  if (r.status === 200) { S.err = "Неверный пароль."; return render(); }
+  if (r.status === 429) { S.err = LOCKED; return render(); }
   if (r.status === 403) { S = { view: "pin" }; return render(); }
   S.err = r.status === 0 ? NET : (r.data.message || "Не получилось сохранить.");
   render();
@@ -1737,9 +1746,6 @@ function renderTask() {
     }
     if (S.attempts >= 1) {
       h += '<div class="mark hint"><b>Подсказка:</b> ' + (S.rule || '') + '</div>';
-    }
-    if (S.attempts >= 2 && S.similar) {
-      h += '<div class="mark similar"><b>Похожий пример:</b> ' + S.similar + '</div>';
     }
     if (st.type !== "choice" && st.type !== "explain") h += padHTML();
     if (vprev(T, S.s) >= 0) h += '<div class="row">' + backBtn() + '</div>';
@@ -1970,7 +1976,7 @@ async function submit(answer, pickedIndex, ch) {
   if (d.correct) {
     S.stage = "right"; S.okText = d.ok || "";
     (S.oks = S.oks || {})[S.s] = S.okText;      // запоминаем, чтобы можно было вернуться на этот шаг
-    if (d.note) S.notes.push(d.note);
+    if (d.note && !S.notes.includes(d.note)) S.notes.push(d.note);
     if (d.col) {                                  // цифры столбика на листочке
       (S.cols = S.cols || {})[stepNo] = d.col;
       S.colNew = {};
@@ -2055,6 +2061,7 @@ function nextStep() {
   S.entry = freshEntry(T.steps[S.s]); S.active = 0;
   S.adultOpen = false; S.adultPassed = false; S.adultErr = false; S.emptyMsg = false;
   S.rule = null; S.similar = null; S.okText = ""; S.netMsg = ""; S.adultAnswer = null;
+  if (HS) histPush();   // запись в истории для нового шага
   if (S.oks && S.oks[S.s] !== undefined) { S.stage = "right"; S.okText = S.oks[S.s]; }   // шаг уже решён: показываем ответ, а не задаём заново
   render();
   VOICE.announce();
@@ -2076,6 +2083,35 @@ function prevStep() {
   S.stage = "right"; S.okText = (S.oks && S.oks[S.s]) || "";
   render();
 }
+
+/* Кнопка «назад» браузера внутри упражнения. На каждом шаге вперёд (нажатие «Дальше») в историю добавляется запись {шаг}.
+   «Назад» только возвращает на шаг и ничего не добавляет: записи, которые страница ставит сама без нажатия, Chrome пропускает.
+   На первом шаге спрашиваем «Выйти из упражнения?», при отказе возвращаемся вперёд по истории. */
+var EP = 0, HS = false, HIGN = false;   // EP: номер упражнения на странице; HS: запись для него уже поставлена; HIGN: пропустить следующий popstate
+function histPush() { try { history.pushState({ lk: 1, ep: EP, s: S.s }, ""); } catch (e) {} }
+function ensureGuard() { if (HS || !S || S.view !== "task") return; HS = true; histPush(); }   // первая запись: после первого нажатия ребёнка
+["pointerdown", "keydown"].forEach(ev => document.addEventListener(ev, ensureGuard, true));
+function leaveToList() {
+  stopSpeech(); VOICE.stop(null, true);
+  if (listHref()) { location.replace(listHref()); return; }
+  S = { view: "home" }; render(); loadOffer().then(() => { if (S.view === "home") render(); });
+}
+window.addEventListener("popstate", e => {
+  if (HIGN) { HIGN = false; return; }
+  if (!S || (S.view !== "task" && S.view !== "done")) return;
+  if (S.view === "done") return leaveToList();
+  const T = TASKS[S.t], st = e.state;
+  if (st && st.lk && st.ep === EP) {                     // запись этого упражнения: возвращаемся на нужный шаг
+    let guard = 60;
+    while (S.s > st.s && !S.busy && vprev(T, S.s) >= 0 && guard-- > 0) prevStep();
+    return;
+  }
+  if (!(T && T.quiz) && !confirm("Выйти из упражнения?")) {   // самое начало упражнения
+    if (HS) { HIGN = true; history.forward(); }
+    return;
+  }
+  leaveToList();
+});
 
 function renderQuizDone() {
   const T = TASKS[S.t], q = S.quizSum || { ok: 0, total: T.steps.length, weak: [], strong: [] };
@@ -2160,7 +2196,7 @@ app.addEventListener("click", e => {
   if (a === "cab-child") return doChild();
   if (a === "cab-cancel") return doCancelRenewal(false);
   if (a === "cab-cancel-undo") return doCancelRenewal(true);
-  if (a === "logout") { try{localStorage.removeItem("listik_in")}catch(e){} call("/api/logout", {}).then(reloadTasks).then(() => { if (S.view === "home") render(); }); USER = null; S = { view: "home", flash: "Вы вышли из кабинета." }; return render(); }
+  if (a === "logout") { try{localStorage.removeItem("listik_in")}catch(e){} USER = null; S = { view: "home", flash: "Вы вышли из кабинета." }; const goMain = () => { location.href = "/"; }; call("/api/logout", {}).then(goMain, goMain); return; }
   if (a === "ttstoggle") { TTS.on = !TTS.on; if (!TTS.on) stopSpeech(); return render(); }
   if (a === "voicetoggle") { if (VOICE.active || VOICE.connecting) VOICE.stop(); else VOICE.start(); return; }
   if (a === "readq") { if (VOICE.quiet) return; if (!VOICE.active && VOICE.available && !VOICE.err) { VOICE.start(); return; } if (VOICE.active) { VOICE.interrupt(); if (VOICE.fast && S.view === "task" && S.stage === "ask" && VOICE.fastAsk(true)) return; return VOICE.tell("[Программа] Ребёнок просит повторить вопрос. Прочитай текущий вопрос ещё раз вслух."); } const q = TASKS[S.t].steps[S.s].q; return speak(spokenMath(q), true); }
@@ -2193,7 +2229,7 @@ app.addEventListener("click", e => {
   if (a === "pay-back") return openCabinet("progress");
   if (a === "goal-pick") return pickGoal(b.dataset.id);
   if (a === "next") return nextStep();
-  if (a === "prev") return prevStep();
+  if (a === "prev") { if (HS) { history.back(); return; } return prevStep(); }
   if (a === "adult") return openAdult();
   if (a === "adultcheck") {
     return unlock(val("adultIn").trim());
@@ -2891,11 +2927,28 @@ async function refreshLocks() {
   try {
     const t = await api("/api/tasks"); if (t.status !== 200 || !Array.isArray(t.data.tasks)) return;
     const by = new Map(t.data.tasks.map(x => [x.id, x]));
-    TASKS.forEach(x => { const n = by.get(x.id); if (!n) return; x.st = n.st; x.rec = n.rec; x.why = n.why; x.closed = !!n.closed; x.after = n.after; });
+    TASKS.forEach(x => { const n = by.get(x.id); if (!n) return; x.st = n.st; x.rec = n.rec; x.why = n.why; x.closed = !!n.closed; x.after = n.after; if (x.locked !== !!n.locked) { x.locked = !!n.locked; x.cond = n.cond; } });   // замок тоже обновляем: подписку могли выдать, пока страница была открыта
   } catch (e) {}
 }
+/* Вернулись на вкладку (или телефон проснулся): если подписку выдали или продлили, пока страница была открыта, на главной обновляем замки (не чаще раза в 30 секунд) */
+let LAST_LOCK_REFRESH = Date.now();
+document.addEventListener("visibilitychange", async () => {
+  if (document.visibilityState !== "visible" || !USER || !S || S.view !== "home" || Date.now() - LAST_LOCK_REFRESH < 30000) return;
+  LAST_LOCK_REFRESH = Date.now();
+  const sig = () => TASKS.map(x => (x.locked ? "1" : "0") + (x.closed ? "1" : "0")).join("");
+  const before = sig();
+  await refreshLocks();
+  if (S.view === "home" && sig() !== before) render();
+});
 async function reloadTasks() {
-  try { const t = await api("/api/tasks"); if (t.status === 200 && Array.isArray(t.data.tasks) && t.data.tasks.length === TASKS.filter(x => !x.quiz).length) TASKS = t.data.tasks; } catch (e) {}
+  /* список зависит от класса ребёнка (13.11.2026): после входа, первой настройки или смены класса заменяем его целиком, вместе с разделами */
+  try {
+    const t = await api("/api/tasks");
+    if (t.status === 200 && Array.isArray(t.data.tasks)) {
+      TASKS = t.data.tasks; SECTIONS = t.data.sections || [];
+      HOME.open = {}; HOME.q = ""; QUEUE = null; buildQueue();
+    }
+  } catch (e) {}
   await loadOffer();
 }
 async function loadData() {

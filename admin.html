@@ -192,6 +192,7 @@ details.dt td,details.dt th{text-align:left;padding:4px 8px;border-top:1px solid
     <nav class="tabs" role="tablist" aria-label="Разделы">
       <button class="tab" role="tab" data-tab="overview">Обзор</button>
       <button class="tab" role="tab" data-tab="students">Ученики</button>
+      <button class="tab" role="tab" data-tab="watch">Проверить</button>
       <button class="tab" role="tab" data-tab="charts">Графики</button>
       <button class="tab" role="tab" data-tab="load">Нагрузка</button>
       <button class="tab" role="tab" data-tab="settings">Настройки</button>
@@ -283,6 +284,7 @@ async function go(tab) {
   try {
     if (tab === "overview") { S.overview = (await api("overview")).data; renderOverview(); }
     else if (tab === "students") { const d = (await api("users")).data; S.users = d.users; S.tasksTotal = d.tasksTotal; renderStudents(); }
+    else if (tab === "watch") { renderWatch((await api("watch")).data); }
     else if (tab === "charts") { await loadCharts(); }
     else if (tab === "load") { await loadLoad(); LOAD.timer = setInterval(() => { if (S.tab === "load") loadLoad(true); }, 10000); }
     else if (tab === "settings") { S.overview = (await api("overview")).data; renderSettings(); }
@@ -696,6 +698,28 @@ function renderLog(log) {
     (log.length ? '<div class="card scroll"><table class="log"><thead><tr><th>Когда</th><th>Действие</th><th>Кабинет</th><th>Подробности</th></tr></thead><tbody>' +
       log.map(l => '<tr><td>' + esc(fmtDT(l.at)) + '</td><td>' + esc(l.action) + '</td><td>' + esc(l.target) + '</td><td>' + esc(l.detail) + '</td></tr>').join("") + '</tbody></table></div>'
       : '<p class="empty">Пока пусто.</p>');
+}
+
+/* ---------- проверка накрутки листиков ---------- */
+const WATCH_SIG = { fast: "очень быстрые ответы", rhythm: "ровный машинный ритм ответов", quick: "упражнения проходятся слишком быстро", cap: "потолок листиков три дня подряд", volume: "очень много упражнений (ночью или за неделю)" };
+function renderWatch(d) {
+  const items = d.items || [];
+  $("view").innerHTML = '<h2>Проверить: возможная накрутка листиков</h2>' +
+    '<p class="sub">Кабинет попадает сюда, если сработали два сигнала «слишком быстро» за 7 дней. Пороги это гипотезы автора. Родитель, который знает ответы, выглядит так же, как очень быстрый ребёнок: решаете вы. Подарки здесь не блокируются, они остаются «ожидает», пока вы не выдадите промокод сами.</p>' +
+    (items.length ? items.map(x => {
+      const f = x.flag, done = f.reviewed;
+      return '<div class="card" style="margin-bottom:12px"><div><b>' + esc(x.email) + '</b> <span class="muted">· ребёнок: ' + esc(x.child || "—") + '</span> ' +
+        (done ? '<span class="badge ' + (f.verdict === "bad" ? "b-red" : "b-green") + '">' + (f.verdict === "bad" ? "Проверено: накрутка" : "Проверено: всё в порядке") + '</span>' : '<span class="badge b-yellow">Проверить</span>') + '</div>' +
+        '<p class="muted" style="margin:6px 0">Помечен ' + esc(fmtDT(f.at)) + '. Сигналы: ' + (f.signals || []).map(s => esc(WATCH_SIG[s] || s)).join("; ") + '.</p>' +
+        '<p style="margin:6px 0">Листиков всего: <b>' + x.leavesTotal + '</b>' + (x.medianMs != null ? ' · медиана времени на шаг: <b>' + (x.medianMs / 1000).toFixed(1) + ' с</b>' : '') + ' · упражнений на этой неделе: <b>' + x.weekEx + '</b></p>' +
+        '<p style="margin:6px 0">Подарки в ожидании: ' + (x.pending.length ? x.pending.map(p => esc(p.title) + ' <span class="muted">(' + (p.kind === "big" ? "большой" : "простой") + ', ' + esc(fmtDate(p.at)) + ')</span>').join("; ") : '<span class="muted">нет</span>') + '</p>' +
+        (done ? '' : '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn sm" data-w="ok" data-id="' + esc(x.id) + '">Это ребёнок, всё в порядке</button><button class="btn sm danger" data-w="bad" data-id="' + esc(x.id) + '">Это накрутка</button></div>') + '</div>';
+    }).join("") : '<p class="empty">Пока никто не помечен.</p>');
+  document.querySelectorAll("[data-w]").forEach(b => b.addEventListener("click", async () => {
+    b.disabled = true;
+    const r = await api("action", { id: b.dataset.id, type: "watchReview", verdict: b.dataset.w });
+    if (r.status === 200) { toast("Сохранено."); renderWatch((await api("watch")).data); } else { toast(r.data.message || "Не получилось.", true); b.disabled = false; }
+  }));
 }
 
 boot();

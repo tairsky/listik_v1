@@ -22,7 +22,7 @@ async function sendMail({ to, subject, text, html }) {
   const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: "Bearer " + KEY, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: FROM, to: [to], subject, text: to === BILLING ? text : text + FOOT_TEXT, html }),
+    body: JSON.stringify({ from: FROM, to: [to], subject, text: (to === BILLING || to === WATCH_TO) ? text : text + FOOT_TEXT, html }),
     signal: AbortSignal.timeout(10000)
   });
   if (!r.ok) throw new Error("Resend ответил " + r.status + ": " + (await r.text()).slice(0, 200));
@@ -32,7 +32,7 @@ async function sendMail({ to, subject, text, html }) {
 const SITE = (process.env.SITE_URL || "https://listik.kz").replace(/\/+$/, "");
 const TG = "https://t.me/tairsky";
 /* реквизиты и контакты: те же, что в подвале сайта */
-const FOOT_TEXT = "\n\n--\nЛистик, ИИ-репетитор для школьников\nИП «Феникс», ИИН 460104400918\nг. Алматы, ул. Утеген батыра 17б\ninfo@listik.kz, +7 (775) 971-41-63\nWhatsApp: " + WA + "\nTelegram: " + TG + "\nСайт: " + SITE + "\nЭто служебное письмо сервиса «Листик».";
+const FOOT_TEXT = "\n\n--\nЛистик, ИИ-репетитор для школьников\ninfo@listik.kz, +7 (775) 971-41-63\nWhatsApp: " + WA + "\nTelegram: " + TG + "\nСайт: " + SITE + "\nЭто служебное письмо сервиса «Листик».";
 
 /* общий вид письма: таблицы и встроенные стили, чтобы одинаково открывалось в Gmail, Mail.ru, Яндексе и Outlook */
 const wrap = (title, bodyHtml, btnText, btnUrl) =>
@@ -52,7 +52,7 @@ const wrap = (title, bodyHtml, btnText, btnUrl) =>
   /* подвал: контакты и реквизиты */
   '<tr><td style="padding:20px 8px 0;font-size:13px;line-height:1.6;color:#6B7A70;text-align:center">' +
     '<p style="margin:0 0 8px">Есть вопросы? Напишите нам: <a href="' + WA + '" style="color:#1F7A45;font-weight:700">WhatsApp</a> · <a href="' + TG + '" style="color:#1F7A45;font-weight:700">Telegram</a> · <a href="mailto:info@listik.kz" style="color:#1F7A45;font-weight:700">info@listik.kz</a></p>' +
-    '<p style="margin:0 0 8px;border-top:1px solid #DDD8C3;padding-top:12px">Листик, ИИ-репетитор для школьников<br>ИП «Феникс», ИИН 460104400918<br>г. Алматы, ул. Утеген батыра 17б<br>+7 (775) 971-41-63</p>' +
+    '<p style="margin:0 0 8px;border-top:1px solid #DDD8C3;padding-top:12px">Листик, ИИ-репетитор для школьников<br>+7 (775) 971-41-63</p>' +
     '<p style="margin:0"><a href="' + SITE + '/privacy.html" style="color:#6B7A70">Политика конфиденциальности</a> · <a href="' + SITE + '/terms.html" style="color:#6B7A70">Пользовательское соглашение</a></p>' +
     '<p style="margin:8px 0 0;font-size:12px;color:#8A968D">Это служебное письмо сервиса «Листик».</p>' +
   '</td></tr></table></div>';
@@ -95,6 +95,7 @@ function passwordReset(email, url) {
 
 /* отказ от продления подписки (или возврат продления): письмо родителю и уведомление в billing@ */
 const BILLING = process.env.BILLING_EMAIL || "billing@listik.kz";
+const WATCH_TO = process.env.WATCH_EMAIL || "9249112@gmail.com";   // куда писать владельцу о пометках (адрес назван автором 13.11.2026)
 function renewalChange(email, childName, until, undo) {
   const d = until ? new Date(until).toLocaleDateString("ru-RU") : "—";
   const subject = undo ? "Листик: продление снова включено" : "Листик: вы отказались от продления";
@@ -121,4 +122,17 @@ function paymentReceipt(email, childName, amount, until, orderId) {
   return sendMail({ to: email, subject: "Листик: оплата получена", text, html });
 }
 
-module.exports = { sendMail, welcome, verifyEmail, passwordReset, renewalChange, paymentReceipt, configured: !!KEY };
+/* письмо владельцу: кабинет помечен «проверить» (возможная накрутка листиков, см. watch.js). Адрес: WATCH_EMAIL, иначе адрес автора */
+const WATCH_SIG = { fast: "очень быстрые ответы", rhythm: "ровный машинный ритм ответов", quick: "упражнения проходятся слишком быстро", cap: "потолок листиков три дня подряд", volume: "очень много упражнений (ночью или за неделю)" };
+function watchAlertText(info) {
+  const sig = (info.signals || []).map(s => "- " + (WATCH_SIG[s] || s)).join("\n");
+  return "Кабинет помечен «проверить»: возможная накрутка листиков.\n\nПочта: " + info.email + "\nРебёнок: " + (info.child || "—") +
+    "\nЛистиков всего: " + info.leavesTotal + "\nПодарков в ожидании: " + info.pending + "\n\nСработали сигналы:\n" + sig +
+    "\n\nРодитель, который знает ответы, выглядит так же, как очень быстрый ребёнок. Посмотрите и решите: " + SITE + "/admin, вкладка «Проверить».\nПодарок и промокод этому кабинету лучше не выдавать, пока вы не посмотрите.";
+}
+function watchAlert(info) {
+  const text = watchAlertText(info);
+  return sendMail({ to: WATCH_TO, subject: "Листик: проверить кабинет " + info.email, text, html: "<pre style='font-family:inherit;white-space:pre-wrap'>" + esc(text) + "</pre>" });
+}
+
+module.exports = { sendMail, welcome, verifyEmail, passwordReset, renewalChange, paymentReceipt, watchAlert, watchAlertText, configured: !!KEY };

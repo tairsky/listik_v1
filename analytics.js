@@ -9,7 +9,7 @@
     ga4: "",        // GA4 напрямую не нужен: подключается тегом внутри GTM (ID потока: G-GVSNEHQGDE)
     meta: "1044512218650795", // Meta (Facebook/Instagram) Pixel, например "1234567890123456"
     tiktok: "",     // TikTok Pixel, например "C1234567890ABCDEF"
-    yandex: ""      // Яндекс.Метрика, например "12345678"
+    yandex: "114186686" // Яндекс.Метрика, счётчик Листика
   };
   var KEY = "listik_consent";
   var KK = location.pathname === "/kk" || location.pathname.indexOf("/kk/") === 0;
@@ -83,8 +83,8 @@
       (function (m, e, t, r, i, k, a) {
         m[i] = m[i] || function () { (m[i].a = m[i].a || []).push(arguments); }; m[i].l = 1 * new Date();
         k = e.createElement(t); a = e.getElementsByTagName(t)[0]; k.async = 1; k.src = r; a.parentNode.insertBefore(k, a);
-      })(window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
-      window.ym(+IDS.yandex, "init", { clickmap: true, trackLinks: true, accurateTrackBounce: true, webvisor: false });
+      })(window, document, "script", "https://mc.yandex.ru/metrika/tag.js?id=" + IDS.yandex, "ym");
+      window.ym(+IDS.yandex, "init", { clickmap: true, trackLinks: true, accurateTrackBounce: true, webvisor: false, ecommerce: "dataLayer" });
     }
   }
 

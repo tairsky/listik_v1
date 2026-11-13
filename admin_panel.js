@@ -135,7 +135,7 @@ module.exports = function (C) {
       topTasks: Object.entries(taskCount).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([id, n]) => ({ title: titleOf(id), completions: n })),
       hardSkills: Object.entries(skill).filter(([, s]) => s.steps >= 10).map(([name, s]) => ({ name, steps: s.steps, pct: Math.round(100 * s.firstTry / s.steps) }))
         .sort((a, b) => a.pct - b.pct).slice(0, 5),
-      subject: C.SUBJECT, sections: sectionStats(users, 30),
+      watchOpen: watchList().open, subject: C.SUBJECT, sections: sectionStats(users, 30),
       settings: { studyDayMin: S.studyDayMin, voiceDayMin: S.voiceDayMin, registrationOpen: !!S.registrationOpen, voiceEnabled: !!S.voiceEnabled },
       envDefaults: C.envDefaults
     };
@@ -205,6 +205,19 @@ module.exports = function (C) {
     return { user, password, pin, days };
   }
 
+  /* ---------- проверка накрутки листиков (watch.js): список помеченных кабинетов ---------- */
+  function watchList() {
+    const med = a => { if (!a.length) return null; const s = a.slice().sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : Math.round((s[m - 1] + s[m]) / 2); };
+    const items = C.users().filter(u => u.progress && u.progress.watch && u.progress.watch.flag).map(u => {
+      const P = u.progress, W = P.watch, L = P.leaves || {};
+      return { id: u.id, email: u.email, child: (u.child && u.child.name) || "", flag: W.flag, leavesTotal: L.total || 0,
+        pending: (L.rewards || []).filter(r => r.status === "pending").map(r => ({ kind: r.kind, title: r.title, at: r.at })),
+        medianMs: med((W.ms || []).map(x => x.ms)), weekEx: Object.values(W.exWeek || {})[0] || 0 };
+    });
+    items.sort((a, b) => (a.flag.reviewed ? 1 : 0) - (b.flag.reviewed ? 1 : 0) || String(b.flag.at).localeCompare(String(a.flag.at)));
+    return { items, open: items.filter(x => !x.flag.reviewed).length };
+  }
+
   /* ---------- действия ---------- */
   const intIn = (v, lo, hi) => Number.isInteger(v) && v >= lo && v <= hi;
   async function act(u, b) {
@@ -257,6 +270,15 @@ module.exports = function (C) {
         u.pin = await C.hashSecret(b.pin, "pin"); C.saveUsers(); C.buckets.delete("pin:" + u.id);
         return { log: ["Задан новый PIN", ""] };
       }
+      case "watchReview": {
+        const W = u.progress && u.progress.watch;
+        if (!W || !W.flag) return { error: "У кабинета нет пометки." };
+        const bad = b.verdict === "bad";
+        W.flag.reviewed = true; W.flag.verdict = bad ? "bad" : "ok"; W.flag.reviewedAt = iso(); W.sig = {};
+        if (!bad) W.muteUntil = new Date(Date.now() + 30 * DAY).toISOString();     // «это ребёнок»: 30 дней не помечаем
+        C.saveUsers();
+        return { log: ["Проверка накрутки: " + (bad ? "накрутка" : "всё в порядке"), (W.flag.signals || []).join(", ")] };
+      }
       case "block": {
         u.blocked = b.blocked === true; if (!u.blocked) delete u.blocked; else killSessions(u.id);
         C.saveUsers(); return { log: [u.blocked ? "Кабинет заблокирован" : "Кабинет разблокирован", ""] };
@@ -307,6 +329,7 @@ module.exports = function (C) {
       writeLog("Кабинет создан вручную", r.user.email, "ребёнок: " + r.user.child.name + (r.days ? ", подписка " + r.days + " дн." : ""));
       return send(res, 200, { ok: true, id: r.user.id, email: r.user.email, password: r.password, pin: r.pin });
     }
+    if (route === "watch") return send(res, 200, watchList());
     if (route === "log") return send(res, 200, { log: LOG.slice(-150).reverse() });
     if (route === "user") {
       const u = C.users().find(x => x.id === b.id);
