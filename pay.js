@@ -24,7 +24,7 @@ module.exports = function createPay(ctx) {
   const PRICE = Math.round(Number(process.env.PAY_PRICE) || 9900);
   const DAYS = Math.round(Number(process.env.PAY_DAYS) || 30);
   const REQ = String(process.env.PAY_MODE || "").toLowerCase();
-  const STUB_OK = REQ === "stub" && !(process.env.RENDER && process.env.PAY_ALLOW_STUB !== "1");
+  const STUB_OK = REQ === "stub" && process.env.PAY_ALLOW_STUB === "1";   // заглушка только с явным PAY_ALLOW_STUB=1, на любом хостинге
   /* LIVE: PayLink (документация: documenter.getpostman.com/view/48600752/2sBXqCPjCm).
      Сервер создаёт счёт (POST /api/v1/invoices), родитель платит на странице PayLink (paymentUrl), карта через наш сервер не проходит.
      В уведомлении (callback) подписи нет, поэтому ему НЕ верим: берём из него только номер счёта и сами спрашиваем PayLink

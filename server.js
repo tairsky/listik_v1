@@ -22,6 +22,8 @@ const scrypt = promisify(crypto.scrypt);
 
 const ROOT = __dirname;
 const PORT = Number(process.env.PORT) || 3000;
+/* Слушаем только 127.0.0.1: снаружи в Node попадают только через nginx. На Render (тест) нужен 0.0.0.0; свой адрес можно задать переменной HOST. */
+const HOST = process.env.HOST || (process.env.RENDER ? "0.0.0.0" : "127.0.0.1");
 const TRUST_PROXY = process.env.TRUST_PROXY === "1";
 const COOKIE_SECURE = process.env.COOKIE_SECURE === "1";
 // Тестовый сайт: TEST_SITE=1 закрывает его от поисковиков, отключает аналитику и показывает красную полосу «ТЕСТОВАЯ ВЕРСИЯ».
@@ -71,7 +73,7 @@ const OPENAI_KEY = process.env.OPENAI_API_KEY || "";
    Версия на Realtime сохранена в server.realtime.js. */
 const OPENAI_BASE = (process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/$/, "");
 const LLM_MODEL = process.env.LLM_MODEL || "gpt-6-luna";            // дёшево; если плохо слушается: gpt-6.1-sol
-const STT_MODEL = process.env.STT_MODEL || "gpt-4o-mini-transcribe";
+const STT_MODEL = process.env.STT_MODEL || "gpt-transcribe";
 /* настройки озвучки и готовые реплики: clips.js (там же их читает build-audio.js, чтобы номера файлов совпадали) */
 const CLIPS = require("./clips.js");
 const FASTPARSE = require("./fastparse.js");
@@ -485,8 +487,8 @@ function saveUsers() {
 let saveTimer = null;
 function scheduleSave() { if (!saveTimer) saveTimer = setTimeout(() => { saveTimer = null; saveUsers(); }, 1500); }
 function flushSave() { if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; saveUsers(); } }
-process.on("SIGINT", () => { flushSave(); flushUsage(); process.exit(0); });
-process.on("SIGTERM", () => { flushSave(); flushUsage(); process.exit(0); });
+process.on("SIGINT", () => { flushSave(); flushUsage(); flushAuth(); process.exit(0); });
+process.on("SIGTERM", () => { flushSave(); flushUsage(); flushAuth(); process.exit(0); });
 const maskEmail = e => e.replace(/^(.).*(@.*)$/, "$1***$2");
 
 /* «перец» для PIN: у 4 цифр всего 10 000 вариантов, поэтому без секрета, лежащего отдельно от
@@ -557,7 +559,28 @@ function userByResetToken(tok) {
 
 /* ---------- сессии ---------- */
 const play = new Map();    // ключ прогресса -> { steps: Map, seen }
-const auth = new Map();    // токен входа -> { uid, exp, parentUntil }
+/* Входы хранятся на диске (STORE_DIR/sessions.json), чтобы выкладка и перезапуск службы никого не разлогинивали.
+   Ключ = sha256 от токена из cookie: утёкший файл не даёт войти в чужой кабинет. Режим родителя (parentUntil) на диск не пишется:
+   после перезапуска PIN спросят заново. Карта сама планирует запись при любом set/delete (в том числе из админ-панели). */
+const AUTH_FILE = path.join(STORE_DIR, "sessions.json");
+const tokKey = t => crypto.createHash("sha256").update(String(t)).digest("hex");
+let authTimer = null;
+function saveAuth() {
+  authTimer = null;
+  const out = {}; for (const [k, v] of auth) out[k] = { uid: v.uid, exp: v.exp };
+  try { const tmp = AUTH_FILE + ".tmp"; fs.writeFileSync(tmp, JSON.stringify(out), { mode: 0o600 }); fs.renameSync(tmp, AUTH_FILE); } catch (e) { console.error("[входы] не сохранились:", e.message); }
+}
+function flushAuth() { if (authTimer) { clearTimeout(authTimer); saveAuth(); } }
+class AuthMap extends Map {
+  set(k, v) { super.set(k, v); if (!authTimer) authTimer = setTimeout(saveAuth, 2000); return this; }
+  delete(k) { const r = super.delete(k); if (r && !authTimer) authTimer = setTimeout(saveAuth, 2000); return r; }
+}
+const auth = new AuthMap();    // sha256(токен входа) -> { uid, exp, parentUntil }
+try {
+  const saved = JSON.parse(fs.readFileSync(AUTH_FILE, "utf8")), now0 = Date.now();
+  for (const [k, v] of Object.entries(saved)) if (v && typeof v.uid === "string" && v.exp > now0) Map.prototype.set.call(auth, k, { uid: v.uid, exp: v.exp, parentUntil: 0 });
+  console.log("Входов восстановлено с диска: " + auth.size);
+} catch (e) {}
 const AUTH_TTL = 14 * 24 * 3600 * 1000;
 const PARENT_TTL = 10 * MIN;
 setInterval(() => {
@@ -574,10 +597,11 @@ function parseCookies(req) {
 }
 function currentAuth(req) {
   const token = parseCookies(req).lt;
-  const s = token && auth.get(token);
+  const key = token ? tokKey(token) : "";
+  const s = key && auth.get(key);
   if (!s || s.exp < Date.now()) return null;
   const user = USERS.find(u => u.id === s.uid);
-  return user && !user.blocked ? { token, s, user } : null;
+  return user && !user.blocked ? { token: key, s, user } : null;
 }
 function setLoginCookie(res, token, maxAgeSec) {
   res.setHeader("Set-Cookie", "lt=" + token + "; HttpOnly; SameSite=Lax; Path=/; Max-Age=" + maxAgeSec + (COOKIE_SECURE ? "; Secure" : ""));
@@ -585,7 +609,7 @@ function setLoginCookie(res, token, maxAgeSec) {
 function startLogin(res, user, asParent) {
   user.lastLoginAt = new Date().toISOString(); scheduleSave();
   const token = crypto.randomBytes(32).toString("hex");
-  auth.set(token, { uid: user.id, exp: Date.now() + AUTH_TTL, parentUntil: asParent ? Date.now() + PARENT_TTL : 0 });   // вход по паролю уже доказывает, что это взрослый: PIN не спрашиваем
+  auth.set(tokKey(token), { uid: user.id, exp: Date.now() + AUTH_TTL, parentUntil: asParent ? Date.now() + PARENT_TTL : 0 });   // вход по паролю уже доказывает, что это взрослый: PIN не спрашиваем
   setLoginCookie(res, token, AUTH_TTL / 1000);
 }
 const isParent = a => a && a.s.parentUntil > Date.now();
@@ -1089,7 +1113,7 @@ function pinProblem(pin) {
   if (/^(\d)\1{3}$/.test(pin) || WEAK_PINS.has(pin)) return "Этот PIN слишком простой, его легко угадать. Выберите другой.";
   return null;
 }
-const cleanName = n => typeof n === "string" ? n.replace(/\s+/g, " ").trim().slice(0, 30) : "";
+const cleanName = n => typeof n === "string" ? n.replace(/[<>&"'`\u0000-\u001f\u007f]/g, "").replace(/\s+/g, " ").trim().slice(0, 30) : "";   // без символов разметки и управляющих
 
 /* ---------- HTTP ---------- */
 const STATIC = {
@@ -1174,6 +1198,8 @@ const clientIp = req => {
   return ip;
 };
 function sameOrigin(req) {
+  const sf = req.headers["sec-fetch-site"];                         // современные браузеры сами сообщают, откуда запрос
+  if (sf && sf !== "same-origin" && sf !== "none") return false;
   const o = req.headers.origin;
   if (!o) return true;
   try { return new URL(o).host === req.headers.host; } catch (e) { return false; }
@@ -1753,8 +1779,20 @@ const ROBOTS_TXT = "User-agent: *\nDisallow: /admin\nDisallow: /api/\nDisallow: 
 const SITEMAP_XML = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
   ["/", "/about.html", "/pricing.html", "/start.html", "/privacy.html", "/terms.html"].concat(KK_ON ? ["/kk/", "/kk/about.html", "/kk/pricing.html", "/kk/start.html"] : [])
     .map(u => "  <url><loc>" + SITE_ORIGIN + u + "</loc></url>").join("\n") + "\n</urlset>\n";
+/* CSP. Жёсткая часть безопасна для сайта: запрет встраивания в чужие страницы, чужой <base> и плагинов.
+   Полная политика пока только в режиме отчёта (ничего не блокирует, нарушения видны в консоли браузера, F12): сначала смотрим, потом включаем. */
+/* CSP_ENFORCE=0 в переменных сервера возвращает режим отчёта (если политика что-то сломает) */
+const CSP_ENFORCE = process.env.CSP_ENFORCE !== "0";
+const CSP_ENFORCED = "frame-ancestors 'self'; base-uri 'self'; object-src 'none'";
+const CSP_REPORT_ONLY = "default-src 'self'; script-src 'self' 'unsafe-inline' blob: https://www.googletagmanager.com https://www.google-analytics.com https://ssl.google-analytics.com https://connect.facebook.net https://mc.yandex.ru https://mc.yandex.com https://analytics.tiktok.com; " +
+  "connect-src 'self' https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com https://stats.g.doubleclick.net https://mc.yandex.ru https://mc.yandex.com https://www.facebook.com https://analytics.tiktok.com; img-src 'self' data: https:; " +
+  "style-src 'self' 'unsafe-inline'; font-src 'self'; media-src 'self' blob: data:; worker-src 'self' blob:; frame-src https://mc.yandex.ru https://mc.yandex.com https://www.googletagmanager.com https://www.facebook.com; form-action 'self' https://www.facebook.com";
 http.createServer((req, res) => {
   res.setHeader("X-Content-Type-Options", "nosniff"); res.setHeader("X-Frame-Options", "SAMEORIGIN"); res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Permissions-Policy", "camera=(), geolocation=(), payment=(), microphone=(self)");
+  if (CSP_ENFORCE) res.setHeader("Content-Security-Policy", CSP_REPORT_ONLY + "; " + CSP_ENFORCED);
+  else { res.setHeader("Content-Security-Policy", CSP_ENFORCED); res.setHeader("Content-Security-Policy-Report-Only", CSP_REPORT_ONLY); }
+  if (COOKIE_SECURE && !TEST_SITE) res.setHeader("Strict-Transport-Security", "max-age=31536000");
   if (TEST_SITE) res.setHeader("X-Robots-Tag", "noindex, nofollow");
   const url = req.url.split("?")[0];
   if (TEST_SITE && url === "/robots.txt") { res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" }); return res.end("User-agent: *\nDisallow: /\n"); }
@@ -1781,7 +1819,7 @@ http.createServer((req, res) => {
     res.writeHead(200, hdr);
     res.end(data);
   });
-}).listen(PORT, () => {
+}).listen(PORT, HOST, () => {
   console.log("Листик: http://localhost:" + PORT);
   console.log(OPENAI_KEY ? "Голос: включён (дешёвая схема: " + STT_MODEL + " + " + LLM_MODEL + " + " + TTS_MODEL + ")" : "Голос: выключен (нет OPENAI_API_KEY в файле .env)");
   console.log("Быстрый голос (готовые реплики): " + (FAST_ON ? "включён, известных текстов " + CLIPS.registry.size + ", готовых mp3 " + [...CLIPS.registry.keys()].filter(CLIPS.have).length : "выключен (VOICE_FAST=0)"));
