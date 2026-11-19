@@ -19,7 +19,7 @@ const chars = todo.reduce((n, [, t]) => n + t.length, 0);
 console.log(`Озвучка: ${C.config.model}, голос ${C.config.voice}`);
 console.log(`Всего реплик: ${C.registry.size}, уже готово: ${C.registry.size - todo.length}, осталось озвучить: ${todo.length} (${chars} знаков)`);
 if (dry || !todo.length) process.exit(0);
-if (!C.config.key) { console.error("Нет OPENAI_API_KEY в .env"); process.exit(1); }
+const keyErr = C.keyError(); if (keyErr) { console.error(keyErr); process.exit(1); }
 
 (async () => {
   let done = 0, fail = 0;
@@ -31,7 +31,8 @@ if (!C.config.key) { console.error("Нет OPENAI_API_KEY в .env"); process.exi
       catch (e) { fail++; console.error(`  не вышло ${id} («${text.slice(0, 40)}…»): ${e.message}`); }
     }
   };
-  await Promise.all([worker(), worker(), worker(), worker()]);   // по 4 запроса одновременно: не упираемся в лимиты
+  const workers = +process.env.TTS_WORKERS || (C.config.provider === "gemini" ? 1 : 4);   // у Gemini лимит запросов ниже: по одному
+  await Promise.all(Array.from({ length: workers }, worker));   // по 4 запроса одновременно: не упираемся в лимиты
   console.log(`Готово: ${done}, с ошибками: ${fail}. Папка: ${C.DIR}`);
   process.exit(fail ? 1 : 0);
 })();

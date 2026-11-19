@@ -165,6 +165,7 @@ main { padding-top:48px; padding-bottom:72px; display:flex; flex-direction:colum
         <h4>Документы</h4>
         <a href="/privacy.html">Политика конфиденциальности</a>
         <a href="/terms.html">Пользовательское соглашение</a>
+        <a href="/payment.html">Условия оплаты и возврата</a>
       </div>
     </div>
     <div class="sf-bottom"><div class="sf-pay"><span>Оплата банковскими картами</span><div class="sf-logos"><img src="/img/pay/visa.svg" alt="Visa" width="47" height="30"><img src="/img/pay/mastercard.svg" alt="Mastercard" width="47" height="30"></div></div><div class="sf-copy">© 2026. ИИ-репетитор «Листик»</div><div class="sf-req">ИП «Феникс», ИИН 460104400918<br>г. Алматы, ул. Утеген батыра 17б<br>info@listik.kz · +7 (775) 971-41-63</div></div>
@@ -199,7 +200,7 @@ const STEPS = [
   { key: "subject", title: "Выберите предмет обучения:", short: "Предмет", options: [] },
   { key: "section", title: "Какое упражнение будем разбирать?", short: "Упражнение", options: [], groups: [] }
 ];
-// Предметы по классам. Открыт только тот, для которого уже есть упражнения (3 класс, математика).
+// Предметы по классам. Открыты только класс и предмет ребёнка из кабинета, если для них есть упражнения (см. openFor).
 const S = (id, title) => ({ id, title });
 const LANGS = [S("ru", "Русский язык"), S("kk", "Казахский язык"), S("en", "Английский язык")];
 function subjectsFor(g) {
@@ -209,7 +210,28 @@ function subjectsFor(g) {
   else if (g <= 6) l = [S("math", "Математика"), ...LANGS, S("lit", "Литература"), S("kz-hist", "История Казахстана"), S("world-hist", "Всемирная история"), S("nature", "Естествознание"), S("inf", "Информатика"), S("geo", "География")];
   else if (g <= 9) l = [S("algebra", "Алгебра"), S("geometry", "Геометрия"), ...LANGS, S("lit", "Литература"), S("physics", "Физика"), S("chem", "Химия"), S("bio", "Биология"), S("inf", "Информатика"), S("geo", "География"), S("kz-hist", "История Казахстана"), S("world-hist", "Всемирная история")];
   else l = [S("algebra", "Алгебра и начала анализа"), S("geometry", "Геометрия"), S("mathlit", "Математическая грамотность"), ...LANGS, S("lit", "Литература"), S("physics", "Физика"), S("chem", "Химия"), S("bio", "Биология"), S("inf", "Информатика"), S("geo", "География"), S("kz-hist", "История Казахстана"), S("world-hist", "Всемирная история"), S("law", "Основы права")];
-  return l.map(o => (g === 3 && o.id === "math") ? o : Object.assign({ soon: true }, o));
+  return l;   // открыт ли предмет, решает openFor(): открыты только класс и предмет из кабинета
+}
+/* Класс и предмет ребёнка берём из кабинета (/api/me), открытые пары с сервера (/api/subjects):
+   упражнения всё равно показываются по кабинету, поэтому другие класс и предмет здесь только «скоро». */
+let ME = null, OPEN_SUBJ = {};
+Promise.all([
+  fetch("/api/me", { cache: "no-store", credentials: "same-origin" }).then(r => r.json()),
+  fetch("/api/subjects", { cache: "no-store" }).then(r => r.json())
+]).then(([m, sj]) => {
+  const u = m && (m.user || (m.data && m.data.user));
+  OPEN_SUBJ = (sj && sj.open) || {};
+  if (u && u.child && u.child.grade) {
+    const g = String(u.child.grade), have = OPEN_SUBJ[g] || [];
+    ME = { grade: g, subject: u.child.subject || (have.includes("math") ? "math" : "") };   // кабинет без предмета: математика, как на сервере
+  }
+  paint();
+}).catch(() => {});
+function openFor(key, id) {
+  if (!ME) return false;
+  if (key === "grade") return String(id) === ME.grade && (OPEN_SUBJ[ME.grade] || []).length > 0;
+  if (key === "subject") return id === ME.subject && (OPEN_SUBJ[ME.grade] || []).includes(id);
+  return true;
 }
 const ARROW = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1F7A45" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>';
 const pick = {};
@@ -264,7 +286,8 @@ function paint() {
   renderOpts(st, st.options, o);
 }
 function renderOpts(st, options, o) {
-  options.forEach(op => {
+  options.forEach(op0 => {
+    const op = Object.assign({}, op0, (st.key === "grade" || st.key === "subject") ? { soon: !openFor(st.key, op0.id) } : {});
     const b = document.createElement("button");
     b.className = "opt"; b.type = "button";
     const row = document.createElement("div"); row.className = "row";

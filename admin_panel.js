@@ -39,6 +39,17 @@ module.exports = function (C) {
     const study = Number.isFinite(o.study) ? o.study : S.studyDayMin, voice = Number.isFinite(o.voice) ? o.voice : S.voiceDayMin;
     return { study: Math.max(0, study * 60 + ((r && r.bonusStudy) || 0)), voice: Math.max(0, voice * 60 + ((r && r.bonusVoice) || 0)) };
   }
+  /* ---------- предметы (как в кабинете родителя): список, предмет упражнения и навыка ---------- */
+  const TITLES = C.SUBJECT_TITLES || {};
+  const SUBJ = [];                                   // предметы по упражнениям: [{id, title}]
+  const TSUBJ = {};                                  // id упражнения → предмет
+  const SKSUBJ = {};                                 // навык → предметы, где он встречается
+  C.TASKS.forEach(t => {
+    if (!SUBJ.some(s => s.id === t.subject)) SUBJ.push({ id: t.subject, title: TITLES[t.subject] || t.subject });
+    TSUBJ[t.id] = t.subject;
+    (t.steps || []).forEach(s => { if (s.skill) { const a = SKSUBJ[s.skill] || (SKSUBJ[s.skill] = []); if (!a.includes(t.subject)) a.push(t.subject); } });
+  });
+  const skSubjects = name => SKSUBJ[name] || ["math"];   // навык без упражнений считаем математикой, как в кабинете родителя
   function lastDays(n) { const out = []; for (let i = n - 1; i >= 0; i--) out.push(dayOf(Date.now() - i * DAY)); return out; }
   function row(u) {
     const P = u.progress || {}, tasks = P.tasks || {}, skills = P.skills || {};
@@ -47,6 +58,17 @@ module.exports = function (C) {
     for (const s of Object.values(skills)) { steps += s.steps; first += s.firstTry; }
     const r = todayRec(u), L = limitsOf(u), log = u.usageLog || {};
     const week = lastDays(7);
+    const gr = (u.child && u.child.grade) || 3, bySubject = {};
+    SUBJ.forEach(s => {
+      const ts = C.TASKS.filter(t => t.subject === s.id && t.grade === gr);
+      let st = 0, ft = 0;
+      for (const [n, k] of Object.entries(skills)) if (skSubjects(n).includes(s.id)) { st += k.steps; ft += k.firstTry; }
+      bySubject[s.id] = {
+        studied: Object.entries(tasks).some(([id, x]) => TSUBJ[id] === s.id && (x.completions > 0 || x.inProgress)),
+        done: ts.filter(t => tasks[t.id] && tasks[t.id].completions > 0).length, total: ts.length,
+        firstTryPct: st ? Math.round(100 * ft / st) : null
+      };
+    });
     const planActive = !!(u.plan && Date.parse(u.plan.until) > Date.now());
     return {
       id: u.id, email: u.email, child: (u.child && u.child.name) || "", createdAt: u.createdAt || null, lastLoginAt: u.lastLoginAt || null,
@@ -57,13 +79,13 @@ module.exports = function (C) {
       today: { study: Math.round(r ? r.study : 0), voice: Math.round(r ? r.voice : 0), studyMax: L.study, voiceMax: L.voice,
         bonusStudy: (r && r.bonusStudy) || 0, bonusVoice: (r && r.bonusVoice) || 0 },
       weekStudy: Math.round(week.reduce((n, d) => n + ((log[d] && log[d].study) || 0), 0)),
-      weekDays: week.filter(d => log[d] && log[d].study > 0).length
+      weekDays: week.filter(d => log[d] && log[d].study > 0).length, bySubject
     };
   }
 
   /* ---------- разделы предмета ---------- */
   function sectionList() {
-    const list = C.SECTIONS().map(s => ({ id: s.id, title: s.title }));
+    const list = C.SECTIONS().map(s => ({ id: s.id, title: s.title, subject: s.subject, grade: s.grade }));
     if (C.TASKS.some(t => !t.section || !list.some(s => s.id === t.section))) list.push({ id: "_other", title: "Без раздела" });
     return list;
   }
@@ -76,7 +98,7 @@ module.exports = function (C) {
       const done = ts.filter(t => tasks[t.id] && tasks[t.id].completions > 0).length;
       const started = ts.filter(t => tasks[t.id] && (tasks[t.id].completions > 0 || tasks[t.id].inProgress)).length;
       const sec = dl.reduce((n, d) => n + ((log[d] && log[d].sec && log[d].sec[s.id]) || 0), 0);
-      return { id: s.id, title: s.title, tasksTotal: ts.length, tasksDone: done, tasksStarted: started, minutes: Math.round(sec / 60), share: total ? Math.round(100 * sec / total) : null };
+      return { id: s.id, title: s.title, subject: s.subject || null, grade: s.grade || null, tasksTotal: ts.length, tasksDone: done, tasksStarted: started, minutes: Math.round(sec / 60), share: total ? Math.round(100 * sec / total) : null };
     });
   }
   function sectionStats(users, days) {   // по всем ученикам
@@ -93,7 +115,7 @@ module.exports = function (C) {
         const log = u.usageLog || {};
         dl.forEach(d => { sec += (log[d] && log[d].sec && log[d].sec[s.id]) || 0; });
       });
-      return { id: s.id, title: s.title, tasks: ts.length, completions, completionsWin, students, minutes: Math.round(sec / 60) };
+      return { id: s.id, title: s.title, subject: s.subject || null, grade: s.grade || null, tasks: ts.length, completions, completionsWin, students, minutes: Math.round(sec / 60) };
     });
   }
 
@@ -118,7 +140,19 @@ module.exports = function (C) {
       for (const [id, t] of Object.entries(P.tasks || {})) taskCount[id] = (taskCount[id] || 0) + (t.completions || 0);
       for (const [name, s] of Object.entries(P.skills || {})) { const x = skill[name] || (skill[name] = { steps: 0, firstTry: 0 }); x.steps += s.steps; x.firstTry += s.firstTry; }
     });
-    const titleOf = id => { const t = C.TASKS.find(x => x.id === id); return t ? "№" + t.no + " " + t.title : id; };
+    const titleOf = id => { const t = C.TASKS.find(x => x.id === id); return t ? (SUBJ.length > 1 ? (TITLES[t.subject] || t.subject) + ", " + t.grade + " кл. · " : "") + "№" + t.no + " " + t.title : id; };
+    const bySubject = SUBJ.map(s => {       // сколько учеников занимались каждым предметом
+      let students = 0, active30 = 0, chosen = 0, completions = 0;
+      users.forEach(u => {
+        const P = u.progress || {};
+        let any = false;
+        for (const [id, x] of Object.entries(P.tasks || {})) if (TSUBJ[id] === s.id && (x.completions || x.inProgress)) { any = true; completions += x.completions || 0; }
+        if (any) students++;
+        if ((P.lessons || []).some(l => TSUBJ[l.task] === s.id && now - Date.parse(l.at) < 30 * DAY)) active30++;
+        if (((u.child && u.child.subject) || (u.pin ? "math" : "")) === s.id) chosen++;
+      });
+      return { id: s.id, title: s.title, students, active30, chosen, completions };
+    });
     const rows = users.map(row);
     return {
       totals: {
@@ -133,19 +167,22 @@ module.exports = function (C) {
       expiring: rows.filter(r => r.planActive && Date.parse(r.planUntil) - now < 7 * DAY)
         .sort((a, b) => Date.parse(a.planUntil) - Date.parse(b.planUntil)).map(r => ({ id: r.id, email: r.email, child: r.child, planUntil: r.planUntil })),
       topTasks: Object.entries(taskCount).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([id, n]) => ({ title: titleOf(id), completions: n })),
-      hardSkills: Object.entries(skill).filter(([, s]) => s.steps >= 10).map(([name, s]) => ({ name, steps: s.steps, pct: Math.round(100 * s.firstTry / s.steps) }))
-        .sort((a, b) => a.pct - b.pct).slice(0, 5),
+      hardSkills: Object.entries(skill).filter(([, s]) => s.steps >= 10).map(([name, s]) => ({ name, steps: s.steps, pct: Math.round(100 * s.firstTry / s.steps), subjects: skSubjects(name) }))
+        .sort((a, b) => a.pct - b.pct).slice(0, 30),
+      subjects: SUBJ, bySubject,
       watchOpen: watchList().open, subject: C.SUBJECT, sections: sectionStats(users, 30),
       settings: { studyDayMin: S.studyDayMin, voiceDayMin: S.voiceDayMin, registrationOpen: !!S.registrationOpen, voiceEnabled: !!S.voiceEnabled },
       envDefaults: C.envDefaults
     };
   }
 
-  function detail(u) {
-    const view = C.cabinetView(u), log = u.usageLog || {};
+  function detail(u, sjReq) {        // срез по одному предмету, как в кабинете родителя (по умолчанию предмет ребёнка)
+    const view = C.cabinetView(u, sjReq), log = u.usageLog || {}, sj = view.subject.id, gr = (u.child && u.child.grade) || 3;
     return Object.assign(row(u), {
-      subject: C.SUBJECT, sections: sectionsOf(u, 90),
-      tasks: view.tasks, skills: view.skills, recentLessons: ((u.progress && u.progress.lessons) || []).slice(-10).reverse().map(l => {
+      subject: C.SUBJECT, subjectId: sj, subjects: view.subjects, grade: gr,
+      tasksDone: view.summary.tasksDone, tasksTotal: view.summary.tasksTotal, lessons: view.summary.lessons, firstTryPct: view.summary.firstTryPct,
+      sections: sectionsOf(u, 90).filter(s => s.subject === sj && s.grade === gr),
+      tasks: view.tasks, skills: view.skills, recentLessons: ((u.progress && u.progress.lessons) || []).filter(l => TSUBJ[l.task] === sj).slice(-10).reverse().map(l => {
         const t = C.TASKS.find(x => x.id === l.task) || {};
         return { at: l.at, no: t.no || l.task, title: t.title || "", firstTry: l.firstTry, total: l.total };
       }),
@@ -172,11 +209,11 @@ module.exports = function (C) {
     users.forEach(u => { for (const [name, s] of Object.entries((u.progress && u.progress.skills) || {})) { const x = skill[name] || (skill[name] = { steps: 0, firstTry: 0 }); x.steps += s.steps; x.firstTry += s.firstTry; } });
     const rows = users.map(row);
     return {
-      days, subject: C.SUBJECT,
+      days, subject: C.SUBJECT, subjects: SUBJ,
       series: { regs, growth, active, studyMin: study.map(s => Math.round(s / 60)), voiceMin: voice.map(s => Math.round(s / 60)), done },
       weekday: wk.map((s, i) => ({ studyMin: Math.round(s / 60), avgMin: wkDays[i] ? Math.round(s / 60 / wkDays[i]) : 0 })),
       sections: sectionStats(users, n),
-      skills: Object.entries(skill).filter(([, s]) => s.steps >= 5).map(([name, s]) => ({ name, steps: s.steps, pct: Math.round(100 * s.firstTry / s.steps) })).sort((a, b) => a.pct - b.pct),
+      skills: Object.entries(skill).filter(([, s]) => s.steps >= 5).map(([name, s]) => ({ name, steps: s.steps, pct: Math.round(100 * s.firstTry / s.steps), subjects: skSubjects(name) })).sort((a, b) => a.pct - b.pct),
       plans: { paid: rows.filter(r => r.planActive && !r.blocked).length, expired: rows.filter(r => !r.planActive && r.planUntil && !r.blocked).length,
         trial: rows.filter(r => !r.planActive && !r.planUntil && !r.blocked).length, blocked: rows.filter(r => r.blocked).length }
     };
@@ -209,9 +246,9 @@ module.exports = function (C) {
   function watchList() {
     const med = a => { if (!a.length) return null; const s = a.slice().sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : Math.round((s[m - 1] + s[m]) / 2); };
     const items = C.users().filter(u => u.progress && u.progress.watch && u.progress.watch.flag).map(u => {
-      const P = u.progress, W = P.watch, L = P.leaves || {};
-      return { id: u.id, email: u.email, child: (u.child && u.child.name) || "", flag: W.flag, leavesTotal: L.total || 0,
-        pending: (L.rewards || []).filter(r => r.status === "pending").map(r => ({ kind: r.kind, title: r.title, at: r.at })),
+      const P = u.progress, W = P.watch, Ls = [P.leaves || {}, ...Object.values(P.leavesBy || {})];   // листики всех предметов
+      return { id: u.id, email: u.email, child: (u.child && u.child.name) || "", flag: W.flag, leavesTotal: Ls.reduce((n, x) => n + (x.total || 0), 0),
+        pending: Ls.flatMap(L => (L.rewards || []).filter(r => r.status === "pending").map(r => ({ kind: r.kind, title: r.title, at: r.at, subject: r.subject || "math" }))),
         medianMs: med((W.ms || []).map(x => x.ms)), weekEx: Object.values(W.exWeek || {})[0] || 0 };
     });
     items.sort((a, b) => (a.flag.reviewed ? 1 : 0) - (b.flag.reviewed ? 1 : 0) || String(b.flag.at).localeCompare(String(a.flag.at)));
@@ -321,7 +358,7 @@ module.exports = function (C) {
     if (route === "logout") { const t = C.parseCookies(req).la; if (t) sessions.delete(t); setCookie(res, "", 0); return send(res, 200, { ok: true }); }
     if (route === "overview") return send(res, 200, overview());
     if (route === "load") return send(res, 200, C.metrics());
-    if (route === "users") return send(res, 200, { users: C.users().map(row), tasksTotal: C.TASKS.length });
+    if (route === "users") return send(res, 200, { users: C.users().map(row), tasksTotal: C.TASKS.length, subjects: SUBJ });
     if (route === "charts") return send(res, 200, charts(b.days));
     if (route === "create") {
       const r = await createUser(b);
@@ -333,7 +370,7 @@ module.exports = function (C) {
     if (route === "log") return send(res, 200, { log: LOG.slice(-150).reverse() });
     if (route === "user") {
       const u = C.users().find(x => x.id === b.id);
-      return u ? send(res, 200, detail(u)) : send(res, 404, { error: "not_found" });
+      return u ? send(res, 200, detail(u, b.subject)) : send(res, 404, { error: "not_found" });
     }
     if (route === "action") {
       const u = C.users().find(x => x.id === b.id);
@@ -341,7 +378,7 @@ module.exports = function (C) {
       const r = await act(u, b);
       if (r.error) return send(res, 400, { error: "bad", message: r.error });
       writeLog(r.log[0], u.email, r.log[1]);
-      return send(res, 200, { ok: true, user: r.deleted ? null : detail(u) });
+      return send(res, 200, { ok: true, user: r.deleted ? null : detail(u, b.subject) });
     }
     if (route === "settings") {
       const S = C.SETTINGS;

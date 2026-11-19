@@ -22,3 +22,8 @@ data/private/tasks.u*.json
 
 # пробы голосов
 voice_samples/
+
+# реквизиты и платёжные анкеты: в git не добавлять
+Payment/
+
+_tts_test/.env.test

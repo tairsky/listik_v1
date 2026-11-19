@@ -16,17 +16,22 @@ try {   // .env читаем и здесь, чтобы build-audio.js работ
 } catch (e) {}
 
 /* настройки озвучки: ЕДИНЫЙ источник и для сервера, и для build-audio.js (иначе номера файлов разошлись бы) */
-const PROVIDER = (process.env.TTS_PROVIDER || "openai").toLowerCase();      // "openai" или "elevenlabs"
+const PROVIDER = (process.env.TTS_PROVIDER || "openai").toLowerCase();      // "openai", "elevenlabs" или "gemini"
 const EL = {
   key: process.env.ELEVENLABS_API_KEY || "",
   voice: process.env.ELEVENLABS_VOICE_ID || "",
   model: process.env.ELEVENLABS_MODEL || "eleven_multilingual_v2"           // для русского надёжна multilingual_v2; можно попробовать eleven_v3
 };
+/* Gemini (Google AI Studio): голос Sulafat выбран на слепом тесте 13.11.2026; модель в статусе preview, имя может смениться */
+const GM = {
+  key: process.env.GEMINI_API_KEY || "",
+  style: "Say in Russian, in a warm, friendly, gentle female teacher's voice, speaking to a child aged 8 to 10, at a calm unhurried pace"
+};
 const config = {
   provider: PROVIDER,
-  model: PROVIDER === "elevenlabs" ? EL.model : (process.env.TTS_MODEL || "gpt-4o-mini-tts"),
-  voice: PROVIDER === "elevenlabs" ? EL.voice : (process.env.TTS_VOICE || process.env.VOICE || "marin"),
-  style: PROVIDER === "elevenlabs" ? "" : process.env.TTS_STYLE === undefined
+  model: PROVIDER === "elevenlabs" ? EL.model : PROVIDER === "gemini" ? (process.env.TTS_MODEL || "gemini-2.5-flash-preview-tts") : (process.env.TTS_MODEL || "gpt-4o-mini-tts"),
+  voice: PROVIDER === "elevenlabs" ? EL.voice : PROVIDER === "gemini" ? (process.env.TTS_VOICE || "Sulafat") : (process.env.TTS_VOICE || process.env.VOICE || "marin"),
+  style: PROVIDER === "elevenlabs" ? "" : PROVIDER === "gemini" ? (process.env.TTS_STYLE === undefined ? GM.style : process.env.TTS_STYLE) : process.env.TTS_STYLE === undefined
     ? "Говори по-русски, с русским произношением и русскими ударениями, тепло, дружелюбно и спокойно, не торопясь, как добрая старшая сестра, которая объясняет ребёнку 8–9 лет. Чётко произноси числа."
     : process.env.TTS_STYLE,
   base: (process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/$/, ""),
@@ -98,9 +103,60 @@ async function synthEleven(spoken, voiceId) {
   return Buffer.from(await r.arrayBuffer());
 }
 
+/* Gemini: один запрос -> сырой звук (PCM 16 бит, обычно 24 кГц) -> mp3 через ffmpeg (ffmpeg должен быть установлен на машине, где идёт озвучка) */
+function pcmToMp3(pcm, rate) {
+  return new Promise((resolve, reject) => {
+    const cp = require("child_process").spawn("ffmpeg", ["-loglevel", "error", "-f", "s16le", "-ar", String(rate), "-ac", "1", "-i", "pipe:0", "-b:a", "128k", "-f", "mp3", "pipe:1"]);
+    const out = [], err = [];
+    cp.stdout.on("data", d => out.push(d)); cp.stderr.on("data", d => err.push(d));
+    cp.on("error", e => reject(new Error(e.code === "ENOENT" ? "не найден ffmpeg (Mac: brew install ffmpeg; Ubuntu: apt install ffmpeg)" : e.message)));
+    cp.on("close", code => code === 0 && out.length ? resolve(Buffer.concat(out)) : reject(new Error("ffmpeg: " + Buffer.concat(err).toString().slice(0, 200))));
+    cp.stdin.on("error", () => {});
+    cp.stdin.end(pcm);
+  });
+}
+async function synthGemini(spoken) {
+  if (!GM.key) throw new Error("для Gemini нужен GEMINI_API_KEY в .env");
+  const models = [config.model];                              // только выбранная модель: запасных нет, чтобы не прятать настоящую ошибку
+  let last = "";
+  for (const model of models) {
+    for (let attempt = 0; attempt < 6; attempt++) {             // 429/5xx: подождать и повторить (лимит запросов у Google)
+      const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent", {
+        method: "POST", headers: { "x-goog-api-key": GM.key, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: (config.style ? config.style + ": " : "") + spoken.slice(0, 1800) }] }],
+          generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: config.voice } } } }
+        }),
+        signal: AbortSignal.timeout(60000)
+      });
+      if (r.ok) {
+        const j = await r.json();
+        const part = j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts && j.candidates[0].content.parts[0];
+        const inl = part && part.inlineData;
+        if (!inl || !inl.data) { last = "Gemini: пустой ответ"; break; }
+        const rate = +((/rate=(\d+)/.exec(inl.mimeType || "") || [])[1]) || 24000;
+        return pcmToMp3(Buffer.from(inl.data, "base64"), rate);
+      }
+      last = "Gemini " + model + ": " + r.status + " " + (await r.text()).slice(0, 200);
+      if (r.status === 404) break;                              // такой модели нет: пробуем следующую
+      if (r.status !== 429 && r.status < 500) throw new Error(last);
+      await new Promise(res => setTimeout(res, 5000 * (attempt + 1)));
+    }
+  }
+  throw new Error(last);
+}
+
+/* чего не хватает для озвучки у выбранного провайдера (пустая строка = всё есть) */
+function keyError() {
+  if (config.provider === "elevenlabs") return EL.key && EL.voice ? "" : "Нет ELEVENLABS_API_KEY или ELEVENLABS_VOICE_ID в .env";
+  if (config.provider === "gemini") return GM.key ? "" : "Нет GEMINI_API_KEY в .env";
+  return config.key ? "" : "Нет OPENAI_API_KEY в .env";
+}
+
 /* озвучка одного текста -> Buffer (mp3). Без стиля повторяем, если модель его не принимает */
 async function synth(spoken, opts) {
   if (config.provider === "elevenlabs") return synthEleven(spoken);
+  if (config.provider === "gemini") return synthGemini(spoken);
   let last = "";
   for (const withStyle of [true, false]) {
     if (!config.style && withStyle) continue;
@@ -136,4 +192,4 @@ async function ensure(id, synthFn) {
 }
 const have = id => fs.existsSync(clipFile(id));
 
-module.exports = { synthEleven, EL, config, DIR, vsay, clipId, clipFile, isId, reg, registry, registerTasks, generalIds, loadGeneral, synth, ensure, have };
+module.exports = { synthEleven, synthGemini, keyError, EL, config, DIR, vsay, clipId, clipFile, isId, reg, registry, registerTasks, generalIds, loadGeneral, synth, ensure, have };

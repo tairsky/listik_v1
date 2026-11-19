@@ -37,11 +37,16 @@ const TASKS_FILE = readJSON("data/private/tasks.json");
 /* Упражнения лежат отдельными файлами по классам: tasks.json (3 класс), math-2.json (2 класс).
    Если файла класса нет, этот класс просто не открыт. У каждого упражнения и раздела появляется поле grade. */
 const TASKS_FILE_2 = (() => { try { return readJSON("data/private/math-2.json"); } catch (e) { return null; } })();
-const GRADE_FILES = [TASKS_FILE, TASKS_FILE_2].filter(Boolean);
-GRADE_FILES.forEach(f => { const g = f.grade || 3; (f.tasks || []).forEach(t => { t.grade = g; }); (f.sections || []).forEach(s => { s.grade = g; }); });
+const TASKS_FILE_RU3 = (() => { try { return readJSON("data/private/rus-3.json"); } catch (e) { return null; } })();   // 3 класс, русский язык
+const GRADE_FILES = [TASKS_FILE, TASKS_FILE_2, TASKS_FILE_RU3].filter(Boolean);
+GRADE_FILES.forEach(f => { const g = f.grade || 3, sj = f.subject || "math"; (f.tasks || []).forEach(t => { t.grade = g; t.subject = sj; }); (f.sections || []).forEach(s => { s.grade = g; s.subject = sj; }); });
 const TASKS = GRADE_FILES.flatMap(f => f.tasks || []);
 const ALL_SECTIONS = GRADE_FILES.flatMap(f => f.sections || []);
 const OPEN_GRADES = GRADE_FILES.map(f => f.grade || 3);
+/* Какие предметы открыты в каком классе (по файлам упражнений): { "2": ["math"], "3": ["math"] }. Файл без поля subject считается математикой. */
+const OPEN_SUBJECTS = {};
+GRADE_FILES.forEach(f => { const g = String(f.grade || 3), sj = f.subject || "math"; (OPEN_SUBJECTS[g] = OPEN_SUBJECTS[g] || []).includes(sj) || OPEN_SUBJECTS[g].push(sj); });
+const openSubjectsOf = g => OPEN_SUBJECTS[String(g)] || [];
 /* Сквозная нумерация: задачи идут по порядку разделов, номер не начинается заново в новом разделе, но у каждого класса своя.
    Номер считается сам, поэтому при добавлении задач порядковые номера править руками не нужно. */
 {
@@ -49,11 +54,16 @@ const OPEN_GRADES = GRADE_FILES.map(f => f.grade || 3);
   const pos = x => (secOrder.has(x.section) ? secOrder.get(x.section) : 1e9);
   TASKS.sort((a, b) => pos(a) - pos(b));
   const cnt = {};
-  TASKS.forEach(t => { cnt[t.grade] = (cnt[t.grade] || 0) + 1; t.no = String(cnt[t.grade]); });
+  TASKS.forEach(t => { const k = t.grade + "/" + t.subject; cnt[k] = (cnt[k] || 0) + 1; t.no = String(cnt[k]); });   // номер свой у каждой пары класс + предмет
 }
 const SUBJECT = { title: TASKS_FILE.subject_title || "Математика", grade: TASKS_FILE.grade || 3, grades: OPEN_GRADES };
+const SUBJECT_TITLES = {};   // id предмета → название (из поля subject_title файла упражнений)
+GRADE_FILES.forEach(f => { const sj = f.subject || "math"; SUBJECT_TITLES[sj] = f.subject_title || (sj === "math" ? "Математика" : sj); });
 const cleanGrade = (v) => { const n = Number(v); return Number.isInteger(n) && n >= 1 && n <= 11 ? n : 0; };   // класс ребёнка 1–11, иначе 0
 const gradeOf = u => (u && u.child && u.child.grade) || 3;   // класс ребёнка; у старых кабинетов и гостей считаем 3
+const subjectIdOf = u => !u ? "math" : ((u.child && u.child.subject) || (u.pin ? "math" : ""));   // гость: математика; новый кабинет до настройки: пусто; старый кабинет без предмета: математика
+const subjectProblem = (g, sj) => openSubjectsOf(g).length && !openSubjectsOf(g).includes(sj) ? "Выберите предмет." : "";   // если у класса есть упражнения, предмет обязателен и должен быть открытым
+const inScope = (x, u, sj) => x.grade === gradeOf(u) && x.subject === (sj || subjectIdOf(u));   // упражнение или раздел относится к классу и предмету ребёнка
 const subjectFor = u => { const g = gradeOf(u); return { ...SUBJECT, grade: OPEN_GRADES.includes(g) ? g : SUBJECT.grade }; };
 const CONFIG = readJSON("data/private/config.json");
 const MAX_ATTEMPTS = 3;
@@ -441,8 +451,14 @@ const GENERAL_CLIPS = FAST_ON ? (() => { try { return CLIPS.generalIds(); } catc
    Без этого поля задача считается платной: её условие и шаги не уходят в браузер, пока нет подписки.
    Подписку выдаёт владелец командой: node admin.js plan <почта> <дней> (см. admin.js). */
 const isPaidTask = t => t.access !== "trial";
-const hasPlan = a => !!(a && a.user.plan && a.user.plan.until && Date.parse(a.user.plan.until) > Date.now());
-const taskLocked = (t, a) => !a || (isPaidTask(t) && !hasPlan(a));   // гостям задачи не отдаём: только после регистрации
+/* Подписки: user.plans = [{ scope: "all" | "subject", subject, until }] (их создаёт оплата, pay.js) и старое поле user.plan.until
+   (подписку выдал владелец вручную или она куплена раньше). Старое поле открывает ВСЕ предметы класса, как «Безлимит». */
+const planAlive = e => !!(e && e.until && Date.parse(e.until) > Date.now());
+const planList = user => { const l = []; if (user && planAlive(user.plan)) l.push({ scope: "all", until: user.plan.until, legacy: true }); ((user && user.plans) || []).forEach(e => { if (planAlive(e)) l.push(e); }); return l; };
+const hasPlan = a => !!(a && planList(a.user).length);                                            // есть хоть какая-то действующая подписка
+const hasPlanFor = (a, sj) => !!a && planList(a.user).some(e => e.scope === "all" || e.subject === sj);   // подписка открывает этот предмет
+const planUntilMax = list => list.reduce((m, e) => (!m || Date.parse(e.until) > Date.parse(m)) ? e.until : m, null);
+const taskLocked = (t, a) => !a || (isPaidTask(t) && !hasPlanFor(a, t.subject));   // гостям задачи не отдаём: только после регистрации
 /* Список задач для страницы: только то, что нужно для каталога (номер, название, раздел, короткое условие, статус).
    При сотнях задач целиком каждую отдавать нельзя: шаги и урок приходят по запросу /api/task/<id> при открытии задачи. */
 /* Упражнения раздела открываются по очереди (только пока нет оплаченной подписки: с подпиской открыто всё): следующее доступно, только когда предыдущее в этом же разделе решено.
@@ -458,12 +474,22 @@ const seqPrevNo = t => { const p = taskById(PREV_IN_SECTION.get(t.id)); return p
 const shortCond = t => String(t.condition || "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim().slice(0, 110);
 const tasksFor = a => {
   const P = a && progress(a.user).tasks, R = a ? recommendations(a.user) : {};
-  return TASKS.filter(t => t.grade === gradeOf(a && a.user)).map(t => {
+  return TASKS.filter(t => inScope(t, a && a.user)).map(t => {
     const locked = taskLocked(t, a);
     const o = { id: t.id, no: t.no, title: t.title, section: t.section, cond: locked ? "" : shortCond(t), locked };
-    if (!locked && P && !hasPlan(a) && seqClosed(t, P)) { o.closed = true; o.after = seqPrevNo(t); }
+    if (!locked && P && !hasPlanFor(a, t.subject) && seqClosed(t, P)) { o.closed = true; o.after = seqPrevNo(t); }
     if (R[t.id]) { o.rec = R[t.id].kind; o.why = R[t.id].why; }
-    if (P) { const x = P[t.id]; o.st = x && x.completions ? "done" : x && x.inProgress ? "progress" : "new"; }
+    if (P) {
+      const x = P[t.id];
+      o.st = x && x.completions ? "done" : x && x.inProgress ? "progress" : "new";
+      /* статусы каталога: «нужно повторить» (подошёл срок повтора навыка упражнения) и «освоено» (в последний раз все шаги с первого раза) */
+      if (o.st === "done") {
+        const sk = (a.user && progress(a.user).skills) || {}, now = Date.now();
+        const names = [...new Set((t.steps || []).map(z => z.skill).filter(Boolean))];
+        if (names.some(n => sk[n] && sk[n].due && Date.parse(sk[n].due) <= now && mastery(sk[n]) !== null && mastery(sk[n]) < 0.9)) o.st = "review";
+        else if (x.lastFirstTry && x.lastFirstTry >= (t.steps || []).length) o.st = "mastered";
+      }
+    }
     return o;
   });
 };
@@ -567,7 +593,7 @@ const tokKey = t => crypto.createHash("sha256").update(String(t)).digest("hex");
 let authTimer = null;
 function saveAuth() {
   authTimer = null;
-  const out = {}; for (const [k, v] of auth) out[k] = { uid: v.uid, exp: v.exp };
+  const out = {}; for (const [k, v] of auth) out[k] = v.dev ? { uid: v.uid, exp: v.exp, dev: v.dev } : { uid: v.uid, exp: v.exp };
   try { const tmp = AUTH_FILE + ".tmp"; fs.writeFileSync(tmp, JSON.stringify(out), { mode: 0o600 }); fs.renameSync(tmp, AUTH_FILE); } catch (e) { console.error("[входы] не сохранились:", e.message); }
 }
 function flushAuth() { if (authTimer) { clearTimeout(authTimer); saveAuth(); } }
@@ -578,11 +604,14 @@ class AuthMap extends Map {
 const auth = new AuthMap();    // sha256(токен входа) -> { uid, exp, parentUntil }
 try {
   const saved = JSON.parse(fs.readFileSync(AUTH_FILE, "utf8")), now0 = Date.now();
-  for (const [k, v] of Object.entries(saved)) if (v && typeof v.uid === "string" && v.exp > now0) Map.prototype.set.call(auth, k, { uid: v.uid, exp: v.exp, parentUntil: 0 });
+  for (const [k, v] of Object.entries(saved)) if (v && typeof v.uid === "string" && v.exp > now0) Map.prototype.set.call(auth, k, { uid: v.uid, exp: v.exp, parentUntil: 0, dev: typeof v.dev === "string" ? v.dev : undefined });
   console.log("Входов восстановлено с диска: " + auth.size);
 } catch (e) {}
 const AUTH_TTL = 14 * 24 * 3600 * 1000;
 const PARENT_TTL = 10 * MIN;
+const DEVICE_TTL = 180 * 24 * 3600 * 1000;   // вход на телефоне ребёнка живёт 180 дней
+const INVITE_TTL = 24 * 3600 * 1000;         // ссылка-приглашение действует сутки и один раз
+const DEVICE_MAX = 1;   // пока один телефон ребёнка на кабинет
 setInterval(() => {
   const now = Date.now();
   for (const [k, s] of play) if (now - s.seen > 2 * 3600 * 1000) play.delete(k);
@@ -601,7 +630,13 @@ function currentAuth(req) {
   const s = key && auth.get(key);
   if (!s || s.exp < Date.now()) return null;
   const user = USERS.find(u => u.id === s.uid);
-  return user && !user.blocked ? { token: key, s, user } : null;
+  if (!user || user.blocked) return null;
+  if (s.dev) {   // вход с телефона ребёнка: отключённое родителем устройство больше не работает
+    const d = (user.devices || []).find(x => x.id === s.dev);
+    if (!d) return null;
+    if (!(s.seenAt > Date.now() - 3600 * 1000)) { s.seenAt = Date.now(); d.seen = new Date().toISOString(); scheduleSave(); }
+  }
+  return { token: key, s, user };
 }
 function setLoginCookie(res, token, maxAgeSec) {
   res.setHeader("Set-Cookie", "lt=" + token + "; HttpOnly; SameSite=Lax; Path=/; Max-Age=" + maxAgeSec + (COOKIE_SECURE ? "; Secure" : ""));
@@ -613,7 +648,7 @@ function startLogin(res, user, asParent) {
   setLoginCookie(res, token, AUTH_TTL / 1000);
 }
 const isParent = a => a && a.s.parentUntil > Date.now();
-const publicUser = (a) => ({ email: isParent(a) ? a.user.email : undefined, child: a.user.child, parent: isParent(a), hasPin: !!a.user.pin, plan: hasPlan(a) ? { until: a.user.plan.until } : null });
+const publicUser = (a) => ({ childDevice: !!a.s.dev, email: isParent(a) ? a.user.email : undefined, child: a.user.child, parent: isParent(a), hasPin: !!a.user.pin, plan: hasPlan(a) ? { until: planUntilMax(planList(a.user)) } : null });
 
 const PLAY_MAX = 20000;
 function playState(key, ip) {
@@ -638,6 +673,11 @@ function stepState(s, taskId, i) {
    Это временное решение для теста: при росте журнал переносится в базу. Формат строки не меняется. */
 const SKILLS_FILE = (() => { try { return readJSON("data/private/skills.json"); } catch (e) { return { skills: {}, errors: {} }; } })();
 const SKILL_DEF = SKILLS_FILE.skills || {}, ERR_DEF = SKILLS_FILE.errors || {};
+/* Навыки предметом не размечены: предмет навыка берём по упражнениям, где он встречается. Названия навыков разных предметов должны быть разными. */
+const SKILL_SUBJ = {};
+TASKS.forEach(t => (t.steps || []).forEach(s => { if (s.skill) (SKILL_SUBJ[s.skill] = SKILL_SUBJ[s.skill] || new Set()).add(t.subject); }));
+const skillIn = (name, sj) => SKILL_SUBJ[name] ? SKILL_SUBJ[name].has(sj) : sj === "math";   // навык без упражнений (старые записи, «без темы») относим к математике
+const taskSubj = id => { const t = taskById(id); return t ? t.subject : "math"; };
 const LOG_DIR = path.join(STORE_DIR, "log");
 try { fs.mkdirSync(LOG_DIR, { recursive: true }); } catch (e) {}
 let LOG_ERR = 0;
@@ -704,10 +744,10 @@ function skipFor(user, task) {
   return out;
 }
 /* что порекомендовать: повторить навык (подошёл срок) или перейти на уровень выше/ниже */
-function recommendations(user) {
+function recommendations(user, sj = subjectIdOf(user)) {
   const P = progress(user), out = {}, now = Date.now();
   const SKILL_TASKS = SKILL_TASKS_BY[gradeOf(user)] || {};
-  const due = Object.entries(P.skills).filter(([n, sk]) => sk.due && Date.parse(sk.due) <= now && SKILL_TASKS[n] && mastery(sk) !== null && mastery(sk) < 0.9)
+  const due = Object.entries(P.skills).filter(([n, sk]) => sk.due && Date.parse(sk.due) <= now && SKILL_TASKS[n] && skillIn(n, sj) && mastery(sk) !== null && mastery(sk) < 0.9)
     .sort((x, y) => Date.parse(x[1].due) - Date.parse(y[1].due));
   for (const [n] of due.slice(0, 2)) {
     let target = n;
@@ -720,7 +760,7 @@ function recommendations(user) {
   const seen = new Set();
   for (let i = P.lessons.length - 1; i >= 0; i--) {
     const l = P.lessons[i], t = taskById(l.task);
-    if (!t || !t.family || seen.has(t.family) || !l.total) continue;
+    if (!t || t.subject !== sj || !t.family || seen.has(t.family) || !l.total) continue;
     seen.add(t.family);
     const pct = l.firstTry / l.total, lv = t.level || 2;
     const sib = d => TASKS.find(x => x.family === t.family && (x.level || 2) === lv + d);
@@ -731,13 +771,14 @@ function recommendations(user) {
 }
 /* краткие сведения о ребёнке для голосового Листика (ничего личного: только про учёбу) */
 function childProfile(user) {
-  const P = progress(user), ent = Object.entries(P.skills).filter(([, v]) => v.recent && v.recent.length >= 3);
-  if (!ent.length && !P.lessons.length) return "";
+  const sj = subjectIdOf(user), P = progress(user), LS = P.lessons.filter(l => taskSubj(l.task) === sj);   // блокнот только по предмету, который проходит ребёнок
+  const ent = Object.entries(P.skills).filter(([n, v]) => v.recent && v.recent.length >= 3 && skillIn(n, sj));
+  if (!ent.length && !LS.length) return "";
   const weak = ent.filter(([, v]) => mastery(v) < 0.6).map(([n]) => n);
   const strong = ent.filter(([, v]) => mastery(v) >= 0.85).map(([n]) => n);
   const due = ent.filter(([, v]) => v.due && Date.parse(v.due) <= Date.now() && mastery(v) < 0.9).map(([n]) => n);
-  const errs = Object.entries(P.errors || {}).filter(([c]) => ERR_DEF[c]).sort((a, b) => b[1].n - a[1].n).slice(0, 3).map(([c]) => ERR_DEF[c].label);
-  const last = P.lessons[P.lessons.length - 1], lt = last && taskById(last.task);
+  const errs = Object.entries(P.errors || {}).filter(([c]) => ERR_DEF[c] && skillIn(ERR_DEF[c].skill, sj)).sort((a, b) => b[1].n - a[1].n).slice(0, 3).map(([c]) => ERR_DEF[c].label);
+  const last = LS[LS.length - 1], lt = last && taskById(last.task);
   let t = "\n\nЧто программа знает об этом ребёнке по прошлым занятиям (это подсчёт программы, не слова ребёнка):";
   if (weak.length) t += "\n- Пока трудно: " + weak.join(", ") + ".";
   if (errs.length) t += "\n- Типичные ошибки: " + errs.join("; ") + ".";
@@ -763,7 +804,7 @@ function warmSkills(user) {
 }
 function quizOffer(user) {
   const P = progress(user), today = dayStamp(), o = { diag: false, warm: 0 };
-  if (gradeOf(user) !== 3) return o;   // вопросы знакомства и разминки (quick.js) пока только для 3 класса
+  if (gradeOf(user) !== 3 || subjectIdOf(user) !== "math") return o;   // вопросы знакомства и разминки (quick.js) пока только для 3 класса
   if (!P.diagAt) o.diag = P.diagLater !== today;
   else if (P.warmDay !== today && dayOf(P.diagAt) !== today) o.warm = warmSkills(user).length;
   return o;
@@ -788,7 +829,7 @@ function quizDone(user, task, ps) {
       P.diagAt = now;
       const by = {}; items.forEach(it => { (by[it.skill] = by[it.skill] || []).push(it.ok); });
       Object.entries(by).forEach(([n, arr]) => { if (arr.length >= 2 && arr.every(Boolean) && P.skills[n]) P.skills[n].placed = now; });
-    } else { P.warmDay = dayStamp(); if (items.filter(i => i.ok).length * 2 >= items.length) leafGive(user, ps, "warm", LEAVES_CFG.warm, true); }
+    } else { P.warmDay = dayStamp(); if (items.filter(i => i.ok).length * 2 >= items.length) leafGive(user, ps, "warm", LEAVES_CFG.warm, true, "math"); }
     logEvent({ kind: "quizdone", u: "u" + user.id, quiz: task.quiz, ok: items.filter(i => i.ok).length, total: items.length });
     scheduleSave();
   }
@@ -824,10 +865,14 @@ const REWARD_CATALOG = (() => {
 const LEAF_WHY = { step: "Шаги с первой попытки", hint: "Шаги с подсказкой", explain: "Объяснил своими словами", done: "Упражнения до конца", warm: "Разминка", back: "Вернулся на следующий день" };
 const ymd = off => new Date(Date.now() + 5 * 3600 * 1000 + (off || 0) * DAY_MS).toISOString().slice(0, 10);
 const weekStart = () => { const t = Date.now() + 5 * 3600 * 1000, wd = (new Date(t).getUTCDay() + 6) % 7; return new Date(t - wd * DAY_MS).toISOString().slice(0, 10); };
-function leavesOf(user) {
+const newLeaves = () => ({ total: 0, cyc: 0, cycSmall: 0, smalls: 0, bigs: 0, rn: 0, day: null, dayEx: 0, dayEarned: 0, lastEarnDay: null, backDay: null,
+  week: null, weekTasks: {}, weekWhy: {}, goal: null, goalSmall: null, rewards: [], recent: [] });
+/* Листики ведутся отдельно по каждому предмету (18.11.2026): у математики прежнее место P.leaves (так лежали все листики до разделения, данные не переносим),
+   у остальных предметов P.leavesBy[предмет]. Предмет не указан: предмет ребёнка. */
+function leavesOf(user, sj) {
   const P = progress(user);
-  const L = P.leaves || (P.leaves = { total: 0, cyc: 0, cycSmall: 0, smalls: 0, bigs: 0, rn: 0, day: null, dayEx: 0, dayEarned: 0, lastEarnDay: null, backDay: null,
-    week: null, weekTasks: {}, weekWhy: {}, goal: null, goalSmall: null, rewards: [], recent: [] });
+  sj = sj || subjectIdOf(user) || "math";
+  const L = sj === "math" ? (P.leaves || (P.leaves = newLeaves())) : ((P.leavesBy || (P.leavesBy = {}))[sj] || (P.leavesBy[sj] = newLeaves()));
   const d = ymd(0), w = weekStart();
   if (L.day !== d) { L.day = d; L.dayEx = 0; L.dayEarned = 0; }
   if (L.week !== w) { L.week = w; L.weekTasks = {}; L.weekWhy = {}; L.weekSteps = {}; }
@@ -835,7 +880,8 @@ function leavesOf(user) {
 }
 /* убывающая отдача за день: упражнения 1–5 полностью, 6–10 вполовину, дальше без листиков (учиться можно, листики не идут) */
 const exMult = L => { const n = L.dayEx + 1; return n <= LEAVES_CFG.fullEx ? 1 : n <= LEAVES_CFG.halfEx ? 0.5 : 0; };
-const masteredCount = user => Object.values(progress(user).skills).filter(sk => (sk.recent || []).length >= LEAVES_CFG.masteryN && mastery(sk) >= LEAVES_CFG.masteryMin).length;
+const masteredCount = (user, sj = subjectIdOf(user) || "math") => Object.entries(progress(user).skills).filter(([n, sk]) => skillIn(n, sj) && (sk.recent || []).length >= LEAVES_CFG.masteryN && mastery(sk) >= LEAVES_CFG.masteryMin).length;
+const leavesAll = user => [leavesOf(user, "math"), ...Object.keys(progress(user).leavesBy || {}).map(k => leavesOf(user, k))];   // листики всех предметов (для защиты от накрутки и писем владельцу)
 function goalOf(L) {      // большой подарок из каталога
   const c = REWARD_CATALOG.big.find(x => x.id === L.goal);
   return c ? { id: c.id, title: c.title, icon: c.icon } : null;
@@ -844,33 +890,34 @@ function goalSmallOf(L) {  // простой подарок
   const c = REWARD_CATALOG.small.find(x => x.id === L.goalSmall);
   return c ? { id: c.id, title: c.title, icon: c.icon } : null;
 }
-function leafAdd(user, L, ps, why, g) {
+function leafAdd(user, L, ps, why, g, sj) {
   L.total += g; L.cyc += g; L.dayEarned += g; L.lastEarnDay = L.day;
   L.weekWhy[why] = (L.weekWhy[why] || 0) + g;
   L.recent.push({ at: new Date().toISOString(), n: g, why }); if (L.recent.length > 30) L.recent.splice(0, L.recent.length - 30);
   if (ps) { const r = ps.lrun || (ps.lrun = { sum: 0, parts: {} }); r.sum += g; r.parts[why] = (r.parts[why] || 0) + g; }
-  logEvent({ kind: "leaves", u: "u" + user.id, why, n: g, total: L.total });
+  logEvent({ kind: "leaves", u: "u" + user.id, sj: sj || "math", why, n: g, total: L.total });
 }
-function leafGive(user, ps, why, base, noMult) {
-  const L = leavesOf(user), g = Math.round(base * (noMult ? 1 : exMult(L)));
+function leafGive(user, ps, why, base, noMult, sj) {
+  sj = sj || subjectIdOf(user) || "math";
+  const L = leavesOf(user, sj), g = Math.round(base * (noMult ? 1 : exMult(L)));
   if (g <= 0) return 0;
-  if (L.lastEarnDay === ymd(-1) && L.backDay !== L.day) { L.backDay = L.day; leafAdd(user, L, ps, "back", LEAVES_CFG.back); }   // вернулся на следующий день: раз в день
-  leafAdd(user, L, ps, why, g);
-  leavesMilestones(user, L);
+  if (L.lastEarnDay === ymd(-1) && L.backDay !== L.day) { L.backDay = L.day; leafAdd(user, L, ps, "back", LEAVES_CFG.back, sj); }   // вернулся на следующий день: раз в день
+  leafAdd(user, L, ps, why, g, sj);
+  leavesMilestones(user, L, sj);
   scheduleSave();
   return g;
 }
-function leavesMilestones(user, L) {
+function leavesMilestones(user, L, sj) {
   const C = LEAVES_CFG, maxSmall = Math.ceil(C.bigAt / C.smallEvery) - 1, now = new Date().toISOString();
   while (L.cycSmall < maxSmall && L.cyc >= (L.cycSmall + 1) * C.smallEvery) {
     L.cycSmall++; L.smalls++; L.rn++;
     const gs = goalSmallOf(L);
-    L.rewards.push({ id: "r" + L.rn, kind: "small", at: now, goal: gs ? gs.id : null, title: gs ? gs.title : "Простой подарок на выбор", status: "pending", code: null });
+    L.rewards.push({ id: "r" + L.rn, kind: "small", subject: sj, at: now, goal: gs ? gs.id : null, title: gs ? gs.title : "Простой подарок на выбор", status: "pending", code: null });
     logEvent({ kind: "reward", u: "u" + user.id, big: false, goal: gs ? gs.id : null });
   }
-  if (L.cyc >= C.bigAt && masteredCount(user) >= C.bigSkills) {
+  if (L.cyc >= C.bigAt && masteredCount(user, sj) >= C.bigSkills) {
     const g = goalOf(L); L.rn++;
-    L.rewards.push({ id: "r" + L.rn, kind: "big", at: now, goal: g ? g.id : null, title: g ? g.title : "Подарок на выбор", status: "pending", code: null });
+    L.rewards.push({ id: "r" + L.rn, kind: "big", subject: sj, at: now, goal: g ? g.id : null, title: g ? g.title : "Подарок на выбор", status: "pending", code: null });
     L.bigs++; L.cyc -= C.bigAt; L.cycSmall = Math.min(Math.floor(L.cyc / C.smallEvery), maxSmall);
     logEvent({ kind: "reward", u: "u" + user.id, big: true, goal: g ? g.id : null });
   }
@@ -878,7 +925,7 @@ function leavesMilestones(user, L) {
 }
 const leavesBlocked = (L, task) => (L.weekTasks[task.id] || 0) >= LEAVES_CFG.repeatWeek;   // одно упражнение даёт листики только один раз в неделю
 function leavesStep(user, ps, task, step, st, idx) {
-  const L = leavesOf(user), C = LEAVES_CFG;
+  const sj = task.subject || "math", L = leavesOf(user, sj), C = LEAVES_CFG;
   if (leavesBlocked(L, task)) return 0;
   /* защита от накрутки: один и тот же шаг даёт листики только repeatWeek раз в неделю (сейчас один), даже если упражнение бросили и начали заново */
   const sk = task.id + ":" + idx; L.weekSteps = L.weekSteps || {};
@@ -886,28 +933,31 @@ function leavesStep(user, ps, task, step, st, idx) {
   L.weekSteps[sk] = (L.weekSteps[sk] || 0) + 1;
   const rec = ps.recent || [];
   if (rec.length >= 6 && rec.filter(x => x === 0).length >= 5) return 0;      // ответы наугад: 5 ошибок из последних 6
-  if (step.type === "explain") return leafGive(user, ps, "explain", C.explain);
+  if (step.type === "explain") return leafGive(user, ps, "explain", C.explain, false, sj);
   const clean = st.errors === 0 && !st.helped;
-  return leafGive(user, ps, clean ? "step" : "hint", clean ? C.first : C.helped);
+  return leafGive(user, ps, clean ? "step" : "hint", clean ? C.first : C.helped, false, sj);
 }
 function leavesDone(user, task, ps) {
-  const L = leavesOf(user);
+  const sj = task.subject || "math", L = leavesOf(user, sj);
   if (leavesBlocked(L, task)) return;
-  leafGive(user, ps, "done", LEAVES_CFG.done);
+  leafGive(user, ps, "done", LEAVES_CFG.done, false, sj);
   L.dayEx++; L.weekTasks[task.id] = (L.weekTasks[task.id] || 0) + 1;
 }
-function leavesBrief(user, ps, gain, completed) {
-  const L = leavesOf(user), C = LEAVES_CFG, r = ps.lrun || { sum: 0, parts: {} };
+function leavesBrief(user, ps, gain, completed, sj) {
+  const L = leavesOf(user, sj), C = LEAVES_CFG, r = ps.lrun || { sum: 0, parts: {} };
   return { gain, total: L.total, toBig: Math.max(0, C.bigAt - L.cyc), capped: L.dayEx >= C.halfEx,
     done: completed ? { sum: r.sum, parts: r.parts } : undefined };
 }
-function leavesView(user, parent) {
-  const L = leavesOf(user), C = LEAVES_CFG, maxSmall = Math.ceil(C.bigAt / C.smallEvery) - 1;
+const leavesSj = (user, q) => openSubjectsOf(gradeOf(user)).includes(q) ? q : (subjectIdOf(user) || "math");   // предмет для листиков: запрошенный (если открыт в классе) или предмет ребёнка
+function leavesView(user, parent, sj) {
+  sj = sj || subjectIdOf(user) || "math";
+  const L = leavesOf(user, sj), C = LEAVES_CFG, maxSmall = Math.ceil(C.bigAt / C.smallEvery) - 1;
   const out = {
+    subject: sj,
     total: L.total,
     today: { earned: L.dayEarned, exercises: L.dayEx, capped: L.dayEx >= C.halfEx, half: L.dayEx >= C.fullEx && L.dayEx < C.halfEx },
     cycle: { have: L.cyc, big: C.bigAt, small: C.smallEvery, smallHave: L.cyc - L.cycSmall * C.smallEvery, toBig: Math.max(0, C.bigAt - L.cyc), toSmall: L.cycSmall < maxSmall ? (L.cycSmall + 1) * C.smallEvery - L.cyc : null,
-      skillsHave: masteredCount(user), skillsNeed: C.bigSkills },
+      skillsHave: masteredCount(user, sj), skillsNeed: C.bigSkills },
     goal: goalOf(L), goalSmall: goalSmallOf(L),
     catalog: { small: REWARD_CATALOG.small, big: REWARD_CATALOG.big },
     rewards: L.rewards.slice(-10).map(r => ({ id: r.id, kind: r.kind, at: r.at, title: r.title, status: r.status, code: parent ? r.code : undefined }))
@@ -929,20 +979,20 @@ const WATCH = require("./watch.js");
 const watchMail = { day: null, n: 0 };
 function watchStep(user, ps, task, ms, st, fin) {
   try {
-    const W = WATCH.stateOf(progress(user)), L = leavesOf(user), t = new Date(Date.now() + 5 * 3600 * 1000);
+    const W = WATCH.stateOf(progress(user)), Ls = leavesAll(user), t = new Date(Date.now() + 5 * 3600 * 1000);
     const local = { day: ymd(0), week: weekStart(), hour: t.getUTCHours() };
     WATCH.onStep(W, local, ms, st.errors === 0 && !st.helped);
     if (fin) {
       let n = 0; task.steps.forEach((_, k) => { const x = ps.steps.get(task.id + ":" + k); if (x && x.solved && !x.skipped) n++; });
       if (ps.exAt) WATCH.onExercise(W, local, (Date.now() - ps.exAt) / 1000, n);
     }
-    WATCH.onEarned(W, local, L.dayEarned);
+    WATCH.onEarned(W, local, Ls.reduce((n, x) => n + (x.dayEarned || 0), 0));
     const fl = WATCH.check(W, local);
     if (fl) {
       logEvent({ kind: "watch", u: "u" + user.id, signals: fl.signals }); console.log("[watch] кабинет u" + user.id + " помечен: " + fl.signals.join(", "));
       const day = ymd(0); if (watchMail.day !== day) { watchMail.day = day; watchMail.n = 0; }
       if (++watchMail.n <= 20) {      // не больше 20 писем в сутки, чтобы не завалить почту
-        MAIL.watchAlert({ email: user.email, child: user.child && user.child.name, signals: fl.signals, leavesTotal: L.total || 0, pending: (L.rewards || []).filter(r => r.status === "pending").length })
+        MAIL.watchAlert({ email: user.email, child: user.child && user.child.name, signals: fl.signals, leavesTotal: Ls.reduce((n, x) => n + (x.total || 0), 0), pending: Ls.reduce((n, x) => n + (x.rewards || []).filter(r => r.status === "pending").length, 0) })
           .catch(e => console.log("[watch] письмо владельцу не ушло: " + e.message));
       }
     }
@@ -952,7 +1002,10 @@ function watchStep(user, ps, task, ms, st, fin) {
 function recordSolved(user, task, ps, i, st) {
   let completed = false;
   const P = progress(user), now = new Date().toISOString();
+  const B = P.subj || (P.subj = {});   // начало и последнее занятие по каждому предмету
+  if (!Object.keys(B).length && P.lastLessonAt) B.math = { first: P.firstLessonAt, last: P.lastLessonAt };   // занятия, записанные до разделения по предметам, были по математике
   P.lastLessonAt = now; if (!P.firstLessonAt) P.firstLessonAt = now;
+  { const e = B[task.subject || "math"] || (B[task.subject || "math"] = { first: now }); e.last = now; }
   const step = task.steps[i], clean = st.errors === 0 && !st.helped, name = step.skill || "без темы";
   const sk = (P.skills[name] = P.skills[name] || { steps: 0, firstTry: 0, helped: 0 });
   sk.steps++; if (clean) sk.firstTry++; if (st.helped) sk.helped++;
@@ -984,11 +1037,14 @@ function recordSolved(user, task, ps, i, st) {
 }
 const LEVEL_ORDER = { repeat: 0, train: 1, good: 2 };
 /* Дополнительные сведения для кабинета родителя: время, серия, недели, разделы, история занятий, подписка. */
-function cabinetExtra(user, tasksView) {
-  const P = progress(user), log = user.usageLog || {}, now = Date.now();
+function cabinetExtra(user, tasksView, sj) {
+  const P = progress(user), LS = P.lessons.filter(l => taskSubj(l.task) === sj), log = user.usageLog || {}, now = Date.now();
   const dk = ms => new Date(ms + 5 * 3600 * 1000).toISOString().slice(0, 10);
   const days = n => Array.from({ length: n }, (_, i) => dk(now - (n - 1 - i) * 86400000));
-  const st = d => (log[d] && log[d].study) || 0, vo = d => (log[d] && log[d].voice) || 0;
+  const secIds = new Set(ALL_SECTIONS.filter(x => x.subject === sj).map(x => x.id));
+  const secAll = d => Object.values((log[d] && log[d].sec) || {}).reduce((n, x) => n + x, 0);
+  const secSj = d => Object.entries((log[d] && log[d].sec) || {}).reduce((n, [k, x]) => n + (secIds.has(k) ? x : 0), 0);
+  const st = d => secSj(d) + (sj === "math" ? Math.max(0, ((log[d] && log[d].study) || 0) - secAll(d)) : 0), vo = d => (log[d] && log[d].voice) || 0;
   const sum = (arr, f) => arr.reduce((n, d) => n + f(d), 0);
   const d90 = days(90), d30 = days(30), w1 = days(7), w0 = days(14).slice(0, 7);
   const activity = d30.map(d => ({ day: d, study: Math.round(st(d) / 60), voice: Math.round(vo(d) / 60) }));
@@ -997,14 +1053,14 @@ function cabinetExtra(user, tasksView) {
   for (; i >= 0 && st(d90[i]) > 0; i--) streak++;
   const week = { minutes: Math.round(sum(w1, st) / 60), prev: Math.round(sum(w0, st) / 60), activeDays: w1.filter(d => st(d) > 0).length,
     voice: Math.round(sum(w1, vo) / 60) };
-  const sections = ALL_SECTIONS.filter(s => s.grade === gradeOf(user)).map(s => {
+  const sections = ALL_SECTIONS.filter(s => inScope(s, user, sj)).map(s => {
     const ts = TASKS.filter(x => x.section === s.id);
     const v = ts.map(x => tasksView.find(y => y.id === x.id));
     return { id: s.id, title: s.title, tasksTotal: ts.length, tasksDone: v.filter(x => x && x.status === "done").length,
       tasksStarted: v.filter(x => x && x.status !== "new").length,
       minutes30: Math.round(sum(d30, d => (log[d] && log[d].sec && log[d].sec[s.id]) || 0) / 60) };
   });
-  const history = P.lessons.map(l => {
+  const history = LS.map(l => {
     const tk = taskById(l.task) || {};
     return { at: l.at, no: tk.no || l.task, title: tk.title || "", firstTry: l.firstTry, total: l.total, pct: l.total ? Math.round(100 * l.firstTry / l.total) : 0, hard: l.hard || [] };
   });
@@ -1012,29 +1068,34 @@ function cabinetExtra(user, tasksView) {
   const weeks = []; for (let k = 7; k >= 0; k--) weeks.push({ start: monday(now - k * 7 * 86400000), minutes: 0, lessons: 0, ft: 0, tot: 0 });
   const wi = Object.fromEntries(weeks.map((w, k) => [w.start, k]));
   Object.keys(log).forEach(d => { const k = wi[monday(Date.parse(d + "T12:00:00Z"))]; if (k !== undefined) weeks[k].minutes += st(d) / 60; });
-  P.lessons.forEach(l => { const k = wi[monday(Date.parse(l.at))]; if (k !== undefined) { weeks[k].lessons++; weeks[k].ft += l.firstTry; weeks[k].tot += l.total; } });
+  LS.forEach(l => { const k = wi[monday(Date.parse(l.at))]; if (k !== undefined) { weeks[k].lessons++; weeks[k].ft += l.firstTry; weeks[k].tot += l.total; } });
   const weeksOut = weeks.map(w => ({ start: w.start, minutes: Math.round(w.minutes), lessons: w.lessons, pct: w.tot ? Math.round(100 * w.ft / w.tot) : null }));
-  const hardCount = {}; P.lessons.slice(-10).forEach(l => (l.hard || []).forEach(n => { hardCount[n] = (hardCount[n] || 0) + 1; }));
+  const hardCount = {}; LS.slice(-10).forEach(l => (l.hard || []).forEach(n => { hardCount[n] = (hardCount[n] || 0) + 1; }));
   const hardTop = Object.entries(hardCount).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([name, n]) => ({ name, lessons: n }));
-  const active = hasPlan({ user }), key = "u:" + user.id, uv = usageView(key);
+  const key = "u:" + user.id, uv = usageView(key);
+  /* подписка по выбранному предмету: active и until относятся к предмету sj; items: все действующие подписки (для показа родителю) */
+  const alive = planList(user), cover = alive.filter(e => e.scope === "all" || e.subject === sj), active = cover.length > 0, untilSj = planUntilMax(cover);
+  const items = alive.map(e => ({ scope: e.scope, subject: e.subject || null, title: e.scope === "all" ? "Безлимит, все предметы класса" : (SUBJECT_TITLES[e.subject] || e.subject), until: e.until, daysLeft: Math.ceil((Date.parse(e.until) - now) / 86400000) }));
+  const lastUntil = planUntilMax((user.plan && user.plan.until ? [{ scope: "all", until: user.plan.until }] : []).concat(user.plans || []).filter(e => e.scope === "all" || e.subject === sj));   // последняя подписка, покрывавшая предмет (в том числе истёкшая)
   return {
-    plan: { active, until: user.plan && user.plan.until || null, cancelAt: user.cancelRenewal && user.cancelRenewal.at || null, daysLeft: active ? Math.ceil((Date.parse(user.plan.until) - now) / 86400000) : 0,
-      freeTasks: TASKS.filter(x => x.grade === gradeOf(user) && !isPaidTask(x)).length },
+    plan: { active, until: untilSj || lastUntil || null, items, hasAll: alive.some(e => e.scope === "all"), cancelAt: user.cancelRenewal && user.cancelRenewal.at || null, daysLeft: active ? Math.ceil((Date.parse(untilSj) - now) / 86400000) : 0,
+      freeTasks: TASKS.filter(x => inScope(x, user, sj) && !isPaidTask(x)).length },
     today: { studyUsed: Math.round(uv.studyMax - uv.studyLeft), studyMax: uv.studyMax, voiceUsed: Math.round(uv.voiceMax - uv.voiceLeft), voiceMax: uv.voiceMax },
     createdAt: user.createdAt || null,
     activity, streak, week, sections, history, weeks: weeksOut, hardTop,
     totals: { minutes90: Math.round(sum(d90, st) / 60), activeDays90: d90.filter(d => st(d) > 0).length }
   };
 }
-function cabinetView(user) {
-  const P = progress(user);
-  const tasks = TASKS.filter(t => t.grade === gradeOf(user)).map(t => {
+function cabinetView(user, sjReq) {
+  const P = progress(user), open = openSubjectsOf(gradeOf(user)), sj = open.includes(sjReq) ? sjReq : subjectIdOf(user);   // срез кабинета: класс ребёнка и выбранный предмет
+  const LS = P.lessons.filter(l => taskSubj(l.task) === sj);
+  const tasks = TASKS.filter(t => inScope(t, user, sj)).map(t => {
     const x = P.tasks[t.id] || {};
     return { id: t.id, no: t.no, title: t.title, total: t.steps.length, completions: x.completions || 0,
       status: x.completions ? "done" : x.inProgress ? "progress" : "new",
       solved: x.inProgress ? x.inProgress.solved : 0, again: !!(x.completions && x.inProgress), lastFirstTry: x.lastFirstTry || 0 };
   });
-  const skills = Object.entries(P.skills).filter(([, v]) => v.steps > 0).map(([name, v]) => {
+  const skills = Object.entries(P.skills).filter(([name, v]) => v.steps > 0 && skillIn(name, sj)).map(([name, v]) => {
     const pct = v.steps ? v.firstTry / v.steps : 0;
     let level = (pct < 0.5 || (v.steps && v.helped / v.steps >= 0.3)) ? "repeat" : pct < 0.8 ? "train" : "good";
     const m = mastery(v), n = (v.recent || []).length;
@@ -1044,20 +1105,20 @@ function cabinetView(user) {
       lastAt: v.lastAt || null, due: v.due || null, dueNow };
   }).sort((a, b) => LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level] || a.name.localeCompare(b.name, "ru"));
   const totalSteps = skills.reduce((n, x) => n + x.steps, 0), first = skills.reduce((n, x) => n + x.firstTry, 0);
-  const lessons = P.lessons.slice(-5).reverse().map(l => {
+  const lessons = LS.slice(-5).reverse().map(l => {
     const t = taskById(l.task) || {};
     return { at: l.at, no: t.no || l.task, title: t.title || "", firstTry: l.firstTry, total: l.total, hard: l.hard || [] };
   });
-  const errorsTop = Object.entries(P.errors || {}).filter(([c]) => ERR_DEF[c]).sort((a, b) => b[1].n - a[1].n).slice(0, 5)
+  const errorsTop = Object.entries(P.errors || {}).filter(([c]) => ERR_DEF[c] && skillIn(ERR_DEF[c].skill, sj)).sort((a, b) => b[1].n - a[1].n).slice(0, 5)
     .map(([c, v]) => ({ code: c, label: ERR_DEF[c].label, skill: ERR_DEF[c].skill || "", n: v.n, last: v.last }));
-  const recs = recommendations(user);
+  const recs = recommendations(user, sj);
   const recOut = Object.entries(recs).map(([id, r]) => { const t = taskById(id) || {}; return { id, no: t.no, title: t.title, kind: r.kind, why: r.why }; });
   return {
     errorsTop, recs: recOut, diagAt: P.diagAt || null, warmDay: P.warmDay || null,
-    email: user.email, child: user.child, subject: subjectFor(user), startedAt: P.firstLessonAt, lastAt: P.lastLessonAt,
-    summary: { tasksTotal: tasks.length, tasksDone: tasks.filter(t => t.status === "done").length, lessons: P.lessons.length,
+    email: user.email, child: user.child, subject: { ...subjectFor(user), id: sj, title: SUBJECT_TITLES[sj] || subjectFor(user).title }, subjects: open.map(id => ({ id, title: SUBJECT_TITLES[id] || id })), childSubject: subjectIdOf(user), startedAt: ((P.subj || {})[sj] || {}).first || (sj === "math" && !P.subj ? P.firstLessonAt : null), lastAt: ((P.subj || {})[sj] || {}).last || (sj === "math" && !P.subj ? P.lastLessonAt : null),
+    summary: { tasksTotal: tasks.length, tasksDone: tasks.filter(t => t.status === "done").length, lessons: LS.length,
       firstTryPct: totalSteps ? Math.round(100 * first / totalSteps) : null },
-    tasks, skills, lessons, ...cabinetExtra(user, tasks)
+    tasks, skills, lessons, ...cabinetExtra(user, tasks, sj)
   };
 }
 
@@ -1125,6 +1186,7 @@ const STATIC = {
   "/about.html": ["about.html", "text/html; charset=utf-8"],
   "/privacy.html": ["privacy.html", "text/html; charset=utf-8"],
   "/terms.html": ["terms.html", "text/html; charset=utf-8"],
+  "/payment.html": ["payment.html", "text/html; charset=utf-8"],
   "/img/pay/visa.svg": ["img/pay/visa.svg", "image/svg+xml"],
   "/img/pay/mastercard.svg": ["img/pay/mastercard.svg", "image/svg+xml"],
   "/pay/result": ["pay-result.html", "text/html; charset=utf-8"],
@@ -1135,6 +1197,7 @@ const STATIC = {
   "/site.css": ["site.css", "text/css; charset=utf-8"],
   "/lang.js": ["lang.js", "application/javascript; charset=utf-8"],
   "/analytics.js": ["analytics.js", "application/javascript; charset=utf-8"],
+  "/qrcode.js": ["qrcode.js", "application/javascript; charset=utf-8"],   // QR-код для телефона ребёнка (библиотека qrcode-generator, MIT), грузится только в кабинете родителя
   /* Казахская версия сайта (собирается командой: python3 kk_tools/build_kk.py) */
   "/kk": ["kk/index.html", "text/html; charset=utf-8"],
   "/kk/": ["kk/index.html", "text/html; charset=utf-8"],
@@ -1274,7 +1337,7 @@ const studyOver = key => usageOf(key).study >= limitsFor(key).study;
 const voiceOver = key => usageOf(key).voice >= limitsFor(key).voice;
 
 /* ---------- оплата подписки (описание в pay.js) ---------- */
-const PAY = require("./pay.js")({ STORE_DIR, getUsers: () => USERS, saveUsers, hasPlan, isParent, MAIL, siteUrl, send, tooMany, hit, MIN, SUBJECT });
+const PAY = require("./pay.js")({ STORE_DIR, getUsers: () => USERS, saveUsers, hasPlan, isParent, MAIL, siteUrl, send, tooMany, hit, MIN, SUBJECT, openSubjectsOf, gradeOf, SUBJECT_TITLES });
 console.log(PAY.mode ? "Оплата: режим «" + PAY.mode + "»" + (PAY.mode === "stub" ? " (заглушка банка, деньги не списываются)" : "") : "Оплата: выключена (PAY_MODE не задан), подписку выдаёт владелец");
 
 async function api(req, res, url) {
@@ -1283,13 +1346,14 @@ async function api(req, res, url) {
   const who = a ? "u" + a.user.id : ip;   // лимиты частоты: по кабинету, если вошли (школа и мобильный интернет дают одному адресу много детей)
 
   if (req.method === "GET") {
-    if (url === "/api/tasks") return send(res, 200, { tasks: tasksFor(a), sections: ALL_SECTIONS.filter(s => s.grade === gradeOf(a && a.user)) });
+    if (url === "/api/subjects") return send(res, 200, { open: OPEN_SUBJECTS });   // какие предметы открыты в каком классе (для формы выбора)
+    if (url === "/api/tasks") return send(res, 200, { tasks: tasksFor(a), sections: ALL_SECTIONS.filter(s => inScope(s, a && a.user)) });
     if (url.startsWith("/api/task/")) {
       let id = ""; try { id = decodeURIComponent(url.slice(10)); } catch (e) {}
       const t = taskById(id);
-      if (!t || t.grade !== gradeOf(a && a.user)) return send(res, 404, { error: "not_found" });
+      if (!t || !inScope(t, a && a.user)) return send(res, 404, { error: "not_found" });
       if (taskLocked(t, a)) return send(res, 403, { error: "paid_only" });
-      if (!hasPlan(a) && seqClosed(t, a && progress(a.user).tasks)) return send(res, 403, { error: "sequence", after: seqPrevNo(t) });
+      if (!hasPlanFor(a, t.subject) && seqClosed(t, a && progress(a.user).tasks)) return send(res, 403, { error: "sequence", after: seqPrevNo(t) });
       return send(res, 200, { task: Object.assign({}, publicById.get(id), { locked: false }) });
     }
     if (url === "/api/me") return send(res, 200, { user: a ? publicUser(a) : null });
@@ -1300,8 +1364,8 @@ async function api(req, res, url) {
     if (url === "/api/chat/available") return send(res, 200, { ok: SITECHAT.available() });
     if (url === "/api/voice/available") return send(res, 200, { ok: !!OPENAI_KEY && SETTINGS.voiceEnabled && (!!a || VOICE_GUESTS) });
     if (url === "/api/usage") return send(res, 200, usageView(usageKey(a, ip)));
-    if (url === "/api/leaves") return a ? send(res, 200, leavesView(a.user, isParent(a))) : send(res, 401, { error: "login" });
-    if (url === "/api/cabinet") return isParent(a) ? send(res, 200, cabinetView(a.user)) : send(res, a ? 403 : 401, { error: "parent_required" });
+    if (url === "/api/leaves") return a ? send(res, 200, leavesView(a.user, isParent(a), leavesSj(a.user, new URL(req.url, "http://x").searchParams.get("subject") || ""))) : send(res, 401, { error: "login" });
+    if (url === "/api/cabinet") return isParent(a) ? send(res, 200, cabinetView(a.user, new URL(req.url, "http://x").searchParams.get("subject") || "")) : send(res, a ? 403 : 401, { error: "parent_required" });
     return send(res, 404, { error: "not_found" });
   }
   if (url === "/api/pay/callback" && req.method === "POST") return PAY.callback(req, res);   // вызывает банк: своя проверка (подпись)
@@ -1385,7 +1449,7 @@ async function api(req, res, url) {
     if (user.blocked) return send(res, 403, { error: "blocked", message: "Доступ к этому кабинету закрыт. Напишите нам в WhatsApp, мы поможем." });
     if (unverified(user)) return send(res, 403, { error: "unverified", message: "Почта ещё не подтверждена. Откройте ссылку из письма." });
     startLogin(res, user, true);
-    return send(res, 200, { user: { email: user.email, child: user.child, parent: true, hasPin: !!user.pin, plan: hasPlan({ user }) ? { until: user.plan.until } : null } });
+    return send(res, 200, { user: { email: user.email, child: user.child, parent: true, hasPin: !!user.pin, plan: hasPlan({ user }) ? { until: planUntilMax(planList(user)) } : null } });
   }
   /* --- забыли пароль: письмо со ссылкой (ответ всегда одинаковый, чтобы нельзя было выяснить, какие адреса зарегистрированы) --- */
   if (url === "/api/password/forgot") {
@@ -1404,11 +1468,53 @@ async function api(req, res, url) {
     const user = userByResetToken(b.token);
     if (!user) return send(res, 400, { error: "token", message: "Ссылка устарела или уже использована. Запросите новую." });
     user.pass = await hashSecret(b.password, "pass"); if (unverified(user)) { user.verified = true; user.verifiedAt = new Date().toISOString(); } saveUsers();
-    for (const [k, v] of auth) if (v.uid === user.id) auth.delete(k);      // старые входы закрываем
+    for (const [k, v] of auth) if (v.uid === user.id && !v.dev) auth.delete(k);      // старые входы закрываем (телефоны детей родитель отключает сам)
     startLogin(res, user);
-    return send(res, 200, { user: { email: user.email, child: user.child, parent: false, hasPin: !!user.pin, plan: hasPlan({ user }) ? { until: user.plan.until } : null } });
+    return send(res, 200, { user: { email: user.email, child: user.child, parent: false, hasPin: !!user.pin, plan: hasPlan({ user }) ? { until: planUntilMax(planList(user)) } : null } });
   }
+  /* --- телефон ребёнка: родитель создаёт одноразовую ссылку, ребёнок открывает её у себя и входит «только как ребёнок» (режим родителя с такого входа недоступен) --- */
+  if (url === "/api/device/invite") {
+    if (!isParent(a)) return send(res, a ? 403 : 401, { error: "parent_required" });
+    if (tooMany("inv:" + a.user.id, 10, 60 * MIN)) return send(res, 429, { error: "too_many" });
+    hit("inv:" + a.user.id);
+    const now = Date.now(), code = crypto.randomBytes(24).toString("hex");
+    a.user.invites = (a.user.invites || []).filter(i => i.exp > now).slice(-4).concat([{ k: tokKey(code), exp: now + INVITE_TTL }]);
+    scheduleSave();
+    return send(res, 200, { url: siteUrl(req) + "/listik.html#phone=" + code, hours: 24 });
+  }
+  if (url === "/api/device/claim") {
+    if (tooMany("claim:" + ip, 20, 10 * MIN)) return send(res, 429, { error: "too_many" });
+    hit("claim:" + ip);
+    const k = typeof b.token === "string" && /^[0-9a-f]{48}$/.test(b.token) ? tokKey(b.token) : "", now = Date.now();
+    const user = k ? USERS.find(u => (u.invites || []).some(i => i.k === k && i.exp > now)) : null;
+    if (!user || user.blocked) return send(res, 400, { error: "invite", message: "Ссылка устарела или уже использована. Попросите родителя создать новую." });
+    const devs = user.devices || (user.devices = []);
+    if (devs.length >= DEVICE_MAX) return send(res, 409, { error: "too_many_devices", message: "К кабинету уже подключён телефон ребёнка. Родитель может отключить его в кабинете и подключить новый." });
+    user.invites = user.invites.filter(i => i.k !== k);
+    const ua = String(req.headers["user-agent"] || ""), label = /iPhone|iPad/.test(ua) ? "iPhone / iPad" : /Android/.test(ua) ? "Android" : "Устройство";
+    const dev = { id: crypto.randomBytes(6).toString("hex"), label, at: new Date().toISOString(), seen: new Date().toISOString() };
+    devs.push(dev);
+    const token = crypto.randomBytes(32).toString("hex"), s = { uid: user.id, exp: now + DEVICE_TTL, parentUntil: 0, dev: dev.id, seenAt: now };
+    auth.set(tokKey(token), s);
+    setLoginCookie(res, token, DEVICE_TTL / 1000);
+    scheduleSave();
+    return send(res, 200, { ok: true, user: publicUser({ token: tokKey(token), s, user }) });
+  }
+  if (url === "/api/device/list") {
+    if (!isParent(a)) return send(res, a ? 403 : 401, { error: "parent_required" });
+    return send(res, 200, { devices: (a.user.devices || []).map(d => ({ id: d.id, label: d.label, at: d.at, seen: d.seen })), max: DEVICE_MAX });
+  }
+  if (url === "/api/device/revoke") {
+    if (!isParent(a)) return send(res, a ? 403 : 401, { error: "parent_required" });
+    const id = typeof b.id === "string" ? b.id : "";
+    a.user.devices = (a.user.devices || []).filter(d => d.id !== id);
+    for (const [k, v] of auth) if (v.uid === a.user.id && v.dev === id) auth.delete(k);
+    scheduleSave();
+    return send(res, 200, { ok: true });
+  }
+
   if (url === "/api/logout") {
+    if (a && a.s.dev) return send(res, 403, { error: "child_device" });   // с телефона ребёнка выйти нельзя
     if (a) auth.delete(a.token);
     setLoginCookie(res, "", 0);
     return send(res, 200, { ok: true });
@@ -1421,10 +1527,12 @@ async function api(req, res, url) {
     if (tooMany("setup:" + a.user.id, 10, 60 * MIN)) return send(res, 429, { error: "too_many" });
     hit("setup:" + a.user.id);
     const name = cleanName(b.childName), grade = cleanGrade(b.grade), pp = pinProblem(b.pin);
+    const subject = (typeof b.subject === "string" && b.subject.slice(0, 30)) || openSubjectsOf(grade)[0] || "";   // предмет в форме не спрашивают: первый открытый в классе
     if (!name) return send(res, 400, { error: "child", message: "Введите имя или псевдоним ребёнка (без фамилии)." });
     if (!grade) return send(res, 400, { error: "grade", message: "Выберите класс ребёнка." });
+    if (subjectProblem(grade, subject)) return send(res, 400, { error: "subject", message: subjectProblem(grade, subject) });
     if (pp) return send(res, 400, { error: "pin", message: pp });
-    a.user.child = { name, grade };
+    a.user.child = openSubjectsOf(grade).length ? { name, grade, subject } : { name, grade };   // предмет хранится, только если у класса есть упражнения
     a.user.pin = await hashSecret(b.pin, "pin"); saveUsers();
     a.s.parentUntil = Date.now() + PARENT_TTL;
     return send(res, 200, { ok: true, user: publicUser(a) });
@@ -1432,21 +1540,50 @@ async function api(req, res, url) {
   /* --- кабинет: вход в режим родителя по PIN --- */
   if (url === "/api/parent/enter") {
     if (!a) return send(res, 401, { error: "login" });
+    if (a.s.dev) return send(res, 403, { error: "child_device" });
     if (!(await verifyPin(res, a, b.pin))) return;
     a.s.parentUntil = Date.now() + PARENT_TTL;
     return send(res, 200, { ok: true, user: publicUser(a) });
+  }
+  /* --- жалоба ребёнка на ошибку в упражнении: одна на упражнение, не больше 3 в день на ребёнка; принимается, только если на этом шаге уже была неверная попытка --- */
+  if (url === "/api/report") {
+    if (!a) return send(res, 401, { error: "login" });
+    if (tooMany("rep:" + who, 20, 60 * MIN)) return send(res, 429, { error: "too_many" });
+    hit("rep:" + who);
+    const rps = playState("u:" + a.user.id, ip);
+    if (!rps) return send(res, 400, { error: "bad_session" });
+    const rt = typeof b.task === "string" ? taskAny(rps, b.task) : null;
+    if (!rt || rt.quiz) return send(res, 400, { error: "bad_task" });
+    const rstep = Number.isInteger(b.step) ? rt.steps[b.step] : null;
+    if (!rstep) return send(res, 400, { error: "bad_step" });
+    const rst = rps.steps.get(rt.id + ":" + b.step);
+    if (!rst || !(rst.errors > 0)) return send(res, 409, { error: "no_error" });
+    const R = a.user.errReports || (a.user.errReports = { day: "", n: 0, tasks: {} }), rday = dayStamp();
+    if (R.day !== rday) { R.day = rday; R.n = 0; }
+    if (R.tasks[rt.id] || R.n >= 3) return send(res, 200, { ok: true, counted: false });   // ребёнку отвечаем так же вежливо, но не считаем
+    R.tasks[rt.id] = new Date().toISOString(); R.n++; scheduleSave();
+    let rans;
+    if (rstep.type === "choice" && Number.isInteger(b.answer) && rstep.options && rstep.options[b.answer] !== undefined) rans = rstep.options[b.answer];
+    else rans = typeof b.answer === "string" ? b.answer : JSON.stringify(b.answer === undefined ? null : b.answer);
+    rans = String(rans).slice(0, 80);
+    logEvent({ kind: "errreport", u: logWho(a, "u:" + a.user.id), task: logTask(rt), step: b.step, q: String(rstep.q || "").slice(0, 200), ans: rans, errs: rst.errors });
+    let rkey = "";
+    try { rkey = answerText(rstep); } catch (e) { rkey = "?"; }
+    MAIL.errorReport({ no: rt.no, title: rt.title, task: rt.id, step: b.step + 1, q: String(rstep.q || "").slice(0, 300), ans: rans, key: String(rkey).slice(0, 100), errs: rst.errors, email: a.user.email, child: a.user.child && a.user.child.name })
+      .catch(e => console.error("errorReport mail:", e && e.message));
+    return send(res, 200, { ok: true, counted: true });
   }
   /* --- листики: цель выбирает ребёнок, только из списка подарков владельца --- */
   if (url === "/api/leaves/goal") {
     if (!a) return send(res, 401, { error: "login" });
     if (tooMany("leaf:" + who, 30, 60 * MIN)) return send(res, 429, { error: "too_many" });
     hit("leaf:" + who);
-    const L = leavesOf(a.user), id = typeof b.id === "string" ? b.id : "";
+    const sj = leavesSj(a.user, typeof b.subject === "string" ? b.subject : ""), L = leavesOf(a.user, sj), id = typeof b.id === "string" ? b.id : "";
     const tier = REWARD_CATALOG.small.some(x => x.id === id) ? "small" : REWARD_CATALOG.big.some(x => x.id === id) ? "big" : null;
     if (!tier) return send(res, 400, { error: "bad_goal" });
     if (tier === "small") L.goalSmall = id; else L.goal = id;
     scheduleSave();
-    return send(res, 200, leavesView(a.user, isParent(a)));
+    return send(res, 200, leavesView(a.user, isParent(a), sj));
   }
   if (url === "/api/parent/leave") { if (a) a.s.parentUntil = 0; return send(res, 200, { ok: true }); }
   if (url === "/api/parent/child") {
@@ -1456,11 +1593,38 @@ async function api(req, res, url) {
     let g = 0;
     if (b.grade !== undefined) {
       g = cleanGrade(b.grade); if (!g) return send(res, 400, { error: "grade", message: "Выберите класс ребёнка." });
-      /* смену класса подтверждает пароль от кабинета (не только PIN): класс меняет набор упражнений (13.11.2026) */
-      if (g !== gradeOf(a.user) && !(await verifyPassword(res, a, b.password))) return;
     }
+    const newG = g || gradeOf(a.user), curSj = openSubjectsOf(gradeOf(a.user)).length ? subjectIdOf(a.user) : "";   // предмет «сейчас» только у класса с упражнениями
+    let newSj = typeof b.subject === "string" ? b.subject.slice(0, 30) : (openSubjectsOf(newG).includes(curSj) ? curSj : (openSubjectsOf(newG)[0] || ""));   // предмет в «Настройках» не выбирают: остаётся прежний, а если в новом классе его нет, берётся первый открытый
+    if (!openSubjectsOf(newG).length) newSj = "";                       // у класса нет упражнений: предмет не нужен
+    else if (!openSubjectsOf(newG).includes(newSj)) return send(res, 400, { error: "subject", message: "Выберите предмет." });
+    /* смену класса или предмета подтверждает пароль от кабинета (не только PIN): они меняют набор упражнений (13–14.11.2026) */
+    if ((newG !== gradeOf(a.user) || newSj !== curSj) && !(await verifyPassword(res, a, b.password))) return;
     a.user.child.name = name;
     if (g) a.user.child.grade = g;
+    if (newSj) a.user.child.subject = newSj; else delete a.user.child.subject;
+    saveUsers();
+    return send(res, 200, { ok: true, user: publicUser(a) });
+  }
+  /* выбор предмета самим ребёнком в нижнем меню (20.11.2026): только среди открытых предметов его класса; класс не меняется, пароль не нужен */
+  if (url === "/api/child/subject") {
+    if (!a) return send(res, 401, { error: "login" });
+    if (tooMany("csubj:" + a.user.id, 30, 10 * MIN)) return send(res, 429, { error: "too_many" });
+    hit("csubj:" + a.user.id);
+    const sj = typeof b.subject === "string" ? b.subject.slice(0, 30) : "";
+    if (!openSubjectsOf(gradeOf(a.user)).includes(sj)) return send(res, 400, { error: "subject", message: "Этот предмет пока недоступен." });
+    if (!a.user.child) a.user.child = {};
+    a.user.child.subject = sj;
+    saveUsers();
+    return send(res, 200, { ok: true, user: publicUser(a) });
+  }
+  /* кнопка «К занятиям» в кабинете: выбранный в кабинете предмет становится предметом ребёнка (режим родителя по PIN, пароль не нужен: решение автора 18.11.2026) */
+  if (url === "/api/parent/subject") {
+    if (!isParent(a)) return send(res, a ? 403 : 401, { error: "parent_required" });
+    const sj = typeof b.subject === "string" ? b.subject.slice(0, 30) : "";
+    if (!openSubjectsOf(gradeOf(a.user)).includes(sj)) return send(res, 400, { error: "subject", message: "Выберите предмет." });
+    if (!a.user.child) a.user.child = {};
+    a.user.child.subject = sj;
     saveUsers();
     return send(res, 200, { ok: true, user: publicUser(a) });
   }
@@ -1473,12 +1637,13 @@ async function api(req, res, url) {
     const undo = b.undo === true;
     if (undo) delete a.user.cancelRenewal; else a.user.cancelRenewal = { at: new Date().toISOString() };
     saveUsers();
-    MAIL.renewalChange(a.user.email, a.user.child && a.user.child.name, a.user.plan.until, undo).catch(mailFail);
+    MAIL.renewalChange(a.user.email, a.user.child && a.user.child.name, planUntilMax(planList(a.user)), undo).catch(mailFail);
     return send(res, 200, { ok: true });
   }
   /* смена PIN (и «Забыли PIN»): всегда нужен пароль от кабинета, ребёнок его не знает */
   if (url === "/api/pin/change") {
     if (!a) return send(res, 401, { error: "login" });
+    if (a.s.dev) return send(res, 403, { error: "child_device" });
     const pp = pinProblem(b.newPin);
     if (pp) return send(res, 400, { error: "pin", message: pp });
     if (!(await verifyPassword(res, a, b.password))) return;
@@ -1541,7 +1706,7 @@ async function api(req, res, url) {
     if (studyOver(usageKey(a, ip))) return send(res, 403, { error: "day_limit" });
     const kind = b.kind === "warm" ? "warm" : b.kind === "diag" ? "diag" : null;
     if (!kind) return send(res, 400, { error: "bad_kind" });
-    if (gradeOf(a.user) !== 3) return send(res, 409, { error: "nothing_due" });
+    if (gradeOf(a.user) !== 3 || subjectIdOf(a.user) !== "math") return send(res, 409, { error: "nothing_due" });
     let steps;
     if (kind === "diag") steps = QUICK.buildDiag();
     else { const sk = warmSkills(a.user); if (!sk.length) return send(res, 409, { error: "nothing_due" }); steps = QUICK.buildWarm(sk); }
@@ -1562,7 +1727,7 @@ async function api(req, res, url) {
   const task = taskAny(ps, b.task);
   if (!task) return send(res, 400, { error: "bad_step" });
   if ((url === "/api/start" || url === "/api/check") && taskLocked(task, a)) return send(res, 403, { error: "paid_only" });
-  if ((url === "/api/start" || url === "/api/check") && !task.quiz && !hasPlan(a) && seqClosed(task, a && progress(a.user).tasks)) return send(res, 403, { error: "sequence", after: seqPrevNo(task) });
+  if ((url === "/api/start" || url === "/api/check") && !task.quiz && !hasPlanFor(a, task.subject) && seqClosed(task, a && progress(a.user).tasks)) return send(res, 403, { error: "sequence", after: seqPrevNo(task) });
   if ((url === "/api/start" || url === "/api/check") && studyOver(usageKey(a, ip))) return send(res, 403, { error: "day_limit" });
   if (url === "/api/start") {
     /* продолжение прерванного упражнения: если ребёнок недавно (до 3 часов) вышел посреди него, возвращаем на первый нерешённый шаг и ничего не обнуляем */
@@ -1613,7 +1778,7 @@ async function api(req, res, url) {
       st.attempts = 0;
       logEvent({ kind: "check", u: wlog, task: logTask(task), step: b.step, skill: step.skill, ok: true, ans: shown, att: st.errors + 1, ms, ch });
       let lv;
-      if (!st.solved) { st.solved = true; if (a) { if (quiz) quizRecord(a.user, step, st); else { const s0 = ps.lrun ? ps.lrun.sum : 0; leavesStep(a.user, ps, task, step, st, b.step); const fin = recordSolved(a.user, task, ps, b.step, st); lv = leavesBrief(a.user, ps, (ps.lrun ? ps.lrun.sum : 0) - s0, fin); watchStep(a.user, ps, task, ms, st, fin); } } }
+      if (!st.solved) { st.solved = true; if (a) { if (quiz) quizRecord(a.user, step, st); else { const s0 = ps.lrun ? ps.lrun.sum : 0; leavesStep(a.user, ps, task, step, st, b.step); const fin = recordSolved(a.user, task, ps, b.step, st); lv = leavesBrief(a.user, ps, (ps.lrun ? ps.lrun.sum : 0) - s0, fin, task.subject || "math"); watchStep(a.user, ps, task, ms, st, fin); } } }
       return send(res, 200, { correct: true, leaves: lv, ok: step.ok, say: [clipFor(step.ok)].filter(Boolean), note: step.note || shortNote(step, quiz), col: step.col || null, quizDone: quiz && a ? quizDone(a.user, task, ps) : undefined });
     }
     st.errors++; st.attempts++;
@@ -1656,6 +1821,12 @@ async function api(req, res, url) {
     st.locked = false; st.attempts = MAX_ATTEMPTS - 1; st.helped = true;
     logEvent({ kind: "unlock", u: logWho(a, stateKey), task: logTask(task), step: b.step, skill: step.skill });
     return send(res, 200, { ok: true, answer_text: CONFIG.reveal_answer_to_adult ? answerText(step) : null });
+  }
+  if (url === "/api/continue") {   /* «Продолжить, всё нормально»: ещё 1 попытка без PIN */
+    if (!st.locked) return send(res, 409, { error: "not_locked" });
+    st.locked = false; st.attempts = MAX_ATTEMPTS - 1;
+    logEvent({ kind: "continue", u: logWho(a, stateKey), task: logTask(task), step: b.step, skill: step.skill });
+    return send(res, 200, { ok: true });
   }
   return send(res, 404, { error: "not_found" });
 }
@@ -1760,7 +1931,7 @@ const SITECHAT = require("./sitechat.js")({ modelCall, outputText, Upstream, too
 
 const ADMIN = require("./admin_panel.js")({
   users: () => USERS, metrics: loadSnapshot, saveUsers, usage: () => USAGE, usageOf, flushUsage, dayStamp, limitsFor, SETTINGS, saveSettings,
-  cabinetView, hasPlan, hashSecret, TASKS, SECTIONS: () => ALL_SECTIONS, SUBJECT, EMAIL_RE, auth, tooMany, hit, buckets, send, STORE_DIR, COOKIE_SECURE, parseCookies, voiceSessions,
+  cabinetView, hasPlan, hashSecret, TASKS, SECTIONS: () => ALL_SECTIONS, SUBJECT, SUBJECT_TITLES, EMAIL_RE, auth, tooMany, hit, buckets, send, STORE_DIR, COOKIE_SECURE, parseCookies, voiceSessions,
   envDefaults: { study: Number(process.env.STUDY_DAY_MIN || 60), voice: Number(process.env.VOICE_DAY_MIN || 60) }
 });
 
@@ -1777,7 +1948,7 @@ const KK_ON = false; /* казахская версия скрыта (решен
 const SITE_ORIGIN = "https://listik.kz";
 const ROBOTS_TXT = "User-agent: *\nDisallow: /admin\nDisallow: /api/\nDisallow: /pay/\nDisallow: /kk/pay/\nDisallow: /listik.html\nDisallow: /kk/listik.html\nDisallow: /hidden-blocks.html\n\nSitemap: " + SITE_ORIGIN + "/sitemap.xml\n";
 const SITEMAP_XML = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
-  ["/", "/about.html", "/pricing.html", "/start.html", "/privacy.html", "/terms.html"].concat(KK_ON ? ["/kk/", "/kk/about.html", "/kk/pricing.html", "/kk/start.html"] : [])
+  ["/", "/about.html", "/pricing.html", "/start.html", "/privacy.html", "/terms.html", "/payment.html"].concat(KK_ON ? ["/kk/", "/kk/about.html", "/kk/pricing.html", "/kk/start.html"] : [])
     .map(u => "  <url><loc>" + SITE_ORIGIN + u + "</loc></url>").join("\n") + "\n</urlset>\n";
 /* CSP. Жёсткая часть безопасна для сайта: запрет встраивания в чужие страницы, чужой <base> и плагинов.
    Полная политика пока только в режиме отчёта (ничего не блокирует, нарушения видны в консоли браузера, F12): сначала смотрим, потом включаем. */

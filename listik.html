@@ -106,6 +106,13 @@
   .tile.done { background: var(--tint); color: var(--green); border-color: #BFE3C8; }
   .tile.progress { border-color: var(--sun); box-shadow: inset 0 0 0 2px var(--sun); }
   .tile.lock { color: var(--muted); background: #F6F4EA; }
+  .tile.review { background: #FFF1DC; color: #B45F06; border-color: #F2C28A; }
+  .tile.mastered { background: #DDF2E3; color: #17603A; border-color: #7CC79A; }
+  .row-btn .rst.st-new { color: var(--muted); font-weight: 600; }
+  .row-btn .rst.st-progress { color: #9A7400; }
+  .row-btn .rst.st-review { color: #B45F06; }
+  .row-btn .rst.st-mastered { color: #17603A; }
+  .st-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0 0 12px; font-size: 14px; color: var(--muted); }
   .tile .mk { position: absolute; top: 2px; right: 5px; font-size: 11px; line-height: 1; }
   .rows { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
   .rows li, .tiles li { min-width: 0; }
@@ -280,6 +287,8 @@
   }
   .btn.ghost { background: transparent; color: var(--ink); }
   .btn.small { font-size: 15px; min-height: 40px; padding: 6px 14px; }
+  .rep { margin-top: 12px; text-align: center; }
+  .rep .btn { font-size: 14px; min-height: 36px; font-weight: 500; }
   .row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
 
   .fb { border-radius: 10px; padding: 12px 14px; margin-top: 12px; font-size: 18px; }
@@ -293,6 +302,60 @@
   .quizc { margin-bottom: 14px; }
   .quizc .row { margin-top: 10px; gap: 8px; }
   .fb.calm { background: var(--mark-bg); border: 2px solid #BFE6CE; }
+  .brk { position: fixed; inset: 0; z-index: 99999; background: rgba(30,42,34,.92); display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .brk-box { background: #fff; border-radius: 16px; padding: 24px 22px; max-width: 420px; width: 100%; text-align: center; color: var(--ink); }
+  .brk-box h2 { margin: 0 0 8px; font-size: 26px; }
+  .brk-box p { font-size: 18px; margin: 8px 0 14px; }
+  .brk-time { font-size: 64px; font-weight: 800; color: var(--green); line-height: 1.1; }
+
+  /* нижнее меню ребёнка (только телефон): четыре зелёные объёмные кнопки */
+  #kidnav { display: none; }
+  @media (max-width: 700px) {
+    body.hasnav { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
+    #kidnav:not([hidden]) { display: flex; gap: 8px; position: fixed; left: 0; right: 0; bottom: 0; z-index: 900; padding: 10px 10px 12px; background: #fff; border-top: 2px solid var(--line); }
+    #kidnav button { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 2px 12px; border: 0; border-bottom: 5px solid #17653A; border-radius: 16px; background: #2E9A5B; color: #fff; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; transition: transform .08s; }
+    #kidnav button:active { transform: translateY(4px); border-bottom-width: 1px; }
+    #kidnav button.on { background: #17653A; border-bottom-color: #0E4527; box-shadow: 0 0 0 3px var(--sun); }
+    #kidnav button:focus-visible { outline: 3px solid var(--pen); outline-offset: 2px; }
+    #kidnav svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    body.hasnav .top.lhead { display: none; }
+    body.hasnav .lmeta .hright { margin-left: auto; }
+    body.hasnav .lmeta .vt { display: none; }
+    body.hasnav .lmeta .vbtn, body.hasnav .lmeta .snd { width: 44px; min-width: 44px; padding: 0; justify-content: center; }
+    body.hasnav .back[data-action="home"], body.hasnav .back[data-action="list"] { display: none; }   /* «Все номера» теперь в нижнем меню */
+  }
+  @media (prefers-reduced-motion: reduce) { #kidnav button { transition: none; } }
+  /* телефон: шрифт упражнений чуть меньше, чтобы реже прокручивать (20.11.2026); компьютер не меняется */
+  @media (max-width: 700px) {
+    #app .q, #app .q.lq { font-size: 19px; line-height: 1.4; margin-bottom: 10px; }
+    #app .opt { font-size: 17px; min-height: 54px; gap: 12px; padding: 8px 14px 8px 10px; }
+    #app .opt .let { width: 34px; height: 34px; font-size: 22px; }
+    #app .fb { font-size: 16px; padding: 12px 14px; }
+    #app .condition .txt { font-size: 24px; }
+    #app .condition .txt.long { font-size: 21px; }
+    #app .ltitle { font-size: 21px; }
+  }
+
+  /* окно выбора предмета (кнопка «Предмет» в нижнем меню ребёнка) */
+  .sp { position: fixed; inset: 0; z-index: 99998; background: rgba(30,42,34,.55); display: flex; align-items: flex-end; justify-content: center; }
+  .sp-box { background: #fff; width: 100%; max-width: 520px; border-radius: 20px 20px 0 0; padding: 14px 14px calc(18px + env(safe-area-inset-bottom, 0px)); color: var(--ink); }
+  .sp-grip { width: 36px; height: 4px; border-radius: 2px; background: var(--line); margin: 0 auto 10px; }
+  .sp-box h2 { font-size: 22px; margin: 0 0 4px; }
+  .sp-opt { display: flex; align-items: center; width: 100%; min-height: 56px; margin-top: 8px; padding: 8px 14px; border: 2px solid var(--line); border-radius: 14px; background: #fff; font: inherit; font-size: 18px; font-weight: 800; color: var(--ink); text-align: left; cursor: pointer; }
+  .sp-opt.on { border-color: var(--green); background: var(--tint); color: var(--green); }
+  .sp-opt:disabled { color: #8a927f; background: #f6f7f3; cursor: default; }
+  .sp-opt em { margin-left: auto; font-style: normal; font-size: 13px; font-weight: 700; }
+  .sp-opt:focus-visible, .sp-close:focus-visible { outline: 3px solid var(--pen); outline-offset: 2px; }
+  .sp-close { display: block; margin: 12px auto 0; font: inherit; font-size: 16px; font-weight: 700; background: none; border: 0; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; min-height: 44px; cursor: pointer; }
+
+  /* подарочное окно: ребёнок набрал листики на подарок */
+  .gift { position: fixed; inset: 0; z-index: 99997; background: rgba(30,42,34,.7); display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .gift-box { background: #fff; border-radius: 20px; padding: 24px 22px; max-width: 420px; width: 100%; text-align: center; color: var(--ink); border: 3px solid var(--sun); }
+  .gift-ic { font-size: 64px; line-height: 1.1; }
+  .gift-box h2 { margin: 6px 0 8px; font-size: 26px; }
+  .gift-name { font-size: 20px; font-weight: 800; color: var(--green); margin: 0 0 8px; }
+  .gift-box p { font-size: 18px; margin: 8px 0 16px; }
+  .brk-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 10px; }
   .tile .rc { position: absolute; top: 2px; right: 6px; font-size: 14px; color: #E0A800; }
   .recm { font-style: normal; font-weight: 700; color: #B07F00; white-space: nowrap; }
   .pop { animation: pop .25s ease-out; }
@@ -390,6 +453,8 @@
   /* доска с корзинами в мини-уроке: закреплена сверху, карточки идут под ней */
   .lboard { position: sticky; top: 0; z-index: 5; background: var(--paper); border: 2px solid var(--ink); border-radius: 16px; padding: 6px 10px 10px; margin: 10px 0; }
   .lboard svg { display: block; width: 100%; height: auto; max-height: 32vh; }
+  .pic { margin: 10px 0 14px; background: var(--paper); border: 2px solid var(--ink); border-radius: 16px; padding: 6px 10px 8px; }
+  .pic svg { display: block; width: 100%; height: auto; max-height: 34vh; margin: 0 auto; }
   .lb-eq { font-weight: 800; font-size: 28px; text-align: center; min-height: 36px; font-variant-numeric: tabular-nums; }
   .lb-leg { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; min-height: 4px; }
   .lb-chip { font-size: 14px; font-weight: 700; padding: 4px 12px; border-radius: 999px; background: var(--tint); }
@@ -412,6 +477,10 @@
   .bubble { background: #fff; border: 1.5px solid var(--line); border-radius: 8px 24px 24px 24px; padding: 18px 24px; font-size: 21px; line-height: 1.5; font-weight: 500; min-height: 62px; box-shadow: 0 16px 32px -24px rgba(27,36,64,.3); }
   .step { background: #fff; border: 1px solid var(--line); border-radius: 28px; padding: 24px; box-shadow: 0 28px 56px -28px rgba(27,36,64,.25); }
   .step .meta { font-size: 14px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+  .tstrip { background: #EAF3E4; border: 1px solid #CFE3C6; border-radius: 16px; padding: 10px 14px; margin-bottom: 12px; }
+  .tstrip .tsno { font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #4C7A47; }
+  .tstrip .tstt { font-size: 18px; font-weight: 800; color: var(--ink); line-height: 1.25; margin-top: 2px; }
+  .tstrip .tscond { font-size: 15px; color: var(--muted); line-height: 1.4; margin-top: 2px; }
   .q { font-size: 22px; font-weight: 600; line-height: 1.45; }
   .opts { gap: 12px; }
   .opt { display: flex; align-items: center; gap: 16px; min-height: 64px; padding: 10px 20px 10px 12px; font-size: 20px; font-weight: 600; background: #fff; border: 2px solid #D3DDE4; border-radius: 18px; transition: transform .15s ease, border-color .15s ease, background .15s ease; }
@@ -446,6 +515,16 @@
   .btn.ghost:hover { background: var(--tint); }
   .btn.small { min-height: 44px; padding: 0 18px; font-size: 16px; border-radius: 14px; }
   .tabs .btn.on { background: var(--green); color: #fff; }
+  /* переключатель предметов в кабинете родителя: крупные «таблетки» с значком, отдельно от вкладок разделов */
+  .subjbar { display: flex; flex-direction: column; gap: 6px; margin: 0 0 16px; }
+  .subjbar-l { font-size: 13px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #5C6B60; }
+  .subjbar-c { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px; background: var(--tint, #EAF4EC); border-radius: 22px; }
+  .subj { flex: 1 1 0; min-width: 140px; display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 56px; padding: 8px 18px; font: inherit; font-size: 18px; font-weight: 800; color: var(--ink); background: transparent; border: 0; border-radius: 16px; cursor: pointer; transition: background .15s, box-shadow .15s; }
+  .subj:hover { background: rgba(255, 255, 255, .7); }
+  .subj.on { background: #fff; color: var(--green); box-shadow: 0 2px 8px rgba(23, 101, 58, .18), inset 0 0 0 2px var(--green); }
+  .subj:focus-visible { outline: 3px solid #2B4BC4; outline-offset: 2px; }
+  .subj-i { font-size: 24px; line-height: 1; }
+  @media (prefers-reduced-motion: reduce) { .subj { transition: none; } }
 
   .nbcol { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
   .nbno { font-size: 28px; color: var(--green); line-height: 1; }
@@ -604,6 +683,12 @@
 </header>
 </div>
 <div class="sheet" id="app"></div>
+<nav id="kidnav" hidden aria-label="Меню ребёнка">
+  <button type="button" data-kn="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg>Все номера</button>
+  <button type="button" data-kn="kn-subject"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6c-1.5-1.5-4-2-8-2v14c4 0 6.5.5 8 2M12 6c1.5-1.5 4-2 8-2v14c-4 0-6.5.5-8 2M12 6v14"/></svg>Предмет</button>
+  <button type="button" data-kn="kn-leaves"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19c0-8 4-13 14-14 0 10-5 14-13 14M5 19l8-8"/></svg>Листики</button>
+  <button type="button" data-kn="break"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg>Перерыв</button>
+</nav>
 
 <footer class="sf">
   <div class="sf-in">
@@ -621,6 +706,7 @@
         <h4>Документы</h4>
         <a href="/privacy.html">Политика конфиденциальности</a>
         <a href="/terms.html">Пользовательское соглашение</a>
+        <a href="/payment.html">Условия оплаты и возврата</a>
       </div>
     </div>
     <div class="sf-bottom"><div class="sf-pay"><span>Оплата банковскими картами</span><div class="sf-logos"><img src="/img/pay/visa.svg" alt="Visa" width="47" height="30"><img src="/img/pay/mastercard.svg" alt="Mastercard" width="47" height="30"></div></div><div class="sf-copy">© 2026. ИИ-репетитор «Листик»</div><div class="sf-req">ИП «Феникс», ИИН 460104400918<br>г. Алматы, ул. Утеген батыра 17б<br>info@listik.kz · +7 (775) 971-41-63</div></div>
@@ -644,6 +730,38 @@ const OPEN_GRADES = [2, 3];   // классы, для которых есть у
 const wrongGrade = () => !!(USER && USER.child && USER.child.grade && !OPEN_GRADES.includes(USER.child.grade));
 const gradeSelect = (id, cur) => '<select id="' + id + '" class="inp">' + (cur ? '' : '<option value="">Выберите класс</option>') +
   Array.from({ length: 11 }, (_, i) => '<option value="' + (i + 1) + '"' + (+cur === i + 1 ? ' selected' : '') + '>' + (i + 1) + ' класс</option>').join("") + '</select>';
+/* Предметы по классам (тот же список, что в мастере start.html; при правке менять в обоих местах).
+   Открытые пары «класс → предметы» приходят с сервера (/api/subjects); закрытые показываем как «скоро». */
+const _S = (id, title) => ({ id, title });
+const _LANGS = [_S("ru", "Русский язык"), _S("kk", "Казахский язык"), _S("en", "Английский язык")];
+function subjectList(g) {
+  g = +g;
+  if (g <= 4) return [_S("math", "Математика"), ..._LANGS, _S("read", "Литературное чтение"), _S("world", "Познание мира")];
+  if (g <= 6) return [_S("math", "Математика"), ..._LANGS, _S("lit", "Литература"), _S("kz-hist", "История Казахстана"), _S("world-hist", "Всемирная история"), _S("nature", "Естествознание"), _S("inf", "Информатика"), _S("geo", "География")];
+  if (g <= 9) return [_S("algebra", "Алгебра"), _S("geometry", "Геометрия"), ..._LANGS, _S("lit", "Литература"), _S("physics", "Физика"), _S("chem", "Химия"), _S("bio", "Биология"), _S("inf", "Информатика"), _S("geo", "География"), _S("kz-hist", "История Казахстана"), _S("world-hist", "Всемирная история")];
+  return [_S("algebra", "Алгебра и начала анализа"), _S("geometry", "Геометрия"), _S("mathlit", "Математическая грамотность"), ..._LANGS, _S("lit", "Литература"), _S("physics", "Физика"), _S("chem", "Химия"), _S("bio", "Биология"), _S("inf", "Информатика"), _S("geo", "География"), _S("kz-hist", "История Казахстана"), _S("world-hist", "Всемирная история"), _S("law", "Основы права")];
+}
+let OPEN_SUBJ = null;   // { "2": ["math"], "3": ["math"] }
+async function loadSubjects() {
+  if (OPEN_SUBJ) return;
+  try { const r = await api("/api/subjects"); if (r.status === 200 && r.data && r.data.open) { OPEN_SUBJ = r.data.open; return; } } catch (e) {}
+  OPEN_SUBJ = {}; OPEN_GRADES.forEach(g => { OPEN_SUBJ[g] = ["math"]; });   // запасной вариант, если сервер не ответил
+}
+const openSubj = g => (OPEN_SUBJ && OPEN_SUBJ[String(g)]) || [];
+/* поле «Предмет»: после выбора класса; предмет заранее не выбран, закрытые отмечены «скоро» */
+function subjectInner(grade, cur) {
+  let inner;
+  if (!grade) inner = '<select id="fSubject" class="inp" disabled><option value="">Сначала выберите класс</option></select>';
+  else if (!OPEN_SUBJ) inner = '<select id="fSubject" class="inp" disabled><option value="">Загрузка…</option></select>';
+  else if (!openSubj(grade).length) inner = '<span class="hint">Для ' + esc(grade) + ' класса упражнений пока нет, предмет выбирать не нужно.</span>';
+  else inner = '<select id="fSubject" class="inp"><option value="">Выберите предмет</option>' + subjectList(grade).map(o => {
+    const open = openSubj(grade).includes(o.id);
+    return '<option value="' + esc(o.id) + '"' + (open ? '' : ' disabled') + (open && o.id === cur ? ' selected' : '') + '>' + esc(o.title) + (open ? '' : ' (скоро)') + '</option>';
+  }).join("") + '</select>';
+  return inner;
+}
+const curSubject = ch => (ch && ch.subject) || (ch && openSubj(ch.grade).includes("math") ? "math" : "");
+const subjectField = (grade, cur) => '<label>Предмет<span id="subjBox">' + subjectInner(grade, cur) + '</span></label>';
 let USER = null;       // вошедший кабинет: { email, child, parent } или null
 let OFFER = { diag: false, warm: 0 };   // что предложить ребёнку: знакомство или разминка (только после входа)
 async function loadOffer() {
@@ -880,7 +998,7 @@ async function startTask(i) {
 
 function sndBtn() {
   if (VOICE.available && !VOICE.err) return '';   // говорит живой Листик: переключатель голоса браузера не нужен
-  return TTS.ok ? '<button class="snd" data-action="ttstoggle" aria-pressed="' + TTS.on + '">' + (TTS.on ? SND_ON + 'Звук включён' : SND_OFF + 'Звук выключен') + '</button>' : '';
+  return TTS.ok ? '<button class="snd" data-action="ttstoggle" aria-pressed="' + TTS.on + '" aria-label="' + (TTS.on ? 'Звук включён' : 'Звук выключен') + '">' + (TTS.on ? SND_ON + '<span class="vt">Звук включён</span>' : SND_OFF + '<span class="vt">Звук выключен</span>') + '</button>' : '';
 }
 /* адрес списка упражнений (start.html на последнем шаге), если урок открыт оттуда */
 function listHref() {
@@ -891,14 +1009,20 @@ function backHTML() { return '<button class="back" data-action="' + (listHref() 
 function header(backBtn) {
   return '<div class="top">' + BRAND + '<div class="tools">' + sndBtn() +
     (backBtn ? backHTML()
-             : (S.view === "home" ? (USER ? '<button class="back" data-action="cab-open" aria-label="Для родителей, нужен PIN-код">🔒 Для родителей</button>'
+             : (S.view === "home" ? (USER ? (USER.childDevice ? '' : '<button class="back" data-action="cab-open" aria-label="Для родителей, нужен PIN-код">🔒 Для родителей</button>')
                                           : '<button class="back" data-action="auth" data-mode="login">Войти в кабинет</button>') : '')) +
     '</div></div>';
 }
+/* шапка занятия: на телефоне кнопка голоса (или звука) стоит в строке со счётчиками, отдельной верхней строки нет */
+function lhead() {
+  const mob = !!USER && window.matchMedia && matchMedia("(max-width: 700px)").matches;
+  const tools = '<div class="hright">' + voiceBtn() + sndBtn() + '</div>';
+  return '<div class="top lhead">' + backHTML() + (mob ? '' : tools) + '</div>' +
+    '<div class="lmeta"><div class="meters" id="limbox">' + limHTML() + '</div>' + lvPill() + (mob ? tools : '') + '</div>';
+}
 function lessonHeader(T, n, done) {
   const cur = done ? n : S.s + 1;
-  return '<div class="top lhead">' + backHTML() + '<div class="hright">' + voiceBtn() + sndBtn() + '</div></div>' +
-    '<div class="lmeta"><div class="meters" id="limbox">' + limHTML() + '</div>' + lvPill() + '</div>';
+  return lhead();
 }
 /* столбик на листочке: числа берём из условия, цифры и переносы появляются по мере верных шагов (их присылает сервер в ответе, поле col) */
 function colHTML(T) {
@@ -936,9 +1060,8 @@ function colHTML(T) {
 }
 function notebookAside(T, done) {
   if (T.quiz) return '';
-  let h = '<aside class="nbcol" aria-label="Тетрадь"><div class="nbno hand">Упражнение ' + T.no +
-    (QPOS >= 0 ? ' · ' + (QPOS + 1) + ' из ' + QUEUE.length : '') + (done ? ' · решено' : '') + '</div>';
-  const grid = (PARAMS.get("subject") || "math") === "math";   // математика — в клетку, остальное — в линейку
+  let h = '<aside class="nbcol" aria-label="Тетрадь">';
+  const grid = (PARAMS.get("subject") || curSubject(USER && USER.child) || "math") === "math";   // математика — в клетку, остальные предметы (русский и др.) — в линейку; предмет берём у ребёнка, а не только из адреса
   const acts = T.steps.filter(x => x.type !== "choice" && x.skill !== "проверка ответа").length;
   h += '<div class="nb' + (grid ? ' grid' : '') + (T.long ? ' long' : '') + '">';
   if (T.column) h += colHTML(T);
@@ -977,10 +1100,32 @@ function cabIdleLeave() {
 }
 /* ---------- листики (баллы за учёбу): считает и хранит сервер, здесь только показываем ---------- */
 let LEAVES = null;   // { total, today, cycle, goal, catalog, rewards } только для вошедшего кабинета
+/* подарочное окно: появляется, когда в свежих данных есть награда, которой не было раньше (только награды последних 15 минут, чтобы смена предмета не показала чужие) */
+const GIFT_SHOWN = new Set();
+function closeGiftPopup() { const o = document.getElementById("giftOv"); if (o) o.remove(); document.removeEventListener("keydown", giftKey); }
+function giftKey(e) { if (e.key === "Escape") closeGiftPopup(); }
+function showGiftPopup(list) {
+  const fresh = list.filter(x => !GIFT_SHOWN.has(x.id) && Date.now() - Date.parse(x.at) < 15 * 60000);
+  if (!fresh.length || document.getElementById("giftOv")) return;
+  fresh.forEach(x => GIFT_SHOWN.add(x.id));
+  const r = fresh.find(x => x.kind === "big") || fresh[0];
+  const o = document.createElement("div");
+  o.id = "giftOv"; o.className = "gift"; o.setAttribute("role", "dialog"); o.setAttribute("aria-modal", "true"); o.setAttribute("aria-labelledby", "giftT");
+  o.innerHTML = '<div class="gift-box"><div class="gift-ic" aria-hidden="true">🎁</div><h2 id="giftT">Ура! Ты заработал(а) подарок!</h2>' +
+    '<p class="gift-name">' + esc(r.title) + '</p>' +
+    '<p>Ты набрал(а) достаточно листиков. Скажи об этом маме или папе: родители получат для тебя промокод. Учись дальше и получай ещё больше подарков!</p>' +
+    '<button class="btn" id="giftOk">Ура!</button></div>';
+  o.addEventListener("click", e => { if (e.target === o || e.target.id === "giftOk") closeGiftPopup(); });
+  document.addEventListener("keydown", giftKey);
+  document.body.appendChild(o);
+  const b = document.getElementById("giftOk"); if (b) b.focus();
+}
 async function leavesLoad() {
   if (!USER) { LEAVES = null; return; }
+  const before = LEAVES ? new Set((LEAVES.rewards || []).map(x => x.id)) : null;
   const r = await call("/api/leaves");
   LEAVES = r.status === 200 && r.data && typeof r.data.total === "number" ? r.data : null;
+  if (before && LEAVES) showGiftPopup((LEAVES.rewards || []).filter(x => !before.has(x.id)));
 }
 function leavesApply(l) {
   if (!LEAVES || !l) return;
@@ -1061,6 +1206,13 @@ function renderGoal() {
   app.innerHTML = h;
   window.scrollTo(0, 0);
 }
+/* страница «Листики» ребёнка (кнопка в нижнем меню): сколько листиков набрано и сколько осталось до подарков */
+function renderLeaves() {
+  let h = '<div class="top">' + BRAND + '</div><div class="cat-title"><h1>Мои листики</h1></div>';
+  h += LEAVES ? leavesCard() : '<p class="lead">Листики пока не загрузились. Попробуй ещё раз чуть позже.</p>';
+  app.innerHTML = h;
+  window.scrollTo(0, 0);
+}
 async function pickGoal(id) {
   const r = await call("/api/leaves/goal", { id });
   if (r.status !== 200) { S.flash = "Не получилось выбрать. Попробуй ещё раз."; return render(); }
@@ -1072,7 +1224,8 @@ async function pickGoal(id) {
 function lvParentBlock() {
   const v = S.lv;
   if (!v) return "";
-  let h = '<h2 class="sec">Листики</h2><div class="pc-card">';
+  const cs = S.cab && S.cab.subjects && S.cab.subjects.length > 1 && S.cab.subject ? S.cab.subject.title : "";   // листики своего предмета: название видно, когда предметов несколько
+  let h = '<h2 class="sec">Листики' + (cs ? ': ' + esc(cs) : '') + '</h2><div class="pc-card">';
   h += '<p><b>' + v.total + '</b> ' + lvWord(v.total) + ' всего. Сегодня: <b>' + v.today.earned + '</b>, упражнений за день: ' + v.today.exercises + '.</p>';
   if (!v.goalSmall && !v.goal) h += '<p style="margin-top:10px">Ребёнок ещё не выбрал подарки за прохождение занятий. Он сделает это сам, когда начнёт заниматься.</p>';
   else {
@@ -1098,6 +1251,8 @@ function render() {
   /* режим ребёнка: вошедшему кабинету не показываем меню сайта (тарифы, кабинет); оно возвращается в родительских экранах */
   const parentScreen = S.view === "cabinet" || S.view === "paypage" || S.view === "setup" || S.view === "pin" || S.view === "pinreset" || S.view === "auth";
   const kid = !!USER && !parentScreen;
+  const kn = document.getElementById("kidnav"); if (kn) { kn.hidden = !kid; const kh = kn.querySelector('[data-kn="home"]'); if (kh) kh.classList.toggle("on", S.view === "home"); const kl = kn.querySelector('[data-kn="kn-leaves"]'); if (kl) kl.classList.toggle("on", S.view === "leaves"); }
+  document.body.classList.toggle("hasnav", kid);   // нижнее меню ребёнка (телефон): запас снизу, чтобы оно ничего не закрывало
   const lessonsOnly = !!USER && (S.view === "cabinet" || S.view === "setup" || S.view === "paypage" || S.view === "pin" || S.view === "pinreset");   // в кабинете вместо меню одна кнопка «К занятиям!»
   const shNav = document.querySelector(".sh-nav"); if (shNav) shNav.style.display = (kid || lessonsOnly) ? "none" : "";
   const shF = document.querySelector("footer.sf"); if (shF) shF.style.display = (kid || lessonsOnly) ? "none" : "";   // у ребёнка подвала нет
@@ -1111,6 +1266,7 @@ function render() {
   });
   cabIdleSet(S.view === "cabinet" || S.view === "pinreset");
   if (S.view === "goal") return renderGoal();
+  if (S.view === "leaves") return renderLeaves();
   if (S.view === "home") return renderHome();
   if (S.view === "auth") return renderAuth();
   if (S.view === "verify") return renderVerify();
@@ -1187,7 +1343,7 @@ async function doSetup() {
   S.form = { childName: name, grade };
   if (!need("Введите имя или псевдоним ребёнка.", name)) return;
   if (!need("Выберите класс ребёнка.", grade)) return;
-  const r = await call("/api/setup", { childName: name, grade: +grade, pin });
+  const r = await call("/api/setup", { childName: name, grade: +grade, pin });   // предмет сервер ставит сам: первый открытый в классе; потом меняется переключателем в кабинете
   if (r.status === 200 && r.data.ok) { USER = r.data.user; S.form = null; await reloadTasks(); return openCabinet("progress", "Данные сохранены. Запомните PIN-код: он нужен для входа в кабинет."); }
   if (r.status === 401) { USER = null; S = { view: "auth", mode: "login", err: "Войдите заново." }; return render(); }
   if (r.status === 409) { S = { view: "pin" }; return render(); }
@@ -1200,7 +1356,7 @@ function renderNoGrade() {
   h += '<div class="cat-title"><h1>' + (USER.child.name ? 'Привет, ' + esc(USER.child.name) + '! ' : '') + 'Для ' + g + ' класса пока нет упражнений</h1></div>';
   h += '<div class="mark"><p>Сейчас в Листике есть тренажёр только по математике для ' + OPEN_GRADES.join(' и ') + ' классов. Мы запомнили, что ребёнок учится в ' + g + ' классе.</p>' +
     '<p>Ошиблись с классом? Родитель может изменить его в кабинете, раздел «Настройки» (нужен PIN-код).</p>' +
-    '<div class="row"><button class="btn ghost small" data-action="logout">Выйти из аккаунта</button></div></div>';
+    (USER.childDevice ? '' : '<div class="row"><button class="btn ghost small" data-action="logout">Выйти из аккаунта</button></div>') + '</div>';
   if (S.flash) { h += '<div class="fb ok">' + esc(S.flash) + '</div>'; S.flash = ""; }
   app.innerHTML = h; window.scrollTo(0, 0);
 }
@@ -1290,9 +1446,11 @@ const meter = (label, used, max, text) => {
 };
 function planCard(c, withCancel) {
   const p = c.plan;
-  if (p.active && withCancel) return '<div class="pc-card pc-plan on"><b>Платный тариф активен</b><span>Действует до ' + fmtDate(p.until) + ', осталось ' + p.daysLeft + ' ' + plural(p.daysLeft, "день", "дня", "дней") + '.' + (p.cancelAt ? ' Продление отключено ' + fmtDate(p.cancelAt) + ': после этой даты подписка продлеваться не будет.' : '') + '</span>' + (p.cancelAt ? '<button class="btn ghost small" data-action="cab-cancel-undo">Вернуть продление</button>' : '<button class="btn ghost small" data-action="cab-cancel">Отказаться от продления</button>') + (PAYCFG.enabled && !wrongGrade() && p.daysLeft <= 7 ? payBtn("/listik.html", "Продлить на месяц") : '') + '<a class="btn ghost small" href="/pricing.html">О тарифе</a></div>';
+  const itemsLine = (p.items && p.items.length) ? '<span>Подписки: ' + p.items.map(i => esc(i.title) + ' до ' + fmtDate(i.until)).join('; ') + '.</span>' : '';
+  const moreBtn = (PAYCFG.enabled && !wrongGrade() && !p.hasAll) ? '<button class="btn ghost small" data-action="pay-page">Докупить предмет или безлимит</button>' : '';
+  if (p.active && withCancel) return '<div class="pc-card pc-plan on"><b>Платный тариф активен</b><span>Действует до ' + fmtDate(p.until) + ', осталось ' + p.daysLeft + ' ' + plural(p.daysLeft, "день", "дня", "дней") + '.' + (p.cancelAt ? ' Продление отключено ' + fmtDate(p.cancelAt) + ': после этой даты подписка продлеваться не будет.' : '') + '</span>' + itemsLine + moreBtn + (p.cancelAt ? '<button class="btn ghost small" data-action="cab-cancel-undo">Вернуть продление</button>' : '<button class="btn ghost small" data-action="cab-cancel">Отказаться от продления</button>') + (PAYCFG.enabled && !wrongGrade() && p.daysLeft <= 7 ? payBtn("/listik.html", "Продлить на месяц") : '') + '<a class="btn ghost small" href="/pricing.html">О тарифе</a></div>';
   if (p.active) return '<div class="pc-card pc-plan on"><b>Платный тариф активен</b><span>Действует до ' + fmtDate(p.until) + ', осталось ' + p.daysLeft + ' ' + plural(p.daysLeft, "день", "дня", "дней") + '.</span><a class="btn ghost small" href="/pricing.html">О тарифе</a></div>';
-  return '<div class="pc-card pc-plan"><b>' + (p.until ? 'Подписка закончилась ' + fmtDate(p.until) : 'Сейчас пробный доступ') + '</b><span>Бесплатно доступно задач: ' + p.freeTasks + ' из ' + c.summary.tasksTotal + '. Платный тариф открывает все задачи.</span>' + (wrongGrade() ? '<a class="btn small" href="/pricing.html">О тарифе</a>' : '<button class="btn small" data-action="pay-page">Оплатить доступ</button>') + '</div>';
+  return '<div class="pc-card pc-plan"><b>' + (p.until ? 'Подписка закончилась ' + fmtDate(p.until) : 'Сейчас пробный доступ') + '</b><span>Бесплатно доступно задач: ' + p.freeTasks + ' из ' + c.summary.tasksTotal + '. Платный тариф открывает все задачи предмета.</span>' + itemsLine + (wrongGrade() ? '<a class="btn small" href="/pricing.html">О тарифе</a>' : '<button class="btn small" data-action="pay-page">Оплатить доступ</button>') + '</div>';
 }
 function tipsBlock(c) {
   const rep = c.skills.filter(k => k.level === "repeat"), good = c.skills.filter(k => k.level === "good");
@@ -1315,27 +1473,44 @@ function trendInfo(hist) {
   return { now, before, d, k, word: d >= 3 ? "растёт" : d <= -3 ? "снижается" : "держится на одном уровне" };
 }
 function renderPayPage() {
-  const price = String(PAYCFG.price).replace(/\B(?=(\d{3})+$)/g, "\u00A0");
-  const wa = "https://wa.me/77759714163?text=" + encodeURIComponent("Здравствуйте! Хочу оплатить доступ к Листику.");
+  const g = (USER && USER.child && USER.child.grade) || 3, fmt = n => String(n).replace(/\B(?=(\d{3})+$)/g, " ") + " ₸";
+  const subs = subjectList(g).filter(o => openSubj(g).includes(o.id)), plan = S.payPlan || "", sj = S.paySubject || "";
+  const price = fmt(PAYCFG.price), priceAll = fmt(PAYCFG.priceAll || 19900);
+  const card = (id, title, pr, text) => '<button type="button" class="pc-card" data-action="pay-plan" data-plan="' + id + '" aria-pressed="' + (plan === id) + '" style="display:block;width:100%;text-align:left;cursor:pointer;font:inherit;color:inherit;' + (plan === id ? 'border-color:var(--green);' : '') + '"><p><b>' + title + (plan === id ? ' ✓' : '') + '</b></p><p style="font-size:28px;margin:6px 0"><b>' + pr + '</b> <span style="font-size:16px">в месяц</span></p><p>' + text + '</p></button>';
+  const sjTitle = (subs.find(o => o.id === sj) || {}).title || "";
+  const waText = "Здравствуйте! Хочу оплатить доступ к Листику" + (plan === "all" ? ": тариф «Безлимит»." : plan === "subject" ? ": тариф «1 предмет»" + (sjTitle ? ", " + sjTitle : "") + "." : ".");
+  const wa = "https://wa.me/77759714163?text=" + encodeURIComponent(waText);
   let h = '<div class="top">' + BRAND + '<div class="tools"><button class="back" data-action="pay-back">' + ARROW_L + 'Назад в кабинет</button></div></div>';
   h += '<h2 class="sec">Оплата доступа</h2><div class="form">';
-  h += '<div class="pc-card"><p><b>Платный доступ на 1 месяц, 1 предмет</b></p><p style="font-size:28px;margin:6px 0"><b>' + price + '\u00A0₸</b></p><p>Открывает все задачи предмета. Оплачивает взрослый.</p></div>';
+  h += '<p class="lead">Выберите, что оплатить. Оплачивает взрослый.</p>';
+  h += card("subject", "1 предмет", price, "Открывает все задачи одного предмета, который вы выберете.");
+  h += card("all", "Безлимит", priceAll, "Открывает все предметы " + esc(g) + " класса.");
+  if (plan === "subject") {
+    h += '<label for="fPaySubject"><b>Какой предмет оплачиваете?</b></label><select id="fPaySubject" class="inp"><option value="">Выберите предмет</option>' +
+      subs.map(o => '<option value="' + esc(o.id) + '"' + (o.id === sj ? ' selected' : '') + '>' + esc(o.title) + '</option>').join("") + '</select>' +
+      '<p class="hint">Откроются все задачи этого предмета. Другие предметы останутся с пробными задачами; их можно оплатить отдельно.</p>';
+  } else if (plan === "all") {
+    h += '<div class="mark">Откроются все предметы ' + esc(g) + ' класса, которые есть сейчас и появятся, пока подписка действует.</div>';
+  }
+  h += errBox(S.err);
   if (PAYCFG.enabled) {
-    h += '<p class="lead">Принимаем карты казахстанских банков. Для оплаты понадобится PIN-код родителя.</p><div class="row">' + payBtn("/listik.html", "Оплатить " + price + "\u00A0₸") + '</div>';
+    h += plan ? '<p class="lead">Принимаем карты казахстанских банков. Для оплаты понадобится PIN-код родителя.</p><div class="row"><button class="btn" data-action="pay-go">Оплатить ' + (plan === "all" ? priceAll : price) + '</button></div>' : '';
   } else {
-    h += '<div class="mark"><b>Онлайн-оплата картой скоро заработает.</b> Пока платёжная страница банка не подключена, доступ подключаем вручную: напишите нам, и мы откроем его в вашем кабинете.</div>';
+    h += '<div class="mark"><b>Онлайн-оплата картой скоро заработает.</b> Пока платёжная страница банка не подключена, доступ подключаем вручную: напишите нам, и мы откроем его в вашем кабинете' + (plan === "subject" && !sjTitle ? ' (напишите, какой предмет)' : '') + '.</div>';
     h += '<div class="row"><a class="btn" href="' + wa + '" target="_blank" rel="noopener">Написать в WhatsApp</a></div>';
   }
   h += '<div class="row"><button class="btn ghost" data-action="pay-back">Назад в кабинет</button></div></div>';
   app.innerHTML = h; window.scrollTo(0, 0);
 }
+const SUBJ_ICON = { math: "🔢", rus: "📖" };   // значки предметов в переключателе кабинета; для остальных 📚
 function renderCabinet() {
   const c = S.cab, tab = S.tab || "progress", sm = c.summary;
   let h = "";
   if (S.flash) { h += '<div class="fb ok setup-flash" role="status">' + esc(S.flash) + '</div>'; S.flash = ""; }   // сообщение сверху всего
   h += '<div class="top">' + BRAND + '</div>';
   h += '<h2 class="sec">Кабинет родителя</h2>';
-  const TABS = [["progress", "Обзор"], ["perf", "Успеваемость"], ["tasks", "Задачи и темы"], ["settings", "Настройки"]];
+  if (c.subjects && c.subjects.length > 1) h += '<div class="subjbar" role="group" aria-label="Предмет"><span class="subjbar-l">Предмет</span><div class="subjbar-c">' + c.subjects.map(x => '<button class="subj' + (x.id === c.subject.id ? ' on' : '') + '" data-action="cab-subj" data-subj="' + esc(x.id) + '" aria-pressed="' + (x.id === c.subject.id ? 'true' : 'false') + '"><span class="subj-i" aria-hidden="true">' + (SUBJ_ICON[x.id] || '📚') + '</span>' + esc(x.title) + '</button>').join("") + '</div></div>';   // выбор предмета: только если их больше одного
+  const TABS = [["progress", "Обзор"], ["perf", "Успеваемость"], ["tasks", "Задачи и темы"], ["phone", "Телефон ребёнка"], ["settings", "Настройки"]];
   h += '<div class="tabs">' + TABS.map(t => '<button class="btn ghost' + (tab === t[0] ? ' on' : '') + '" data-action="cab-tab" data-tab="' + t[0] + '">' + t[1] + '</button>').join("") + '</div>';
   const started = c.startedAt && (sm.lessons || c.tasks.some(t => t.status !== "new") || c.skills.length);
 
@@ -1452,31 +1627,55 @@ function renderCabinet() {
     h += '<h2 class="sec">Аккаунт</h2><p>Почта: <b>' + esc(c.email) + '</b>' + (c.createdAt ? '<br>Кабинет создан: ' + fmtDate(c.createdAt) : '') + '</p>';
     h += '<div class="row"><button class="btn ghost small" data-action="logout">Выйти из аккаунта</button></div></div>';
   }
+  if (tab === "phone") {
+    h += '<div class="form">';
+    h += '<h2 class="sec">Телефон ребёнка</h2>';
+    if (S.devs && S.devs.length) {
+      const d = S.devs[0];
+      h += '<p>Подключён: <b>' + esc(d.label) + '</b><br><span class="hint">с ' + fmtDate(d.at) + (d.seen ? ', последний раз был ' + fmtDate(d.seen) : '') + '</span></p>';
+      h += '<div class="row"><button class="btn ghost small" data-action="dev-revoke" data-id="' + esc(d.id) + '">Отключить телефон</button></div>';
+    } else if (S.devs) {
+      h += '<p>Ребёнок сможет заниматься на своём телефоне без вашего пароля. Кабинет родителя ему не откроется. Создайте ссылку и откройте её на телефоне ребёнка (например, отправьте себе в мессенджер). Ссылка действует 24 часа и срабатывает один раз.</p>';
+      if (S.inviteUrl && S.inviteQr) h += '<p>Наведите камеру телефона ребёнка на QR-код:</p><div class="qrbox" style="width:240px;max-width:100%;background:#fff;border-radius:12px;margin:8px 0 14px">' + S.inviteQr + '</div><p class="hint">Или скопируйте ссылку и отправьте её на телефон ребёнка.</p>';
+      if (S.inviteUrl) h += '<label>Ссылка для телефона ребёнка<input id="fInvite" class="inp" readonly value="' + esc(S.inviteUrl) + '"></label><div class="row"><button class="btn small" data-action="dev-copy">Скопировать ссылку</button></div>';
+      else h += '<div class="row"><button class="btn small" data-action="dev-invite">Создать ссылку</button></div>';
+    } else h += '<p class="hint">Список устройств не загрузился. Откройте «Настройки» ещё раз.</p>';
+    h += '</div>';
+  }
   h += '<div class="row" style="margin-top:22px"><button class="btn ghost small" data-action="home">К списку задач</button></div>';
   app.innerHTML = h; window.scrollTo(0, 0);
 }
 
-async function openCabinet(tab, flash) {
-  const r = await call("/api/cabinet");
-  if (r.status === 200) { const lv = await call("/api/leaves"); S = { view: "cabinet", tab: tab || "progress", cab: r.data, lv: lv.status === 200 ? lv.data : null, flash: flash || "" }; return render(); }
+function loadQr() { return new Promise(res => { if (window.qrcode) return res(true); const el = document.createElement("script"); el.src = "/qrcode.js"; el.onload = () => res(!!window.qrcode); el.onerror = () => res(false); document.head.appendChild(el); }); }
+function qrSvg(text) { try { const q = qrcode(0, "M"); q.addData(text); q.make(); return q.createSvgTag({ cellSize: 4, margin: 4, scalable: true }); } catch (e) { return ""; } }
+async function loadDevices() { const r = await call("/api/device/list", {}); S.devs = r.status === 200 && r.data.devices ? r.data.devices : null; }
+async function openCabinet(tab, flash, subj) {   // subj: предмет для просмотра (без него: тот, что проходит ребёнок)
+  const r = await call("/api/cabinet" + (subj ? "?subject=" + encodeURIComponent(subj) : ""));
+  if (r.status === 200) { const lv = await call("/api/leaves?subject=" + encodeURIComponent((r.data.subject && r.data.subject.id) || "")); S = { view: "cabinet", tab: tab || "progress", cab: r.data, lv: lv.status === 200 ? lv.data : null, flash: flash || "" }; if (tab === "phone") await loadDevices(); return render(); }
   if (r.status === 401) { USER = null; S = { view: "auth", mode: "login", err: "Войдите заново." }; return render(); }
   if (r.status === 403) { S = { view: "pin", err: "Введите PIN-код ещё раз." }; return render(); }
   S.err = NET; render();
 }
 
+/* выбор предмета на странице оплаты: запоминаем, чтобы сообщение в WhatsApp и кнопка знали предмет */
+document.addEventListener("change", e => { if (e.target && e.target.id === "fPaySubject" && S && S.view === "paypage") { S.paySubject = e.target.value; S.err = ""; const y = window.scrollY; render(); window.scrollTo(0, y); } });
 /* ---- оплата подписки: кнопки показываем, только если на сервере включена онлайн-оплата (/api/pay/config) ---- */
-let PAYCFG = { enabled: false, price: 9900 };
+let PAYCFG = { enabled: false, price: 9900, priceAll: 19900 };
 const payLabel = () => "Оплатить " + String(PAYCFG.price).replace(/\B(?=(\d{3})+$)/g, "\u00A0") + "\u00A0₸";
 function payBtn(ret, label, ghost) { return '<button class="btn small' + (ghost ? ' ghost' : '') + '" data-action="pay" data-ret="' + esc(ret || "") + '">' + esc(label || payLabel()) + '</button>'; }
-async function startPay(ret) {
+async function startPay(ret, plan, subject) {
   if (!USER) { S = { view: "auth", mode: "register", err: "Сначала создайте кабинет: подписка привязывается к нему." }; return render(); }
   const back = ret || (location.pathname + "");
-  const r = await call("/api/pay/create", { returnTo: back, lang: document.documentElement.lang === "kk" ? "kk" : "ru" });
+  if (!plan) {   // тариф ещё не выбран: ребёнок сначала вводит PIN родителя, родитель попадает на страницу выбора тарифа и предмета
+    if (!USER.parent) { S = { view: "pin", flash: "Оплачивает взрослый: введите PIN-код родителя.", afterPin: "pay", payRet: back }; return render(); }
+    await loadSubjects(); S = { view: "paypage", payRet: back }; return render();
+  }
+  const r = await call("/api/pay/create", { plan, subject: subject || "", returnTo: back, lang: document.documentElement.lang === "kk" ? "kk" : "ru" });
   if (r.status === 200 && r.data.url) { location.href = r.data.url; return; }
-  if (r.status === 403) { S = { view: "pin", flash: "Оплачивает взрослый: введите PIN-код родителя.", afterPin: "pay", payRet: back }; return render(); }
+  if (r.status === 403) { S = { view: "pin", flash: "Оплачивает взрослый: введите PIN-код родителя.", afterPin: "pay", payRet: back, payPlan: plan, paySubject: subject }; return render(); }
   if (r.status === 401) { USER = null; S = { view: "auth", mode: "login", err: "Войдите заново." }; return render(); }
   const msg = r.status === 0 ? NET : r.status === 429 ? "Слишком много попыток. Подождите немного." : (r.data.message || "Не получилось начать оплату. Попробуйте ещё раз.");
-  if (S && S.view === "cabinet") { S.err = msg; return render(); }
+  if (S && (S.view === "cabinet" || S.view === "paypage")) { S.err = msg; return render(); }
   S = { view: "pin", flash: msg }; render();
 }
 async function call(path, payload) {
@@ -1498,7 +1697,7 @@ async function doAuth(mode) {
   const r = await call(mode === "register" ? "/api/register" : "/api/login", payload);
   if (mode === "register" && r.status === 200 && window.lkTrack) window.lkTrack("sign_up");
   if (r.status === 200 && r.data.pending) { S = { view: "verify", email: r.data.email || email, err: "", flash: "" }; return render(); }
-  if (r.status === 403 && r.data.error === "unverified") { S = { view: "verify", email, err: "", flash: "Почта ещё не подтверждена. Откройте ссылку из письма или отправьте его ещё раз." }; return render(); }
+  if (r.status === 403 && r.data.error === "unverified") { S = { view: "verify", email, err: "", resend: true, flash: "Почта ещё не подтверждена. Откройте ссылку из письма или отправьте его ещё раз." }; return render(); }
   if (r.status === 200) { USER = r.data.user; await reloadTasks(); if (mode === "login" && USER.hasPin !== false) return openCabinet("progress"); S = (mode === "register" || USER.hasPin === false) ? { view: "setup", flash: mode === "register" ? "Кабинет создан. Осталось указать данные ребёнка." : "" } : { view: "home", flash: "" }; return render(); }
   S.err = r.status === 0 ? NET : r.status === 429 ? "Слишком много попыток. Подождите немного." : (r.data.message || "Не получилось. Проверьте данные.");
   render();
@@ -1528,7 +1727,8 @@ function renderVerify() {
   let h = '<h1 class="auth-h">Проверьте почту</h1>' +
     '<p class="auth-sub">Мы отправили письмо на <b>' + e + '</b>. Откройте его и нажмите «Подтвердить почту»: после этого кабинет включится. Если письма нет, загляните в «Спам».</p>';
   if (S.flash) h += '<div class="fb ok">' + esc(S.flash) + '</div>';
-  h += errBox(S.err) + '<div class="row"><button class="btn" data-action="verify-resend">Отправить письмо ещё раз</button><button class="btn ghost" data-action="auth" data-mode="register">Другой адрес</button></div>';
+  h += errBox(S.err);
+  if (S.resend) h += '<div class="row"><button class="btn" data-action="verify-resend">Отправить письмо ещё раз</button></div>';
   app.innerHTML = authShell(h).replace("Не переживайте, доступ вернём за минуту.", "Осталось одно письмо, и мы начнём."); window.scrollTo(0, 0);
 }
 async function doVerifyResend() {
@@ -1563,20 +1763,20 @@ async function doReset() {
   render();
 }
 async function doPinEnter() {
-  const after = S && S.afterPin, ret = S && S.payRet;
+  const after = S && S.afterPin, ret = S && S.payRet, pp = S && S.payPlan, ps = S && S.paySubject;
   const r = await call("/api/parent/enter", { pin: val("fPin").trim() });
-  if (r.status === 200 && r.data.ok) { USER = r.data.user; if (after === "pay") return startPay(ret); return openCabinet("progress"); }
+  if (r.status === 200 && r.data.ok) { USER = r.data.user; if (after === "pay") return startPay(ret, pp, ps); return openCabinet("progress"); }
   if (r.status === 401) { USER = null; S = { view: "auth", mode: "login", err: "Войдите заново." }; return render(); }
   S.err = r.status === 0 ? NET : r.status === 429 ? LOCKED : "Неверный PIN-код. Попробуйте ещё раз.";
-  S.afterPin = after; S.payRet = ret;
+  S.afterPin = after; S.payRet = ret; S.payPlan = pp; S.paySubject = ps;
   render();   // остаёмся на экране PIN, никуда не переходим
 }
 async function doPinChange(fromCabinet) {
-  const after = S && S.afterPin, ret = S && S.payRet;
+  const after = S && S.afterPin, ret = S && S.payRet, pp = S && S.payPlan, ps = S && S.paySubject;
   const pin = val("fPin"), pass = val("fPass");
   if (!need("PIN-коды не совпали.", pin === val("fPin2"))) return;
   const r = await call("/api/pin/change", { password: pass, newPin: pin });
-  if (r.status === 200 && r.data.ok && r.data.entered) { USER = r.data.user; if (after === "pay") return startPay(ret); return openCabinet(fromCabinet ? "settings" : "progress", "PIN-код сохранён."); }   // первый PIN: кабинет открывается сразу
+  if (r.status === 200 && r.data.ok && r.data.entered) { USER = r.data.user; if (after === "pay") return startPay(ret, pp, ps); return openCabinet(fromCabinet ? "settings" : "progress", "PIN-код сохранён."); }   // первый PIN: кабинет открывается сразу
   if (r.status === 200 && r.data.ok) { if (fromCabinet) return openCabinet("settings", "PIN-код изменён."); S = { view: "pin", flash: "PIN-код изменён. Введите его." }; return render(); }
   S.err = r.status === 0 ? NET : r.status === 429 ? LOCKED : r.status === 400 ? r.data.message : r.status === 401 ? "Войдите заново." : "Неверный пароль.";
   render();
@@ -1589,10 +1789,11 @@ async function doCancelRenewal(undo) {
   render();
 }
 async function doChild() {
-  const newG = +val("fGrade") || undefined, curG = (USER && USER.child && USER.child.grade) || 3, changed = !!newG && newG !== curG;
-  if (changed) {   // смена класса меняет упражнения: нужен пароль и подтверждение (13.11.2026)
+  const newG = +val("fGrade") || undefined, curG = (USER && USER.child && USER.child.grade) || 3, gradeChanged = !!newG && newG !== curG;
+  const changed = gradeChanged;   // предмет в «Настройках» не меняется: его выбирают переключателем вверху кабинета (18.11.2026)
+  if (changed) {   // класс меняет упражнения: нужен пароль и подтверждение (13.11.2026)
     if (!need("Для смены класса введите пароль от кабинета.", val("fPassG"))) return;
-    if (!confirm("Вы меняете класс ребёнка: {a} → {b}. Упражнения изменятся на упражнения выбранного класса. Прежние результаты не удаляются. Продолжить?".replace("{a}", curG).replace("{b}", newG))) return;
+    if (!confirm("Вы меняете класс ребёнка: " + curG + " → " + newG + ". Упражнения изменятся на упражнения выбранного класса. Прежние результаты не удаляются. Продолжить?")) return;
   }
   const r = await call("/api/parent/child", { childName: val("fChild"), grade: newG, password: changed ? val("fPassG") : undefined });
   if (r.status === 200 && r.data.ok) { USER = r.data.user; await reloadTasks(); return openCabinet("settings", "Сохранено."); }
@@ -1607,16 +1808,19 @@ async function doChild() {
 const HOME = { q: "", view: "list", open: {}, inited: false };
 try { const v = localStorage.getItem("lk_view2"); if (v === "tiles" || v === "list") HOME.view = v; } catch (e) {}
 let SECTIONS = [];
-const ST_MARK = { done: "✓", progress: "…" };
+const ST_MARK = { done: "✓", progress: "…", review: "↻", mastered: "✓✓" };   // в плитках (короткие значки)
+const ST_TXT = { new: "Не пройдено", progress: "В процессе", done: "Пройдено", review: "Нужно повторить", mastered: "Освоено" };   // в списке (словами)
+const isSolved = t => t.st === "done" || t.st === "review" || t.st === "mastered";
 const REC_TXT = { review: "пора повторить", harder: "можно потруднее", easier: "лучше полегче" };
 function catItem(t, i) {
-  const closed = !!t.closed, lock = !!t.locked || closed, cls = (lock ? " lock" : "") + (closed ? " seq" : "") + (t.st === "done" ? " done" : t.st === "progress" ? " progress" : "");
+  const closed = !!t.closed, lock = !!t.locked || closed, cls = (lock ? " lock" : "") + (closed ? " seq" : "") + (t.st === "done" || t.st === "review" || t.st === "mastered" ? " done" : t.st === "progress" ? " progress" : "") + (t.st === "review" ? " review" : t.st === "mastered" ? " mastered" : "");
   const mk = lock ? "🔒" : (ST_MARK[t.st] || "");
-  const label = "Номер " + t.no + (closed ? ", откроется после номера " + t.after : lock ? ", по подписке" : t.st === "done" ? ", решено" : t.st === "progress" ? ", начато" : "") + (t.rec ? ", рекомендуем: " + REC_TXT[t.rec] : "");
+  if (t.rec === "review" && t.st === "review") t = Object.assign({}, t, { rec: null });   // статус «Нужно повторить» уже говорит то же самое: звёздочку не дублируем
+  const label = "Номер " + t.no + (closed ? ", откроется после номера " + t.after : lock ? ", по подписке" : t.st ? ", " + ST_TXT[t.st].toLowerCase() : "") + (t.rec ? ", рекомендуем: " + REC_TXT[t.rec] : "");
   if (HOME.view === "list") {
     return '<li><button class="row-btn' + cls + (t.title === "Задача" ? " word" : "") + '" data-action="start" data-i="' + i + '" aria-label="' + label + '">' +
       '<span class="rno">' + esc(t.no) + '</span><span class="rtx">' + (t.title !== "Задача" ? '<b>' + esc(t.title) + '</b>' : '') +
-      (t.rec ? ' <em class="recm">★ ' + REC_TXT[t.rec] + '</em> ' : '') + (closed ? 'откроется после номера ' + esc(t.after) : lock ? 'по подписке' : esc(t.cond || "")) + '</span><span class="rst">' + mk + '</span></button></li>';
+      (t.rec ? ' <em class="recm">★ ' + REC_TXT[t.rec] + '</em> ' : '') + (closed ? 'откроется после номера ' + esc(t.after) : lock ? 'по подписке' : esc(t.cond || "")) + '</span><span class="rst' + (!lock && t.st ? ' st-' + t.st : '') + '">' + (lock ? mk : (ST_TXT[t.st] || "")) + '</span></button></li>';
   }
   return '<li><button class="tile' + cls + '" data-action="start" data-i="' + i + '" aria-label="' + label + '" title="' + esc(closed ? "Откроется после номера " + t.after : lock ? t.title : (t.cond || t.title)) + '">' +
     esc(t.no) + (mk ? '<span class="mk" aria-hidden="true">' + mk + '</span>' : '') + (t.rec ? '<span class="rc" title="Рекомендуем: ' + REC_TXT[t.rec] + '" aria-hidden="true">★</span>' : '') + '</button></li>';
@@ -1642,11 +1846,12 @@ function catListHTML() {
   const groups = catGroups().filter(g => !QUEUE || g.idx.some(i => QUEUE.indexOf(i) >= 0));
   if (QUEUE) {
     const g = groups[0];
-    const done = QUEUE.filter(i => TASKS[i].st === "done").length;
+    const done = QUEUE.filter(i => isSolved(TASKS[i])).length;
     return '<p class="cat-meta">' + esc(g ? g.title : "Раздел") + ' · ' + QUEUE.length + ' задач' + (USER ? ', решено ' + done : '') + ' · <a href="' + (listHref() || 'start.html') + '">Выбрать другой раздел</a></p>' + catItems(QUEUE);
   }
-  return groups.map(g => {
-    const done = g.idx.filter(i => TASKS[i].st === "done").length;
+  const legend = USER && HOME.view === "tiles" ? '<p class="st-legend"><span>… в процессе</span><span>✓ пройдено</span><span>↻ нужно повторить</span><span>✓✓ освоено</span></p>' : "";
+  return legend + groups.map(g => {
+    const done = g.idx.filter(i => isSolved(TASKS[i])).length;
     return '<section class="grp2"><h2 class="grp2-h"><span class="gt">' + esc(g.title) + '</span><span class="gc">' + (USER && g.idx.length ? '<b>' + done + '</b> из ' + g.idx.length : g.idx.length + ' ' + plural(g.idx.length, "задача", "задачи", "задач")) + '</span></h2>' +
       (g.idx.length ? catItems(g.idx) : '<p class="grp2-empty">Задач пока нет</p>') + '</section>';
   }).join("");
@@ -1700,6 +1905,338 @@ function padHTML() {
   return h;
 }
 
+/* полоска над карточкой шага: номер, название и история упражнения, одинаково на всех шагах */
+function taskStrip(T) {
+  if (T.quiz || !T.title || T.title === "Задача") return "";
+  return '<div class="tstrip"><div class="tsno">Упражнение ' + esc(T.no) + '</div><div class="tstt">' + esc(T.title) + '</div>' +
+    (T.condition ? '<div class="tscond">' + esc(T.condition) + '</div>' : '') + '</div>';
+}
+/* жалоба ребёнка на ошибку в упражнении: кнопка только после неверного ответа, одна на упражнение (проверяет сервер, /api/report) */
+const REPORT_LEAVES = 150;
+function reportHTML(T) {
+  if (!USER || T.quiz || !((S.errors && S.errors[S.s]) > 0)) return "";
+  const R = S.rep;
+  if (R && R.task === T.id && R.step === S.s && R.sent) {
+    return '<div class="mark rep" role="status">' + (R.counted ? "Спасибо! Мы проверим. Если ошибка подтвердится, получишь " + REPORT_LEAVES + " листиков." : "Спасибо! Мы уже получили твои сообщения.") + '</div>';
+  }
+  if (R && R.task === T.id && R.sent) return "";     // по этому упражнению уже сообщили на другом шаге
+  const busy = R && R.busy;
+  return '<div class="rep">' + (R && R.err ? '<div>Не получилось отправить. Попробуй позже.</div>' : '') +
+    '<button class="btn ghost small" data-action="report"' + (busy ? ' disabled' : '') + '>' + (busy ? 'Отправляю…' : 'Ошибка в упражнении?') + '</button></div>';
+}
+async function reportError() {
+  if (S.rep && S.rep.busy) return;
+  const my = S, T = TASKS[S.t], stepNo = S.s;
+  my.rep = { task: T.id, step: stepNo, busy: true }; render();
+  let r;
+  try { r = await api("/api/report", { task: T.id, step: stepNo, answer: my.lastAns ? my.lastAns[stepNo] : undefined }); }
+  catch (e) { my.rep = { task: T.id, step: stepNo, err: true }; return S === my && render(); }
+  if (r.status === 200 && r.data && r.data.ok) my.rep = { task: T.id, step: stepNo, sent: true, counted: !!r.data.counted };
+  else my.rep = { task: T.id, step: stepNo, err: true };
+  if (S === my) render();
+}
+
+/* Рисунок на шаге: st.pic. Рисунок только показывает числа, ответа не называет.
+   {kind:"places", nums:[509,590], op:"+"|"−"}: кубики в таблице «сотни / десятки / единицы» (op ставит знак перед вторым числом);
+   {kind:"column", a:324, b:213, op:"+"|"−"}: запись столбиком, ответ закрыт клетками «?»;
+   {kind:"classes", num:52408}: число по классам (тысячи, единицы) и разрядам. */
+function picHTML(pic) {
+  if (!pic) return "";
+  const INK = "#1E2A22", COL = ["#BFE3CC", "#FFE08A", "#F5B7A0"], BLUE = "#CFE3F7";
+  const ok = (n, max) => Number.isInteger(n) && n >= 0 && n <= max;
+  const wrap = (W, H, g, label) => '<div class="pic"><svg viewBox="0 0 ' + W + ' ' + H + '" style="max-width:' + Math.round(Math.min(W * 1.2, 170 * W / H)) + 'px" role="img" aria-label="' + esc(label) + '">' + g + '</svg></div>';
+  const tx = (x, y, s, size, o) => '<text x="' + x + '" y="' + y + '" text-anchor="' + ((o && o.a) || "middle") + '" font-size="' + size + '" font-weight="' + ((o && o.w) || 700) + '" fill="' + INK + '"' + (o && o.f ? ' fill-opacity="' + o.f + '"' : '') + '>' + s + '</text>';
+  if (pic.kind === "places" && Array.isArray(pic.nums)) {
+    const nums = pic.nums.slice(0, 3).filter(n => ok(n, 999));
+    if (!nums.length) return "";
+    const f = nums.length > 2 ? 0.68 : 1, LX = 70, CW = 100, HY = 22, RH = Math.round(86 * f), W = LX + CW * 3, H = HY + RH * nums.length + 2;
+    let g = "";
+    ["Сотни", "Десятки", "Единицы"].forEach((t, c) => { g += tx(LX + CW * c + CW / 2, 15, t, 13); });
+    nums.forEach((n, r) => {
+      const y0 = HY + RH * r, d = [Math.floor(n / 100), Math.floor(n / 10) % 10, n % 10];
+      if (r) g += '<line x1="4" x2="' + (W - 4) + '" y1="' + (y0 - 2) + '" y2="' + (y0 - 2) + '" stroke="' + INK + '" stroke-opacity=".2"/>';
+      const lab = (r && (pic.op === "+" || pic.op === "−")) ? pic.op + " " + n : String(n);
+      g += tx(LX - 8, y0 + RH / 2 + 8, lab, lab.length > 5 ? 18 : 22, { a: "end", w: 800 });
+      for (let c = 0; c < 3; c++) {
+        const cx = LX + CW * c, cnt = d[c];
+        if (!cnt) { g += tx(cx + CW / 2, y0 + RH / 2 + 8, "0", 22, { w: 400, f: ".3" }); continue; }
+        let k = "";
+        for (let i = 0; i < cnt; i++) {
+          if (c === 0) k += '<rect x="' + (17 + (i % 3) * 22) + '" y="' + (6 + Math.floor(i / 3) * 24) + '" width="20" height="20" rx="3" fill="' + COL[0] + '" stroke="' + INK + '" stroke-width="1.5"/>';
+          else if (c === 1) k += '<rect x="' + (8 + i * 9) + '" y="12" width="7" height="54" rx="2" fill="' + COL[1] + '" stroke="' + INK + '" stroke-width="1.3"/>';
+          else k += '<rect x="' + (28 + (i % 3) * 14) + '" y="' + (12 + Math.floor(i / 3) * 18) + '" width="12" height="12" rx="2" fill="' + COL[2] + '" stroke="' + INK + '" stroke-width="1.3"/>';
+        }
+        g += '<g transform="translate(' + (cx + CW * (1 - f) / 2) + ' ' + y0 + ') scale(' + f + ')">' + k + '</g>';
+      }
+    });
+    return wrap(W, H, g, "Числа " + nums.join(" и ") + " по разрядам: сотни, десятки, единицы");
+  }
+  if (pic.kind === "column" && ok(pic.a, 999) && ok(pic.b, 999) && (pic.op === "+" || pic.op === "−")) {
+    const X0 = 52, CW = 56, W = X0 + CW * 3 + 12, H = 152;
+    const dg = n => [Math.floor(n / 100), Math.floor(n / 10) % 10, n % 10];
+    const show = (n, c) => (c === 0 && n < 100) || (c === 1 && n < 10) ? "" : String(dg(n)[c]);
+    let g = "";
+    for (let c = 0; c < 3; c++) {
+      const cx = X0 + CW * c;
+      g += '<rect x="' + (cx + 2) + '" y="22" width="' + (CW - 4) + '" height="126" rx="8" fill="' + COL[c] + '" fill-opacity=".45"/>';
+      g += tx(cx + CW / 2, 16, ["Сотни", "Десятки", "Единицы"][c], 11);
+      g += tx(cx + CW / 2, 56, show(pic.a, c), 28) + tx(cx + CW / 2, 96, show(pic.b, c), 28);
+      g += '<rect x="' + (cx + 8) + '" y="112" width="' + (CW - 16) + '" height="30" rx="6" fill="#fff" stroke="' + INK + '" stroke-opacity=".5" stroke-dasharray="4 3"/>' + tx(cx + CW / 2, 134, "?", 20, { w: 400, f: ".4" });
+    }
+    g += tx(26, 96, pic.op, 30) + '<line x1="8" x2="' + (W - 6) + '" y1="104" y2="104" stroke="' + INK + '" stroke-width="2.5"/>';
+    return wrap(W, H, g, "Запись столбиком: " + pic.a + " " + pic.op + " " + pic.b);
+  }
+  if (pic.kind === "classes" && ok(pic.num, 999999)) {
+    const CW = 40, GAP = 14, X0 = 10, W = X0 * 2 + CW * 6 + GAP, H = 108;
+    const s = String(pic.num).padStart(6, " ");
+    let g = "";
+    [["Класс тысяч", BLUE], ["Класс единиц", COL[0]]].forEach((k, ci) => {
+      const gx = X0 + ci * (CW * 3 + GAP);
+      g += tx(gx + CW * 1.5, 16, k[0], 13);
+      for (let c = 0; c < 3; c++) {
+        const i = ci * 3 + c, ch = s[i], x = gx + c * CW;
+        g += tx(x + CW / 2, 34, ["сотни", "десятки", "единицы"][c], 9, { w: 400 });
+        if (ch === " ") g += '<rect x="' + (x + 2) + '" y="42" width="' + (CW - 4) + '" height="52" rx="6" fill="#fff" stroke="' + INK + '" stroke-opacity=".3" stroke-dasharray="4 3"/>';
+        else g += '<rect x="' + (x + 2) + '" y="42" width="' + (CW - 4) + '" height="52" rx="6" fill="' + k[1] + '" stroke="' + INK + '" stroke-width="1.5"/>' + tx(x + CW / 2, 78, ch, 30);
+      }
+    });
+    return wrap(W, H, g, "Число " + pic.num + " по классам и разрядам");
+  }
+  if (pic.kind === "groups" && ok(pic.count, 10) && pic.count > 0) {
+    const BW = 56, GP = 8, PER = 5, n = pic.count, rows = Math.ceil(n / PER), cols = Math.min(n, PER), inner = cols * (BW + GP) + GP;
+    const W = Math.max(inner, 160), ox = (W - inner) / 2, ty = rows * (BW + GP) + GP, H = ty + (pic.total ? 38 : 0);
+    let g = "";
+    for (let i = 0; i < n; i++) {
+      const x = ox + GP + (i % PER) * (BW + GP), y = GP + Math.floor(i / PER) * (BW + GP);
+      g += '<rect x="' + x + '" y="' + y + '" width="' + BW + '" height="' + BW + '" rx="10" fill="#fff" stroke="' + INK + '" stroke-width="1.8"/>';
+      if (pic.label !== undefined) g += tx(x + BW / 2, y + BW / 2 + 6, esc(pic.label), String(pic.label).length > 5 ? 13 : String(pic.label).length > 3 ? 15 : 18);
+      else if (!pic.dots) g += tx(x + BW / 2, y + BW / 2 + 8, "0", 22, { w: 400, f: ".3" });
+      else for (let k = 0; k < pic.dots; k++) g += '<circle cx="' + (x + 10 + (k % 5) * 9) + '" cy="' + (y + 10 + Math.floor(k / 5) * 9) + '" r="3.6" fill="' + COL[2] + '" stroke="' + INK + '" stroke-width="1"/>';
+    }
+    if (pic.total) g += '<path d="M' + (ox + GP) + ' ' + (ty + 2) + ' v8 H' + (ox + inner - GP) + ' v-8" fill="none" stroke="' + INK + '" stroke-width="2"/>' + tx(W / 2, ty + 32, esc(pic.total), 18);
+    return wrap(W, H, g, "Рисунок: " + pic.count + " одинаковых групп");
+  }
+  if (pic.kind === "grid" && ok(pic.rows, 12) && ok(pic.cols, 12) && pic.rows > 0 && pic.cols > 0) {
+    const cs = Math.min(34, Math.floor(250 / pic.cols), Math.floor(120 / pic.rows)), X0 = pic.left ? 50 : 10, Y0 = (pic.title ? 28 : 8) + (pic.top ? 20 : 0);
+    const inner = X0 + cs * pic.cols + 14, W = Math.max(inner, 150, pic.title ? String(pic.title).length * 8 + 20 : 0), ox = (W - inner) / 2, H = Y0 + cs * pic.rows + 10;
+    let g = "";
+    if (pic.title) g += tx(W / 2, 20, esc(pic.title), 15);
+    if (pic.top) g += tx(ox + X0 + cs * pic.cols / 2, Y0 - 6, esc(pic.top), 13);
+    if (pic.left) g += tx(ox + X0 - 6, Y0 + cs * pic.rows / 2 + 5, esc(pic.left), 13, { a: "end" });
+    for (let r = 0; r < pic.rows; r++) for (let c = 0; c < pic.cols; c++) g += '<rect x="' + (ox + X0 + c * cs) + '" y="' + (Y0 + r * cs) + '" width="' + cs + '" height="' + cs + '" fill="' + COL[0] + '" stroke="' + INK + '" stroke-width="1.2"/>' + (pic.cellText ? tx(ox + X0 + c * cs + cs / 2, Y0 + r * cs + cs / 2 + cs * 0.17, esc(pic.cellText), Math.min(13, cs * 0.5), { w: 600 }) : "");
+    return wrap(W, H, g, "Клетчатая фигура: " + pic.rows + " на " + pic.cols + " клеток");
+  }
+  if (pic.kind === "venn") {
+    const items = Array.isArray(pic.a) && Array.isArray(pic.b), W = 340, H = 196;
+    let g = '<defs><clipPath id="vennA"><circle cx="120" cy="108" r="80"/></clipPath></defs>' +
+      '<circle cx="120" cy="108" r="80" fill="' + COL[0] + '"/><circle cx="220" cy="108" r="80" fill="' + BLUE + '"/>' +
+      '<circle cx="220" cy="108" r="80" fill="' + COL[1] + '" clip-path="url(#vennA)"/>' +
+      '<circle cx="120" cy="108" r="80" fill="none" stroke="' + INK + '" stroke-width="2"/><circle cx="220" cy="108" r="80" fill="none" stroke="' + INK + '" stroke-width="2"/>';
+    if (items) {
+      const A = pic.a.filter(x => !pic.b.includes(x)), B = pic.b.filter(x => !pic.a.includes(x)), I = pic.a.filter(x => pic.b.includes(x));
+      const fs = pic.a.concat(pic.b).some(v => String(v).length > 5) ? 12 : 18, lh = fs + 7;
+      const list = (x, arr) => arr.map((v, i) => tx(x, 108 - (arr.length - 1) * lh / 2 + i * lh + fs / 3, esc(v), fs)).join("");
+      g += tx(70, 18, esc(pic.na || "A"), 15) + tx(270, 18, esc(pic.nb || "B"), 15) + list(88, A) + list(170, I) + list(252, B);
+    } else {
+      g += tx(88, 112, esc(pic.la || ""), 13) + tx(170, 112, esc(pic.lab || ""), 18) + tx(252, 112, esc(pic.lb || ""), 13);
+    }
+    return wrap(W, H, g, "Два множества в кругах, общая часть посередине");
+  }
+  if (pic.kind === "parts" && Array.isArray(pic.parts) && pic.parts.length >= 2 && pic.parts.length <= 3) {
+    const num = v => typeof v === "number", lab = v => num(v) ? v + (pic.unit ? " " + pic.unit : "") : (typeof v === "string" ? v : "?"), isKnown = v => num(v) || typeof v === "string", u = pic.unit ? " " + pic.unit : "", W = 320, X0 = 10, TW = 300;
+    const kn = pic.parts.filter(num), known = kn.reduce((a, b) => a + b, 0), unk = pic.parts.length - kn.length;
+    const w = pic.parts.map(v => num(v) ? v : (num(pic.whole) && pic.whole > known ? (pic.whole - known) / unk : known / Math.max(1, kn.length)));
+    const sum = w.reduce((a, b) => a + b, 0);
+    let g = '<path d="M' + X0 + ' 38 v-8 H' + (X0 + TW) + ' v8" fill="none" stroke="' + INK + '" stroke-width="2"/>' + tx(W / 2, 24, lab(pic.whole), 20), x = X0;
+    pic.parts.forEach((v, i) => {
+      const ww = TW * w[i] / sum;
+      g += isKnown(v) ? '<rect x="' + x + '" y="46" width="' + ww + '" height="50" rx="6" fill="' + COL[i % 3] + '" stroke="' + INK + '" stroke-width="1.5"/>' + tx(x + ww / 2, 79, esc(lab(v)), 20)
+        : '<rect x="' + x + '" y="46" width="' + ww + '" height="50" rx="6" fill="#fff" stroke="' + INK + '" stroke-opacity=".6" stroke-dasharray="5 4"/>' + tx(x + ww / 2, 80, "?", 24, { w: 400, f: ".5" });
+      x += ww;
+    });
+    return wrap(W, 108, g, "Схема: целое и части");
+  }
+  if (pic.kind === "compare" && pic.big && pic.small && ok(pic.diff, 999)) {
+    const W = 330, X0 = 84, SW = 150, DW = 74, val = v => typeof v === "number" ? String(v) : "?";
+    let g = tx(X0 - 8, 59, esc(pic.big.name), 14, { a: "end" }) + tx(X0 - 8, 113, esc(pic.small.name), 14, { a: "end" });
+    g += '<path d="M' + X0 + ' 30 v-7 H' + (X0 + SW + DW) + ' v7" fill="none" stroke="' + INK + '" stroke-width="2"/>' + tx(X0 + (SW + DW) / 2, 18, val(pic.big.val), 18);
+    g += '<rect x="' + X0 + '" y="36" width="' + SW + '" height="34" rx="6" fill="' + COL[0] + '" stroke="' + INK + '" stroke-width="1.5"/>';
+    g += '<rect x="' + (X0 + SW) + '" y="36" width="' + DW + '" height="34" rx="6" fill="#fff" stroke="' + INK + '" stroke-opacity=".6" stroke-dasharray="5 4"/>' + tx(X0 + SW + DW / 2, 59, "на " + pic.diff, 15);
+    g += '<rect x="' + X0 + '" y="90" width="' + SW + '" height="34" rx="6" fill="' + COL[1] + '" stroke="' + INK + '" stroke-width="1.5"/>' + tx(X0 + SW / 2, 114, val(pic.small.val), 18);
+    return wrap(W, 132, g, "Сравнение: " + pic.big.name + " и " + pic.small.name + ", разница " + pic.diff);
+  }
+  if (pic.kind === "frac" && (pic.shape === "circle" || pic.shape === "bar")) {
+    const n = pic.parts, k = pic.shaded || 0;
+    if (pic.shape === "circle" && ok(n, 12) && n > 0) {
+      const R = 56, cx = 70, cy = 66, W = 140, H = 132;
+      let g = "";
+      if (n === 1) g += '<circle cx="' + cx + '" cy="' + cy + '" r="' + R + '" fill="' + (k ? COL[1] : "#fff") + '" stroke="' + INK + '" stroke-width="2"/>';
+      else for (let i = 0; i < n; i++) {
+        const a0 = -Math.PI / 2 + 2 * Math.PI * i / n, a1 = -Math.PI / 2 + 2 * Math.PI * (i + 1) / n;
+        const p = a => (cx + R * Math.cos(a)).toFixed(1) + " " + (cy + R * Math.sin(a)).toFixed(1);
+        g += '<path d="M' + cx + " " + cy + " L" + p(a0) + " A" + R + " " + R + " 0 0 1 " + p(a1) + ' Z" fill="' + (i < k ? COL[1] : "#fff") + '" stroke="' + INK + '" stroke-width="2" stroke-linejoin="round"/>';
+      }
+      return wrap(W, H, g, "Круг, разделённый на " + n + " частей, закрашено " + k);
+    }
+    if (pic.shape === "bar") {
+      const sizes = Array.isArray(pic.sizes) ? pic.sizes : (ok(n, 12) && n > 0 ? Array(n).fill(1) : null);
+      if (!sizes) return "";
+      const W = 300, X0 = 10, TW = 280, tot = sizes.reduce((a, b) => a + b, 0);
+      let g = "", x = X0;
+      sizes.forEach((v, i) => { const w = TW * v / tot; g += '<rect x="' + x + '" y="10" width="' + w + '" height="52" rx="6" fill="' + (i < k ? COL[1] : COL[0]) + '" stroke="' + INK + '" stroke-width="2"/>'; x += w; });
+      return wrap(W, 72, g, "Полоса, разделённая на " + sizes.length + " частей");
+    }
+    return "";
+  }
+  if (pic.kind === "fracbars" && Array.isArray(pic.items) && pic.items.length > 0 && pic.items.length <= 3) {
+    const W = 300, X0 = 62, TW = 230, RH = 44, H = pic.items.length * RH + 8;
+    let g = "";
+    pic.items.forEach((it, r) => {
+      if (!(ok(it.parts, 12) && it.parts > 0)) return;
+      const y = 8 + r * RH, w = TW / it.parts;
+      g += tx(X0 - 8, y + 26, esc(it.label || ""), 17, { a: "end" });
+      for (let i = 0; i < it.parts; i++) g += '<rect x="' + (X0 + i * w) + '" y="' + y + '" width="' + w + '" height="34" fill="' + (i < (it.shaded || 0) ? COL[1] : "#fff") + '" stroke="' + INK + '" stroke-width="1.6"/>';
+    });
+    return wrap(W, H, g, "Полосы одинаковой длины, разделённые на части");
+  }
+  if (pic.kind === "partof" && ok(pic.parts, 10) && pic.parts > 0) {
+    const u = pic.unit ? " " + pic.unit : "", num = v => typeof v === "number", W = 320, X0 = 10, TW = 300, w = TW / pic.parts, k = pic.shaded || 1;
+    let g = '<path d="M' + X0 + ' 38 v-8 H' + (X0 + TW) + ' v8" fill="none" stroke="' + INK + '" stroke-width="2"/>' + tx(W / 2, 24, num(pic.total) ? pic.total + u : "?", 20);
+    for (let i = 0; i < pic.parts; i++) g += '<rect x="' + (X0 + i * w) + '" y="46" width="' + w + '" height="50" fill="' + (i < k ? COL[1] : "#fff") + '" stroke="' + INK + '" stroke-width="1.8"/>';
+    g += tx(X0 + w * k / 2, 78, num(pic.part) ? pic.part + u : "?", w * k < 40 ? 18 : 20);
+    return wrap(W, 108, g, "Целое разделено на " + pic.parts + " равных частей");
+  }
+  if (pic.kind === "layers" && ok(pic.n, 6) && ok(pic.k, 6) && pic.n > 0 && pic.k > 0) {
+    const n = pic.n, k = pic.k, GAP = 12, cs = Math.min(20, Math.floor((300 - (k - 1) * GAP) / (k * n))), lw = n * cs, W = Math.max(k * lw + (k - 1) * GAP + 20, 150), H = lw + 32, ox = (W - (k * lw + (k - 1) * GAP)) / 2;
+    let g = "";
+    for (let l = 0; l < k; l++) {
+      const x0 = ox + l * (lw + GAP);
+      for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) g += '<rect x="' + (x0 + c * cs) + '" y="8" width="' + cs + '" height="' + cs + '" transform="translate(0 ' + (r * cs) + ')" fill="' + COL[l % 3] + '" stroke="' + INK + '" stroke-width="1.2"/>';
+      g += tx(x0 + lw / 2, lw + 26, "слой " + (l + 1), 12, { w: 400 });
+    }
+    return wrap(W, H, g, k + " слоя(ев) по " + n + " на " + n + " кубиков");
+  }
+  if (pic.kind === "circle") {
+    const W = 220, H = 150, cx = 110, cy = 76, R = 62, RC = "#D9622B", DC = "#2E7BC4", ang = -Math.PI / 4.2;
+    let g = '<circle cx="' + cx + '" cy="' + cy + '" r="' + R + '" fill="' + BLUE + '" fill-opacity=".55" stroke="' + INK + '" stroke-width="2"/>';
+    if (pic.d !== undefined) g += '<line x1="' + (cx - R) + '" y1="' + cy + '" x2="' + (cx + R) + '" y2="' + cy + '" stroke="' + DC + '" stroke-width="4" stroke-linecap="round"/>' + (pic.d ? tx(cx, cy + 26, esc(pic.d), 17) : "");
+    if (pic.r !== undefined) { const ex = cx + R * Math.cos(ang), ey = cy + R * Math.sin(ang); g += '<line x1="' + cx + '" y1="' + cy + '" x2="' + ex.toFixed(1) + '" y2="' + ey.toFixed(1) + '" stroke="' + RC + '" stroke-width="4" stroke-linecap="round"/>' + (pic.r ? tx(((cx + ex) / 2 + 8).toFixed(1), ((cy + ey) / 2 + 9).toFixed(1), esc(pic.r), 15, { a: "start" }) : ""); }
+    g += '<circle cx="' + cx + '" cy="' + cy + '" r="4.5" fill="' + INK + '"/>';
+    return wrap(W, H, g, "Окружность с центром, радиусом и диаметром");
+  }
+  if (pic.kind === "rect" && pic.w !== undefined && pic.h !== undefined) {
+    const parts = [pic].concat(pic.b ? [pic.b] : []), nv = s => { const m = String(s).match(/\d+/); return m ? +m[0] : null; };
+    const dim = parts.map(p => { let w = nv(p.w), h = nv(p.h); if (w == null && h == null) { w = pic.sq ? 6 : 8; h = pic.sq ? 6 : 5; } else if (w == null) w = h * 1.6; else if (h == null) h = w / 1.6; return [w, h]; });
+    const GAP = 36, sumW = dim.reduce((a, d) => a + d[0], 0), maxH = Math.max(...dim.map(d => d[1])), unit = Math.min((230 - GAP * (parts.length - 1)) / sumW, 90 / maxH);
+    const tot = sumW * unit + GAP * (parts.length - 1), W = 330, ox = 54 + (230 - tot) / 2, top = 30, H = top + maxH * unit + 12;
+    let g = "", x = ox;
+    parts.forEach((p, i) => {
+      const w = dim[i][0] * unit, h = dim[i][1] * unit, y = top + maxH * unit - h;
+      g += '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" fill="' + COL[0] + '" fill-opacity="' + (p.diag ? ".35" : "1") + '" stroke="none"/>';
+      if (p.diag) g += '<polygon points="' + x + "," + y + " " + x + "," + (y + h) + " " + (x + w) + "," + (y + h) + '" fill="' + COL[1] + '"/><line x1="' + x + '" y1="' + y + '" x2="' + (x + w) + '" y2="' + (y + h) + '" stroke="' + INK + '" stroke-width="2"/>' + (p.tri ? tx(x + w / 3, y + h * 0.72 + 6, esc(p.tri), 18) : "");
+      g += '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" fill="none" stroke="' + INK + '" stroke-width="2.2"/>';
+      if (p.in) g += tx(p.diag ? x + w * 0.68 : x + w / 2, p.diag ? y + h * 0.36 + 6 : y + h / 2 + 6, esc(p.in), 17);
+      if (p.w) g += tx(x + w / 2, y - 8, esc(p.w), 15);
+      if (p.h) g += tx(x - 6, y + h / 2 + 5, esc(p.h), 15, { a: "end" });
+      x += w + GAP;
+    });
+    return wrap(W, H, g, "Прямоугольная фигура с подписанными сторонами");
+  }
+  if (pic.kind === "units" && (pic.chain === "length" || pic.chain === "mass")) {
+    const ch = pic.chain === "length" ? [["км", ""], ["м", "1000"], ["см", "100"], ["мм", "10"]] : [["т", ""], ["кг", "1000"], ["г", "1000"]];
+    const BW = 42, GP = 52, n = ch.length, W = n * BW + (n - 1) * GP + 20;
+    let g = "";
+    ch.forEach((c, i) => {
+      const x = 10 + i * (BW + GP);
+      g += '<rect x="' + x + '" y="28" width="' + BW + '" height="34" rx="8" fill="' + COL[i % 3] + '" stroke="' + INK + '" stroke-width="1.6"/>' + tx(x + BW / 2, 51, c[0], 18);
+      if (i) {
+        const x1 = x - GP + 5, x2 = x - 5;
+        g += '<line x1="' + x1 + '" y1="38" x2="' + x2 + '" y2="38" stroke="' + INK + '" stroke-width="2"/><polygon points="' + x2 + ",38 " + (x2 - 7) + ",34 " + (x2 - 7) + ',42" fill="' + INK + '"/>' + tx((x1 + x2) / 2, 28, "·" + c[1], 12);
+        g += '<line x1="' + x2 + '" y1="54" x2="' + x1 + '" y2="54" stroke="' + INK + '" stroke-width="2"/><polygon points="' + x1 + ",54 " + (x1 + 7) + ",50 " + (x1 + 7) + ',58" fill="' + INK + '"/>' + tx((x1 + x2) / 2, 74, ":" + c[1], 12);
+      }
+    });
+    return wrap(W, 84, g, "Единицы: " + ch.map(c => c[0]).join(", ") + ", переходы между ними");
+  }
+  if (pic.kind === "area" && Array.isArray(pic.parts) && pic.parts.length === 2 && pic.parts.every(v => ok(v, 9999) && v > 0)) {
+    const W = 330, X0 = 56, TW = 240, sum = pic.parts[0] + pic.parts[1];
+    let f0 = Math.min(0.78, Math.max(0.22, pic.parts[0] / sum)), w0 = TW * f0, w1 = TW - w0, g = "";
+    g += '<rect x="' + X0 + '" y="34" width="' + w0 + '" height="56" fill="' + COL[0] + '" stroke="' + INK + '" stroke-width="2"/><rect x="' + (X0 + w0) + '" y="34" width="' + w1 + '" height="56" fill="' + COL[1] + '" stroke="' + INK + '" stroke-width="2"/>';
+    g += tx(X0 + w0 / 2, 26, pic.parts[0], 16) + tx(X0 + w0 + w1 / 2, 26, pic.parts[1], 16);
+    if (pic.h) g += tx(X0 - 8, 67, esc(pic.h), 16, { a: "end" });
+    return wrap(W, 100, g, "Прямоугольник из двух частей: " + pic.parts[0] + " и " + pic.parts[1]);
+  }
+  if (pic.kind === "rem" && ok(pic.n, 60) && ok(pic.k, 9) && pic.n > 0 && pic.k > 1) {
+    const q = Math.floor(pic.n / pic.k), r = pic.n % pic.k, nb = q + (r ? 1 : 0), PER = 5, GP = 10;
+    const cols = Math.min(3, pic.k), rows = Math.ceil(pic.k / cols), BW = cols * 13 + 12, BH = rows * 13 + 12;
+    const per = Math.min(nb, PER), nr = Math.ceil(nb / PER), inner = per * (BW + GP) + GP, W = Math.max(inner, 150), ox = (W - inner) / 2, H = nr * (BH + GP) + GP;
+    let g = "";
+    for (let i = 0; i < nb; i++) {
+      const x = ox + GP + (i % PER) * (BW + GP), y = GP + Math.floor(i / PER) * (BH + GP), full = i < q, cnt = full ? pic.k : r;
+      g += '<rect x="' + x + '" y="' + y + '" width="' + BW + '" height="' + BH + '" rx="9" fill="' + (full ? "#fff" : "none") + '" stroke="' + INK + '" stroke-width="1.8"' + (full ? "" : ' stroke-dasharray="5 4"') + '/>';
+      for (let j = 0; j < cnt; j++) g += '<circle cx="' + (x + 12 + (j % cols) * 13) + '" cy="' + (y + 12 + Math.floor(j / cols) * 13) + '" r="4.6" fill="' + COL[2] + '" stroke="' + INK + '" stroke-width="1"/>';
+    }
+    return wrap(W, H, g, "Предметов " + pic.n + ", в каждом пакете по " + pic.k);
+  }
+  if (pic.kind === "chain" && Array.isArray(pic.ops) && pic.ops.length >= 1 && pic.ops.length <= 2) {
+    const two = pic.ops.length === 2, W = 330, H = 84, xs = two ? [10, 137, 264] : [40, 234], vals = two ? [pic.start || "x", "?", pic.end || "?"] : [pic.start || "x", pic.end || "?"];
+    let g = "";
+    xs.forEach((x, i) => { const mid = two && i === 1; g += '<rect x="' + x + '" y="28" width="56" height="40" rx="9" fill="' + (mid ? "#fff" : COL[i === 0 ? 0 : 1]) + '" stroke="' + INK + '" stroke-width="1.8"' + (mid ? ' stroke-dasharray="5 4"' : "") + '/>' + tx(x + 28, 55, esc(vals[i]), 22, mid ? { w: 400, f: ".5" } : null); });
+    pic.ops.forEach((op, i) => { const x1 = xs[i] + 62, x2 = xs[i + 1] - 6; g += '<line x1="' + x1 + '" y1="48" x2="' + x2 + '" y2="48" stroke="' + INK + '" stroke-width="2"/><polygon points="' + x2 + ",48 " + (x2 - 8) + ",44 " + (x2 - 8) + ',52" fill="' + INK + '"/>' + tx((x1 + x2) / 2, 38, esc(op), 17); });
+    return wrap(W, H, g, "Цепочка действий: число, действие, результат");
+  }
+  if (pic.kind === "cube3d") {
+    const W = 230, H = 200, F = [[40, 74], [130, 74], [130, 164], [40, 164]], B = F.map(p => [p[0] + 50, p[1] - 44]);
+    const P = a => a.map(p => p.join(",")).join(" ");
+    let g = '<polygon points="' + P([F[0], F[1], B[1], B[0]]) + '" fill="' + COL[1] + '" stroke="none"/><polygon points="' + P([F[1], B[1], B[2], F[2]]) + '" fill="' + BLUE + '" stroke="none"/><polygon points="' + P(F) + '" fill="' + (pic.face ? COL[2] : COL[0]) + '" stroke="none"/>';
+    g += '<path d="M' + B[0] + " V" + B[3][1] + " H" + B[3][0] + " M" + F[3] + " L" + B[3] + '" fill="none" stroke="' + INK + '" stroke-width="1.6" stroke-dasharray="5 4"/>';
+    g += '<polygon points="' + P(F) + '" fill="none" stroke="' + INK + '" stroke-width="2.4" stroke-linejoin="round"/><path d="M' + F[0] + " L" + B[0] + " L" + B[1] + " L" + F[1] + " M" + B[1] + " L" + B[2] + " L" + F[2] + '" fill="none" stroke="' + INK + '" stroke-width="2.4" stroke-linejoin="round"/>';
+    if (pic.edge) g += tx(85, 188, esc(pic.edge), 16);
+    if (pic.face) g += tx(100, 150, esc(pic.face), 18);
+    return wrap(W, H, g, "Куб");
+  }
+  if (pic.kind === "mcol" && ok(pic.a, 999) && ok(pic.b, 9) && pic.a > 0 && pic.b > 0) {
+    const prod = pic.a * pic.b, np = String(prod).length, nc = Math.max(String(pic.a).length, np), X0 = 50, CW = 56, W = X0 + nc * CW + 12, H = 156;
+    const heads = ["Единицы", "Десятки", "Сотни", "Тысячи"], bg = [COL[2], COL[1], COL[0], BLUE], sa = String(pic.a).padStart(nc, " ");
+    let g = "";
+    for (let c = 0; c < nc; c++) {
+      const rk = nc - 1 - c, cx = X0 + c * CW;
+      g += '<rect x="' + (cx + 2) + '" y="22" width="' + (CW - 4) + '" height="128" rx="8" fill="' + bg[rk] + '" fill-opacity=".45"/>' + tx(cx + CW / 2, 16, heads[rk], 11);
+      if (sa[c] !== " ") g += tx(cx + CW / 2, 56, sa[c], 28);
+      if (rk === 0) g += tx(cx + CW / 2, 96, String(pic.b), 28);
+      if (rk < np) g += '<rect x="' + (cx + 8) + '" y="112" width="' + (CW - 16) + '" height="32" rx="6" fill="#fff" stroke="' + INK + '" stroke-opacity=".5" stroke-dasharray="4 3"/>' + tx(cx + CW / 2, 134, "?", 20, { w: 400, f: ".4" });
+    }
+    g += tx(26, 96, "×", 30) + '<line x1="8" x2="' + (W - 6) + '" y1="104" y2="104" stroke="' + INK + '" stroke-width="2.5"/>';
+    return wrap(W, H, g, "Запись столбиком: " + pic.a + " умножить на " + pic.b);
+  }
+  if (pic.kind === "divcol" && ok(pic.a, 999) && ok(pic.b, 9) && pic.a > 0 && pic.b > 0) {
+    const sa = String(pic.a), nd = sa.length, nq = String(Math.floor(pic.a / pic.b)).length, CW = 40, X0 = 14, vx = X0 + nd * CW + 6, W = vx + 12 + Math.max(nq, 1) * CW + 14, H = pic.rem ? 168 : 126;
+    let g = "";
+    for (let i = 0; i < nd; i++) g += tx(X0 + i * CW + CW / 2, 52, sa[i], 28);
+    g += '<line x1="' + vx + '" y1="14" x2="' + vx + '" y2="118" stroke="' + INK + '" stroke-width="2.5"/><line x1="' + vx + '" y1="64" x2="' + (W - 8) + '" y2="64" stroke="' + INK + '" stroke-width="2.5"/>' + tx(vx + 12 + CW / 2, 52, String(pic.b), 28);
+    for (let i = 0; i < nq; i++) g += '<rect x="' + (vx + 14 + i * CW) + '" y="74" width="' + (CW - 6) + '" height="38" rx="6" fill="#fff" stroke="' + INK + '" stroke-opacity=".5" stroke-dasharray="4 3"/>' + tx(vx + 14 + i * CW + (CW - 6) / 2, 100, "?", 20, { w: 400, f: ".4" });
+    if (pic.rem) g += '<rect x="' + (vx + 14) + '" y="122" width="' + Math.max(nq, 2) * CW * 0.9 + '" height="36" rx="6" fill="#fff" stroke="' + INK + '" stroke-opacity=".5" stroke-dasharray="4 3"/>' + tx(vx + 14 + Math.max(nq, 2) * CW * 0.45, 147, "ост. ?", 17, { w: 400, f: ".55" });
+    return wrap(W, H, g, "Деление уголком: " + pic.a + " разделить на " + pic.b);
+  }
+  if (pic.kind === "times" && ok(pic.k, 8) && pic.k >= 2 && pic.big && pic.small) {
+    const W = 330, X0 = 84, TW = 236, k = pic.k, bw = Math.min(56, TW / k), val = v => typeof v === "number" ? String(v) : "?";
+    let g = tx(X0 - 8, 66, esc(pic.big.name), 14, { a: "end" }) + tx(X0 - 8, 118, esc(pic.small.name), 14, { a: "end" });
+    g += '<path d="M' + X0 + ' 34 v-7 H' + (X0 + bw * k) + ' v7" fill="none" stroke="' + INK + '" stroke-width="2"/>' + tx(X0 + bw * k / 2, 22, val(pic.big.val), 18);
+    for (let i = 0; i < k; i++) g += '<rect x="' + (X0 + i * bw) + '" y="40" width="' + bw + '" height="38" fill="' + COL[0] + '" stroke="' + INK + '" stroke-width="1.8"/>';
+    g += '<rect x="' + X0 + '" y="92" width="' + bw + '" height="38" fill="' + COL[1] + '" stroke="' + INK + '" stroke-width="1.8"/>' + tx(X0 + bw / 2, 117, val(pic.small.val), bw < 40 ? 15 : 18);
+    return wrap(W, 140, g, "Схема: одно число в " + k + " раз(а) больше другого");
+  }
+  if (pic.kind === "tree" && ok(pic.na, 6) && ok(pic.nb, 6) && pic.na > 0 && pic.nb > 0) {
+    const lh = 28, n = Math.max(pic.na, pic.nb), H = n * lh + 14, W = 260, ax = 60, bx = 200;
+    const ya = i => 7 + lh * (n - pic.na) / 2 + lh * i + lh / 2, yb = i => 7 + lh * (n - pic.nb) / 2 + lh * i + lh / 2;
+    let g = "";
+    for (let i = 0; i < pic.na; i++) for (let j = 0; j < pic.nb; j++) g += '<line x1="' + ax + '" y1="' + ya(i) + '" x2="' + bx + '" y2="' + yb(j) + '" stroke="' + INK + '" stroke-opacity=".4" stroke-width="1.5"/>';
+    for (let i = 0; i < pic.na; i++) g += '<circle cx="' + ax + '" cy="' + ya(i) + '" r="12" fill="' + COL[0] + '" stroke="' + INK + '" stroke-width="1.5"/>' + tx(ax, ya(i) + 5, esc((pic.la || "") + (i + 1)), 12);
+    for (let j = 0; j < pic.nb; j++) g += '<circle cx="' + bx + '" cy="' + yb(j) + '" r="12" fill="' + COL[1] + '" stroke="' + INK + '" stroke-width="1.5"/>' + tx(bx, yb(j) + 5, esc((pic.lb || "") + (j + 1)), 12);
+    return wrap(W, H, g, "Дерево возможностей: " + pic.na + " и " + pic.nb + " вариантов");
+  }
+  return "";
+}
+
 function renderTask() {
   const T = TASKS[S.t];
   if (S.stage === "lesson") return renderLesson(T);
@@ -1709,9 +2246,11 @@ function renderTask() {
   h += '<div class="lesson"><section class="lcol">';
   h += '<div id="voiceslot">' + voiceHTML() + '</div>';
 
+  h += taskStrip(T);
   h += '<div class="step"><div class="meta-row"><div class="meta">Шаг ' + vpos(T, S.s) + ' из ' + n + '</div>' +
     (TTS.ok && !VOICE.quiet && !VOICE.available ? '<button class="speak" data-action="readq" aria-label="Прочитать вопрос вслух">🔊 Прочитать</button>' : '') + '</div>';
   h += '<p class="q">' + st.q + '</p>';
+  h += picHTML(st.pic);
 
   if (S.stage === "ask") {
     if (st.type === "choice") {
@@ -1747,6 +2286,7 @@ function renderTask() {
     if (S.attempts >= 1) {
       h += '<div class="mark hint"><b>Подсказка:</b> ' + (S.rule || '') + '</div>';
     }
+    h += reportHTML(T);
     if (st.type !== "choice" && st.type !== "explain") h += padHTML();
     if (vprev(T, S.s) >= 0) h += '<div class="row">' + backBtn() + '</div>';
   }
@@ -1758,10 +2298,13 @@ function renderTask() {
   }
 
   if (S.stage === "locked") {
-    h += '<div class="fb bad" role="alert"><strong class="r">Так бывает у всех.</strong> Можно сделать перерыв или позвать взрослого.</div>';
+    h += '<div class="fb bad" role="alert"><strong class="r">Так бывает у всех.</strong> Можно позвать взрослого, попробовать ещё раз или сделать перерыв.</div>';
     h += '<div class="mark"><b>Правило:</b> ' + (S.rule || '') + '</div>';
-    h += '<div class="row">' + backBtn() + '<button class="btn ghost" data-action="home">Сделать перерыв</button>' +
-      (S.adultPassed || !USER ? '' : '<button class="btn" data-action="adult">Позвать взрослого</button>') + '</div>';
+    h += reportHTML(T);
+    h += '<div class="row">' + backBtn() +
+      (S.adultPassed || !USER ? '' : '<button class="btn" data-action="adult">Позвать взрослого</button>') +
+      (S.adultPassed ? '' : '<button class="btn" data-action="continue"' + (S.busy ? ' disabled' : '') + '>Продолжить, всё нормально</button>') +
+      '<button class="btn ghost" data-action="break">Сделать перерыв</button></div>';
     if (!USER) {
       h += '<div class="mark"><b>Для взрослого.</b> Чтобы взрослый мог помочь на этом шаге, нужен кабинет родителя с PIN-кодом. Создать его можно на главной странице.</div>';
     }
@@ -1805,8 +2348,7 @@ function lessonVisual(v) {
 }
 function renderLesson(T) {
   const L = T.lesson, n = L.cards.length;
-  let h = '<div class="top lhead">' + backHTML() + '<div class="hright">' + voiceBtn() + sndBtn() + '</div></div>' +
-    '<div class="lmeta"><div class="meters" id="limbox">' + limHTML() + '</div>' + lvPill() + '</div>';
+  let h = lhead();
   h += '<div class="lpage"><div id="voiceslot">' + voiceHTML() + '</div>';
   h += '<div class="lhd"><h2 class="ltitle">' + esc(L.title) + '</h2>' +
     (L.board ? '<button class="speak" data-action="lplay" aria-label="Показать и рассказать по шагам">▶ Показать по шагам</button>'
@@ -1995,6 +2537,7 @@ async function submit(answer, pickedIndex, ch) {
     VOICE.onResult({ kind: "locked", rule: d.rule });
   } else {
     S.errors[S.s] = (S.errors[S.s] || 0) + 1;
+    (S.lastAns = S.lastAns || {})[S.s] = answer;
     S.attempts = d.attempts; S.rule = d.rule; S.similar = d.similar || null;
     if (d.tired) S.calm = d.tired;
     if (pickedIndex !== undefined) S.wrong.push(pickedIndex);
@@ -2008,6 +2551,109 @@ async function submit(answer, pickedIndex, ch) {
 }
 
 function openAdult() { S.adultOpen = true; S.netMsg = ""; S.adultErr = false; render(); }
+
+/* «Продолжить, всё нормально»: сервер снимает блокировку и даёт ещё 1 попытку, PIN не нужен */
+async function continueNoPin() {
+  if (S.busy) return;
+  const my = S, T = TASKS[S.t], st = T.steps[S.s];
+  S.busy = true; S.netMsg = "";
+  let r;
+  try { r = await api("/api/continue", { task: T.id, step: S.s }); }
+  catch (e) { my.busy = false; my.netMsg = "Нет связи."; return S === my && render(); }
+  my.busy = false;
+  if (S !== my) return;
+  if (!r.data || !r.data.ok) { my.netMsg = "Не получилось. Попробуйте ещё раз."; return render(); }
+  my.stage = "ask"; my.attempts = 2; my.wrong = []; my.adultOpen = false; my.adultPassed = false;
+  my.entry = freshEntry(st); my.active = 0; my.netMsg = "";
+  say("retry", st.skill);
+  render();
+  VOICE.announce(true);
+}
+
+
+/* ---------- выбор предмета самим ребёнком (кнопка «Предмет» в нижнем меню) ---------- */
+function closeSubjectPicker() { const o = document.getElementById("spOv"); if (o) o.remove(); document.removeEventListener("keydown", spKey); }
+function spKey(e) { if (e.key === "Escape") closeSubjectPicker(); }
+async function showSubjectPicker() {
+  if (document.getElementById("spOv") || !USER) return;
+  await loadSubjects();
+  const g = (USER.child && USER.child.grade) || 3, open = openSubj(g);
+  const cur = (USER.child && USER.child.subject) || "math";
+  const o = document.createElement("div");
+  o.id = "spOv"; o.className = "sp"; o.setAttribute("role", "dialog"); o.setAttribute("aria-modal", "true"); o.setAttribute("aria-label", "Выбор предмета");
+  let h = '<div class="sp-box"><div class="sp-grip"></div><h2>Выбери предмет</h2>';
+  if (!open.length) h += '<p>Для ' + esc(g) + ' класса упражнений пока нет.</p>';
+  else h += subjectList(g).map(s => open.includes(s.id)
+    ? '<button class="sp-opt' + (s.id === cur ? ' on' : '') + '" data-sp="' + esc(s.id) + '">' + esc(s.title) + (s.id === cur ? '<em>сейчас</em>' : '') + '</button>'
+    : '<button class="sp-opt" disabled>' + esc(s.title) + '<em>скоро</em></button>').join("");
+  h += '<button class="sp-close" data-sp="">Закрыть</button><p id="spErr" class="lvnote" role="alert" style="text-align:center"></p></div>';
+  o.innerHTML = h;
+  o.addEventListener("click", async e => {
+    if (e.target === o) return closeSubjectPicker();
+    const b = e.target.closest("button[data-sp]"); if (!b) return;
+    const id = b.dataset.sp;
+    if (!id || id === cur) return closeSubjectPicker();
+    const r = await call("/api/child/subject", { subject: id });
+    if (r.status === 200 && r.data && r.data.ok) { USER = r.data.user; closeSubjectPicker(); stopSpeech(); VOICE.stop(null, true); await reloadTasks(); return goHome(); }
+    const er = document.getElementById("spErr"); if (er) er.textContent = (r.data && r.data.message) || "Не получилось. Попробуй ещё раз.";
+  });
+  document.addEventListener("keydown", spKey);
+  document.body.appendChild(o);
+  const f = o.querySelector(".sp-opt.on") || o.querySelector(".sp-opt:not(:disabled)") || o.querySelector(".sp-close"); if (f) f.focus();
+}
+/* ---------- перерыв: Листик «засыпает» на 3, 5 или 10 минут ---------- */
+const BREAK_KEY = "lk_break_until";
+let BREAK_TIMER = null;
+function breakUntil() { try { return +localStorage.getItem(BREAK_KEY) || 0; } catch (e) { return 0; } }
+function breakClose() {
+  clearInterval(BREAK_TIMER); BREAK_TIMER = null;
+  try { localStorage.removeItem(BREAK_KEY); } catch (e) {}
+  const o = document.getElementById("brkOv"); if (o) o.remove();
+}
+function showBreakPicker() {
+  if (document.getElementById("brkOv")) return;
+  stopSpeech(); VOICE.stop(null, true);
+  const o = document.createElement("div");
+  o.id = "brkOv"; o.className = "brk"; o.setAttribute("role", "dialog"); o.setAttribute("aria-modal", "true");
+  o.innerHTML = '<div class="brk-box"><h2>На сколько сделаем перерыв?</h2>' +
+    '<p>Листик отдохнёт вместе с тобой, а потом можно вернуться к шагу.</p>' +
+    '<div class="brk-row"><button class="btn" data-min="3">3 минуты</button><button class="btn" data-min="5">5 минут</button><button class="btn" data-min="10">10 минут</button></div>' +
+    '<div class="brk-row"><button class="btn ghost small" data-min="0">Отмена</button></div></div>';
+  o.addEventListener("click", e => {
+    const b = e.target.closest("button[data-min]"); if (!b) return;
+    const m = +b.dataset.min;
+    if (!m) return o.remove();
+    try { localStorage.setItem(BREAK_KEY, String(Date.now() + m * 60000)); } catch (er) {}
+    o.remove(); breakRun();
+  });
+  document.body.appendChild(o);
+}
+function breakRun() {
+  let until = breakUntil();
+  if (!until) return;
+  const old = document.getElementById("brkOv"); if (old) old.remove();
+  stopSpeech(); VOICE.stop(null, true);
+  const o = document.createElement("div");
+  o.id = "brkOv"; o.className = "brk"; o.setAttribute("role", "dialog"); o.setAttribute("aria-modal", "true");
+  document.body.appendChild(o);
+  const tips = ["Попей воды.", "Встань и потянись.", "Посмотри в окно вдаль.", "Сделай глубокий вдох и медленный выдох."];
+  const tick = () => {
+    until = breakUntil();
+    const left = until - Date.now();
+    if (!until) return breakClose();
+    if (left <= 0) {
+      clearInterval(BREAK_TIMER); BREAK_TIMER = null;
+      o.innerHTML = '<div class="brk-box"><h2>Перерыв закончился</h2><p>Отдохнул? Можно вернуться к занятию.</p>' +
+        '<div class="brk-row"><button class="btn" id="brkBack">Вернуться</button></div></div>';
+      document.getElementById("brkBack").addEventListener("click", breakClose);
+      return;
+    }
+    const sec = Math.ceil(left / 1000), mm = Math.floor(sec / 60), ss = ("0" + (sec % 60)).slice(-2);
+    const tip = tips[Math.floor(Date.now() / 20000) % tips.length];
+    o.innerHTML = '<div class="brk-box"><h2>Листик отдыхает</h2><div class="brk-time" aria-live="off">' + mm + ':' + ss + '</div><p>' + tip + '</p></div>';
+  };
+  tick(); BREAK_TIMER = setInterval(tick, 1000);
+}
 
 async function unlock(value) {
   if (S.busy) return;
@@ -2164,6 +2810,7 @@ function readNum(id) {
   return /^\d+$/.test(v) ? parseInt(v, 10) : NaN;
 }
 
+document.querySelectorAll("#kidnav [data-kn]").forEach(b => b.addEventListener("click", () => { const t = document.createElement("button"); t.dataset.action = b.dataset.kn; app.appendChild(t); t.click(); t.remove(); }));
 [["shLessons", "home"], ["shOut", "logout"]].forEach(x => { const b = document.getElementById(x[0]); if (b) b.addEventListener("click", () => { const t = document.createElement("button"); t.dataset.action = x[1]; app.appendChild(t); t.click(); t.remove(); }); });
 app.addEventListener("click", e => {
   const b = e.target.closest("[data-action]");
@@ -2175,11 +2822,19 @@ app.addEventListener("click", e => {
   if (a === "sec") { HOME.open[b.dataset.s] = !HOME.open[b.dataset.s]; return paintCat(); }
   if (a === "view") { HOME.view = b.dataset.v; try { localStorage.setItem("lk_view2", HOME.view); } catch (e) {} return paintCat(); }
   if (a === "list" && listHref()) { stopSpeech(); VOICE.stop(null, true); location.href = listHref(); return; }
-  if (a === "home" || a === "list") { leavesLoad().then(() => { if (S && S.view === "home") render(); }); stopSpeech(); VOICE.stop(null, true); if (S.view === "cabinet" && USER) call("/api/parent/leave", {}); S = { view: "home" }; render(); loadOffer().then(() => { if (S.view === "home") render(); }); return; }
+  if (a === "home" || a === "list") {
+    const c = S.view === "cabinet" && S.cab;
+    if (c && c.subject && c.childSubject && c.subject.id !== c.childSubject) { cabSubjectThenHome(c.subject.id); return; }   // в кабинете выбран другой предмет: «К занятиям» открывает его
+    goHome(); return;
+  }
   if (a === "auth") { S = { view: "auth", mode: b.dataset.mode || "login", err: "", form: S.form }; return render(); }
   if (a === "pwtoggle") { const el = b.parentNode.querySelector("input"); if (el) { const show = el.type === "password"; el.type = show ? "text" : "password"; b.textContent = show ? "Скрыть" : "Показать"; b.setAttribute("aria-pressed", show ? "true" : "false"); } return; }
   if (a === "showpw") { ["fPass", "fPass2"].forEach(id => { const el = document.getElementById(id); if (el) el.type = b.checked ? "text" : "password"; }); return; }
-  if (a === "cab-tab") { S.tab = b.dataset.tab; S.err = ""; return render(); }
+  if (a === "cab-subj") return openCabinet(S.tab, "", b.dataset.subj);
+  if (a === "cab-tab") { S.tab = b.dataset.tab; S.err = ""; if (S.tab === "phone") { loadDevices().then(render); return; } return render(); }
+  if (a === "dev-invite") { call("/api/device/invite", {}).then(r => { if (r.status === 200 && r.data.url) { S.inviteUrl = r.data.url; S.err = ""; S.inviteQr = ""; return loadQr().then(ok => { S.inviteQr = ok ? qrSvg(S.inviteUrl) : ""; render(); }); } if (r.status === 401 || r.status === 403) { S = { view: "pin", err: "Введите PIN-код ещё раз." }; return render(); } S.err = r.status === 429 ? "Слишком много ссылок. Подождите немного." : NET; render(); }); return; }
+  if (a === "dev-copy") { const el = document.getElementById("fInvite"); if (el) { el.focus(); el.select(); } const done = () => { S.flash = "Ссылка скопирована. Откройте её на телефоне ребёнка."; render(); }; try { navigator.clipboard.writeText(S.inviteUrl).then(done, () => {}); } catch (e) {} return; }
+  if (a === "dev-revoke") { if (!confirm("Отключить телефон ребёнка? Занятия на нём остановятся, пока вы не подключите телефон заново.")) return; call("/api/device/revoke", { id: b.dataset.id }).then(r => { if (r.status === 200) { S.inviteUrl = ""; S.inviteQr = ""; return openCabinet("phone", "Телефон отключён."); } if (r.status === 401 || r.status === 403) { S = { view: "pin", err: "Введите PIN-код ещё раз." }; return render(); } S.err = NET; render(); }); return; }
   if (a === "forgot") { S = { view: "forgot", err: "", form: S.form }; return render(); }
   if (a === "verify-resend") return doVerifyResend();
   if (a === "forgot-send") return doForgot();
@@ -2196,7 +2851,7 @@ app.addEventListener("click", e => {
   if (a === "cab-child") return doChild();
   if (a === "cab-cancel") return doCancelRenewal(false);
   if (a === "cab-cancel-undo") return doCancelRenewal(true);
-  if (a === "logout") { try{localStorage.removeItem("listik_in")}catch(e){} USER = null; S = { view: "home", flash: "Вы вышли из кабинета." }; const goMain = () => { location.href = "/"; }; call("/api/logout", {}).then(goMain, goMain); return; }
+  if (a === "logout") { if (USER && USER.childDevice) return; try{localStorage.removeItem("listik_in")}catch(e){} USER = null; S = { view: "home", flash: "Вы вышли из кабинета." }; const goMain = () => { location.href = "/"; }; call("/api/logout", {}).then(goMain, goMain); return; }
   if (a === "ttstoggle") { TTS.on = !TTS.on; if (!TTS.on) stopSpeech(); return render(); }
   if (a === "voicetoggle") { if (VOICE.active || VOICE.connecting) VOICE.stop(); else VOICE.start(); return; }
   if (a === "readq") { if (VOICE.quiet) return; if (!VOICE.active && VOICE.available && !VOICE.err) { VOICE.start(); return; } if (VOICE.active) { VOICE.interrupt(); if (VOICE.fast && S.view === "task" && S.stage === "ask" && VOICE.fastAsk(true)) return; return VOICE.tell("[Программа] Ребёнок просит повторить вопрос. Прочитай текущий вопрос ещё раз вслух."); } const q = TASKS[S.t].steps[S.s].q; return speak(spokenMath(q), true); }
@@ -2223,14 +2878,25 @@ app.addEventListener("click", e => {
     if (VOICE.active) { VOICE.interrupt(); return VOICE.tell("[Программа] Ребёнок просит прочитать урок ещё раз. Прочитай весь урок вслух дословно, подряд, без пауз и вопросов: " + cards.map(c => vsay(c.text)).join(" ")); }
     return speak(spokenMath(cards.map(c => plain(c.text)).join(" ")), true);
   }
-  if (a === "goal-open") { S = { view: "goal" }; return render(); }
-  if (a === "goal-back") { if (S.from === "cabinet") return openCabinet("progress"); S = { view: "home" }; return render(); }
-  if (a === "pay-page") { S = { view: "paypage" }; return render(); }
+  if (a === "goal-open") { S = { view: "goal", from: S && S.view === "leaves" ? "leaves" : undefined }; return render(); }
+  if (a === "goal-back") { if (S.from === "cabinet") return openCabinet("progress"); if (S.from === "leaves") { S = { view: "leaves" }; return render(); } S = { view: "home" }; return render(); }
+  if (a === "pay-page") return loadSubjects().then(() => { S = { view: "paypage", payRet: "/listik.html" }; render(); });
+  if (a === "pay-plan") { S.payPlan = b.dataset.plan === "all" ? "all" : "subject"; S.paySubject = val("fPaySubject") || S.paySubject || ""; S.err = ""; const y = window.scrollY; render(); window.scrollTo(0, y); return; }
+  if (a === "pay-go") {
+    if (S.payPlan === "subject") { const sj = val("fPaySubject"); if (!sj) { S.err = "Выберите предмет."; return render(); } return startPay(S.payRet || "/listik.html", "subject", sj); }
+    if (S.payPlan === "all") return startPay(S.payRet || "/listik.html", "all", "");
+    S.err = "Выберите тариф."; return render();
+  }
   if (a === "pay-back") return openCabinet("progress");
   if (a === "goal-pick") return pickGoal(b.dataset.id);
   if (a === "next") return nextStep();
   if (a === "prev") { if (HS) { history.back(); return; } return prevStep(); }
   if (a === "adult") return openAdult();
+  if (a === "continue") return continueNoPin();
+  if (a === "report") return reportError();
+  if (a === "break") return showBreakPicker();
+  if (a === "kn-subject") return showSubjectPicker();
+  if (a === "kn-leaves") { stopSpeech(); VOICE.stop(null, true); leavesLoad().then(() => { S = { view: "leaves" }; render(); }); return; }
   if (a === "adultcheck") {
     return unlock(val("adultIn").trim());
   }
@@ -2246,6 +2912,12 @@ app.addEventListener("click", e => {
 });
 
 /* цифры с обычной клавиатуры (на компьютере) */
+app.addEventListener("change", e => {
+  if (e.target && e.target.id === "fGrade" && S && (S.view === "setup" || S.view === "cabinet")) {   // выбрали класс: показываем предметы этого класса
+    const b = document.getElementById("subjBox");
+    if (b) b.innerHTML = subjectInner(e.target.value, S.view === "cabinet" ? val("fSubject") : "");
+  }
+});
 app.addEventListener("input", e => {
   if (e.target && e.target.id === "catq") { HOME.q = e.target.value; paintCat(); }
   if (e.target && e.target.id === "exin" && S && S.entry) S.entry[0] = e.target.value;
@@ -2284,7 +2956,7 @@ const VOICE = {
   available: false, active: false, connecting: false, quiet: false, err: "",
   sid: null, ac: null, node: null, stream: null, player: null, playing: false, listening: false, vad: null,
   inFlight: false, queue: [], pending: null, adv: "none", advTimer: null, maxTimer: null, epoch: 0, pl: null, rd: null,
-  state: "idle", heard: "", greeted: false
+  state: "idle", heard: "", greeted: true
 };
 const VOICE_SILENCE = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAABErAAABAAgAZGF0YQAAAAA=";
 const VOICE_WORKLET = "class Tap extends AudioWorkletProcessor{process(i){const c=i[0]&&i[0][0];if(c)this.port.postMessage(c.slice(0));return true;}}registerProcessor('tap',Tap);";
@@ -2304,6 +2976,7 @@ function voiceMath(s) {
     .replace(/\s*>\s*/g, " больше ").replace(/\s*<\s*/g, " меньше ")
     .replace(/\(/g, " открываем скобку ").replace(/\)/g, " закрываем скобку ")
     .replace(/□/g, " окошко ")
+    .replace(/(?<=\d)\s_\s(?=\d)/g, " окошко ")
     .replace(/(?<=\s)\?(?=\s|$)/g, "какое-то число")
     .replace(/\bx\b/gi, " икс ")
     .replace(/ост\./g, "остаток")
@@ -2315,7 +2988,7 @@ function vsay(s) { return voiceMath(plain(s)); }
 function voiceBtn() {
   if (!VOICE.available || VOICE.quiet) return "";
   const on = VOICE.active || VOICE.connecting;
-  return '<button class="vbtn' + (on ? ' on' : '') + '" data-action="voicetoggle" aria-pressed="' + on + '" title="Листик читает вопросы вслух и слушает ответ">🎤 Голос</button>';
+  return '<button class="vbtn' + (on ? ' on' : '') + '" data-action="voicetoggle" aria-pressed="' + on + '" title="Листик читает вопросы вслух и слушает ответ" aria-label="Голос">🎤<span class="vt"> Голос</span></button>';
 }
 function voiceStatusHTML() {
   let h = "";
@@ -2442,7 +3115,7 @@ Object.assign(VOICE, {
     clearTimeout(this.advTimer); clearTimeout(this.maxTimer);
     this.sid = this.ac = this.node = this.stream = this.player = this.vad = null;
     this.active = false; this.connecting = false; this.inFlight = false; this.playing = false; this.listening = false;
-    this.queue = []; this.pending = null; this.adv = "none"; this.state = "idle"; this.heard = ""; this.greeted = false;
+    this.queue = []; this.pending = null; this.adv = "none"; this.state = "idle"; this.heard = ""; this.greeted = true;
     this.fast = null; this.fastTok = (this.fastTok || 0) + 1;
   },
   stop(msg, silent) {
@@ -2895,7 +3568,7 @@ function renderPaywall() {
   h += '<div class="form"><h2 class="sec">Эта задача по подписке</h2>' +
     '<p class="lead">Пробные задачи открыты без оплаты. Остальные задачи разделов откроются с подпиской, её оплачивает взрослый.</p>' + (PAYCFG.enabled && USER ? '<p class="lead" style="font-size:15px;opacity:.75">Для оплаты понадобится PIN-код родителя.</p>' : '') +
     (USER ? '' : '<p class="lead" style="font-size:15px;opacity:.75">Уже оформили подписку? Войдите в кабинет родителя, и задачи откроются.</p>') +
-    '<div class="row">' + (PAYCFG.enabled ? '<button class="btn" data-action="pay" data-ret="' + esc(location.pathname + (S && TASKS[S.t] ? "?task=" + encodeURIComponent(TASKS[S.t].id) : "")) + '">' + esc(payLabel()) + '</button><a class="btn ghost" href="/pricing.html">О тарифе</a>' : '<a class="btn" href="/pricing.html">Посмотреть тарифы</a>') +
+    '<div class="row">' + (PAYCFG.enabled ? '<button class="btn" data-action="pay" data-ret="' + esc(location.pathname + (S && TASKS[S.t] ? "?task=" + encodeURIComponent(TASKS[S.t].id) : "")) + '">Выбрать тариф</button><a class="btn ghost" href="/pricing.html">О тарифе</a>' : '<a class="btn" href="/pricing.html">Посмотреть тарифы</a>') +
     (USER ? '' : '<button class="btn ghost" data-action="auth" data-mode="login">Войти</button>') +
     '<button class="btn ghost" data-action="home">К задачам</button></div></div>';
   app.innerHTML = h; window.scrollTo(0, 0);
@@ -2915,6 +3588,7 @@ async function usageSend(active, voice) {
 function usageTick() {
   const lesson = !!S && (S.view === "task" || S.view === "done");
   const vis = document.visibilityState === "visible";
+  if (document.getElementById("brkOv")) return;   // идёт перерыв (или выбор перерыва): время занятий не считаем
   if (!lesson && !VOICE.active) return;
   const idle = Date.now() - USAGE.lastInput > 180000;   // 3 минуты без нажатий: ребёнок отошёл, время занятия не идёт
   usageSend(lesson && vis && (!idle || VOICE.active), vis && VOICE.active);
@@ -2940,6 +3614,14 @@ document.addEventListener("visibilitychange", async () => {
   await refreshLocks();
   if (S.view === "home" && sig() !== before) render();
 });
+function goHome() {
+  leavesLoad().then(() => { if (S && S.view === "home") render(); }); stopSpeech(); VOICE.stop(null, true); if (S.view === "cabinet" && USER) call("/api/parent/leave", {}); S = { view: "home" }; render(); loadOffer().then(() => { if (S.view === "home") render(); });
+}
+async function cabSubjectThenHome(id) {   // выбранный в кабинете предмет становится предметом ребёнка, затем открываются занятия
+  const r = await call("/api/parent/subject", { subject: id });
+  if (r.status === 200 && r.data.ok) { USER = r.data.user; await reloadTasks(); return goHome(); }
+  S.err = (r.data && r.data.message) || NET; render();
+}
 async function reloadTasks() {
   /* список зависит от класса ребёнка (13.11.2026): после входа, первой настройки или смены класса заменяем его целиком, вместе с разделами */
   try {
@@ -2969,10 +3651,19 @@ async function loadData() {
 async function boot() {
   /* при переходе на «Регистрацию» или «Войти» не мигаем надписью про задачи */
   let notIn = true; try { notIn = localStorage.getItem("listik_in") !== "1"; } catch (e) {}
-  const quiet = notIn || /^#(register|login|cabinet|pay|reset=|verify=)/.test(location.hash);
+  const quiet = notIn || /^#(register|login|cabinet|pay|reset=|verify=|phone=)/.test(location.hash);
   app.innerHTML = quiet ? '' : '<div class="top"><div class="brand hand">' + LOGO + 'Листик</div></div><p class="lead">Загружаю задачи…</p>';
   try {
+    let phoneErr = "";
+    const pm = /^#phone=([0-9a-f]{48})$/.exec(location.hash);
+    if (pm) {                                   // ссылка «Телефон ребёнка» из кабинета родителя: вход только для занятий
+      history.replaceState(null, "", location.pathname);
+      const cr = await call("/api/device/claim", { token: pm[1] });
+      if (cr.status === 200 && cr.data.ok) { try { localStorage.setItem("listik_in", "1"); } catch (e) {} }
+      else phoneErr = cr.status === 0 ? NET : (cr.data.message || "Ссылка не подошла. Попросите родителя создать новую.");
+    }
     await loadData();
+    if (phoneErr) { S = { view: "auth", mode: "login", err: phoneErr }; return render(); }
     try { const pc = await call("/api/pay/config"); if (pc.status === 200 && pc.data) PAYCFG = pc.data; } catch (e) {}
     const vm = /^#verify=([A-Za-z0-9._-]+)$/.exec(location.hash);
     if (vm) {                                   // ссылка из письма «Подтвердите почту»
@@ -3025,6 +3716,7 @@ async function boot() {
   }
 }
 boot();
+if (breakUntil()) breakRun();
 </script>
 <script>window.addEventListener("hashchange",function(){if(/^#(cabinet|register|login|pay)$/.test(location.hash))location.reload();});</script>
 <script>

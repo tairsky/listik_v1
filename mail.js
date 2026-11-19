@@ -135,4 +135,16 @@ function watchAlert(info) {
   return sendMail({ to: WATCH_TO, subject: "Листик: проверить кабинет " + info.email, text, html: "<pre style='font-family:inherit;white-space:pre-wrap'>" + esc(text) + "</pre>" });
 }
 
-module.exports = { sendMail, welcome, verifyEmail, passwordReset, renewalChange, paymentReceipt, watchAlert, watchAlertText, configured: !!KEY };
+/* письмо владельцу: ребёнок нажал «Нашёл ошибку в упражнении». Адрес: WATCH_EMAIL. Листики за подтверждённую ошибку начисляет владелец вручную */
+function errorReportText(i) {
+  return "Ребёнок сообщил об ошибке в упражнении.\n\nУпражнение: " + i.no + ". " + i.title + " (id " + i.task + ")\nШаг: " + i.step +
+    "\nВопрос: " + i.q + "\nОтвет ребёнка: " + i.ans + "\nОтвет по ключу: " + i.key + "\nНеверных попыток на этом шаге: " + i.errs +
+    "\n\nПочта кабинета: " + i.email + "\nРебёнок: " + (i.child || "—") +
+    "\n\nЕсли ошибка подтвердилась, исправьте упражнение и начислите листики. Если уже писал другой ребёнок, награда у первого.";
+}
+function errorReport(i) {
+  const text = errorReportText(i);
+  return sendMail({ to: WATCH_TO, subject: "Листик: ошибка в упражнении " + i.no + ", шаг " + i.step, text, html: "<pre style='font-family:inherit;white-space:pre-wrap'>" + esc(text) + "</pre>" });
+}
+
+module.exports = { sendMail, welcome, verifyEmail, passwordReset, renewalChange, paymentReceipt, watchAlert, watchAlertText, errorReport, errorReportText, configured: !!KEY };

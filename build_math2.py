@@ -1,6 +1,6 @@
 import csv, json, re, sys, collections
 src, out = sys.argv[1], sys.argv[2]
-TRIAL = {"g2r1-1"}
+TRIAL = {"g2r1-1", "g2r1-2", "g2r2-1", "g2r2-2", "g2r3-1"}
 rows = list(csv.reader(open(src, encoding="utf-8")))
 hdr = rows[0]
 ix = {h.strip(): i for i, h in enumerate(hdr) if h.strip()}

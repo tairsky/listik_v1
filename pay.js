@@ -20,8 +20,9 @@ const path = require("path");
 const crypto = require("crypto");
 
 module.exports = function createPay(ctx) {
-  const { STORE_DIR, getUsers, saveUsers, hasPlan, isParent, MAIL, siteUrl, send, tooMany, hit, MIN, SUBJECT } = ctx;
-  const PRICE = Math.round(Number(process.env.PAY_PRICE) || 9900);
+  const { STORE_DIR, getUsers, saveUsers, hasPlan, isParent, MAIL, siteUrl, send, tooMany, hit, MIN, SUBJECT, openSubjectsOf, gradeOf, SUBJECT_TITLES } = ctx;
+  const PRICE = Math.round(Number(process.env.PAY_PRICE) || 9900);             // тариф «1 предмет»
+  const PRICE_ALL = Math.round(Number(process.env.PAY_PRICE_ALL) || 19900);    // тариф «Безлимит»: все предметы класса ребёнка
   const DAYS = Math.round(Number(process.env.PAY_DAYS) || 30);
   const REQ = String(process.env.PAY_MODE || "").toLowerCase();
   const STUB_OK = REQ === "stub" && process.env.PAY_ALLOW_STUB === "1";   // заглушка только с явным PAY_ALLOW_STUB=1, на любом хостинге
@@ -44,7 +45,7 @@ module.exports = function createPay(ctx) {
   const LIVE = PL_KEY ? {
     /* создать счёт -> { uid, url } */
     async create(o, resultUrl, callbackUrl) {
-      const j = await plFetch("POST", "/api/v1/invoices", { amount: o.amount, currency: "KZT", description: "Листик: подписка на " + o.days + " дней",
+      const j = await plFetch("POST", "/api/v1/invoices", { amount: o.amount, currency: "KZT", description: "Листик: " + planLabel(o) + ", " + o.days + " дней",
         requestId: o.reqId, trackingId: o.id, transactionType: "PAYMENT", callbackUrl, successUrl: resultUrl, failureUrl: resultUrl, customer: { email: o.email } });
       if (!j.uid || !j.paymentUrl) throw new Error("PayLink: в ответе нет uid или paymentUrl");
       return { uid: j.uid, url: j.paymentUrl };
@@ -72,6 +73,7 @@ module.exports = function createPay(ctx) {
     fs.renameSync(tmp, FILE);
   }
   const iso = () => new Date().toISOString();
+  const planLabel = o => o.plan === "all" ? "безлимит, все предметы класса" : "1 предмет" + (o.subject && SUBJECT_TITLES && SUBJECT_TITLES[o.subject] ? " (" + SUBJECT_TITLES[o.subject] + ")" : "");
   const findOrder = id => ORDERS.find(o => o.id === id);
   const cleanReturn = p => (typeof p === "string" && /^\/(?!\/)[\w\-./?=&%]{0,200}$/.test(p)) ? p : "/listik.html";
   const resultUrl = (req, o) => siteUrl(req) + (o.lang === "kk" ? "/kk" : "") + "/pay/result?order=" + encodeURIComponent(o.id);
@@ -81,6 +83,18 @@ module.exports = function createPay(ctx) {
     const cur = hasPlan({ user }) ? Date.parse(user.plan.until) : Date.now();
     user.plan = { until: new Date(cur + days * 86400000).toISOString() };
     return user.plan.until;
+  }
+  /* Подписки по тарифам: user.plans = [{ scope: "all" | "subject", subject, until }]. Один тариф и один предмет это одна запись.
+     Докупка другого предмета или «Безлимита» добавляет новую запись, повторная оплата того же продлевает её от конца действующей.
+     Старое поле user.plan (подписку выдал владелец вручную или она куплена до этого изменения) здесь не меняется. */
+  function addPlan(user, scope, subject, days) {
+    if (!Array.isArray(user.plans)) user.plans = [];
+    const sj = scope === "all" ? "" : subject;
+    let e = user.plans.find(x => x.scope === scope && (x.subject || "") === sj);
+    if (!e) { e = { scope, until: null }; if (sj) e.subject = sj; user.plans.push(e); }
+    const cur = e.until && Date.parse(e.until) > Date.now() ? Date.parse(e.until) : Date.now();
+    e.until = new Date(cur + days * 86400000).toISOString();
+    return e.until;
   }
 
   /* ---------- подтверждение оплаты (единственное место, где подписка продлевается) ---------- */
@@ -97,11 +111,11 @@ module.exports = function createPay(ctx) {
       const user = getUsers().find(u => u.id === o.uid);
       if (!user) { o.problem = "кабинет не найден"; o.problemAt = iso(); saveOrders(); return { code: 410 }; }
       if (!(user.lastPayment && user.lastPayment.order === o.id)) {                  // защита от двойного зачисления после сбоя
-        const until = extendPlan(user, o.days);
-        user.lastPayment = { order: o.id, at: iso(), amount: o.amount, until };
+        const until = addPlan(user, o.plan === "all" ? "all" : "subject", o.subject, o.days);
+        user.lastPayment = { order: o.id, at: iso(), amount: o.amount, until, plan: o.plan === "all" ? "all" : "subject", subject: o.subject || null };
         saveUsers();
       }
-      o.status = "paid"; o.paidAt = iso(); o.ref = String(ref || "").slice(0, 80); o.until = user.plan.until; delete o.problem;
+      o.status = "paid"; o.paidAt = iso(); o.ref = String(ref || "").slice(0, 80); o.until = user.lastPayment.until; delete o.problem;
       saveOrders();
       MAIL.paymentReceipt(user.email, user.child && user.child.name, o.amount, o.until, o.id)
         .catch(e => console.error("[письмо] квитанция не ушла:", e.message));
@@ -153,7 +167,7 @@ module.exports = function createPay(ctx) {
   }
 
   /* GET /api/pay/config: сайт спрашивает, показывать ли кнопки оплаты */
-  const config = (res) => send(res, 200, { enabled: !!MODE, price: PRICE, days: DAYS });
+  const config = (res) => send(res, 200, { enabled: !!MODE, price: PRICE, priceAll: PRICE_ALL, days: DAYS });
 
   /* POST /api/pay/create (только режим родителя) */
   function create(req, res, a, b) {   // (возвращает промис в режиме live)
@@ -162,10 +176,18 @@ module.exports = function createPay(ctx) {
     if (!isParent(a)) return send(res, 403, { error: "parent_required" });
     if (SUBJECT && a.user.child && a.user.child.grade && !(SUBJECT.grades || [SUBJECT.grade]).includes(a.user.child.grade))   // упражнений для этого класса пока нет: не берём деньги
       return send(res, 403, { error: "grade", message: "Для класса вашего ребёнка упражнений пока нет, оплата недоступна." });
+    const plan = b.plan === "all" ? "all" : b.plan === "subject" ? "subject" : "";
+    if (!plan) return send(res, 400, { error: "plan", message: "Выберите тариф." });
+    let subject = "";
+    if (plan === "subject") {   // «1 предмет»: предмет выбирает родитель, он должен быть открыт в классе ребёнка
+      subject = String(b.subject || "");
+      if (!subject) return send(res, 400, { error: "subject", message: "Выберите предмет." });
+      if (!openSubjectsOf(gradeOf(a.user)).includes(subject)) return send(res, 400, { error: "subject", message: "Этого предмета для класса ребёнка нет." });
+    }
     if (tooMany("pay:" + a.user.id, 10, 60 * MIN)) return send(res, 429, { error: "too_many" });
     hit("pay:" + a.user.id);
     const o = { id: "L" + Date.now().toString(36) + crypto.randomBytes(4).toString("hex"), uid: a.user.id, email: a.user.email,
-      amount: PRICE, days: DAYS, status: "pending", lang: b.lang === "kk" ? "kk" : "ru", returnTo: cleanReturn(b.returnTo), createdAt: iso() };
+      amount: plan === "all" ? PRICE_ALL : PRICE, plan, subject, grade: gradeOf(a.user), days: DAYS, status: "pending", lang: b.lang === "kk" ? "kk" : "ru", returnTo: cleanReturn(b.returnTo), createdAt: iso() };
     o.reqId = crypto.randomUUID();
     ORDERS.push(o); saveOrders();
     if (MODE === "stub") return send(res, 200, { ok: true, url: "/api/pay/stub?order=" + o.id, order: o.id });
@@ -185,7 +207,7 @@ module.exports = function createPay(ctx) {
     if (!a) return send(res, 401, { error: "login" });
     const o = findOrder(query(req).get("order") || "");
     if (!o || o.uid !== a.user.id) return send(res, 404, { error: "not_found" });
-    const reply = () => send(res, 200, { status: o.status, until: o.until || null, returnTo: o.returnTo, amount: o.amount, lang: o.lang });
+    const reply = () => send(res, 200, { status: o.status, until: o.until || null, returnTo: o.returnTo, amount: o.amount, lang: o.lang, plan: o.plan || "subject", subject: o.subject || null });
     if (MODE === "live" && o.inv && o.status !== "paid" && Date.now() - (lastAsk[o.id] || 0) > 3000) {
       lastAsk[o.id] = Date.now();
       return LIVE.check(o.inv)
@@ -203,7 +225,7 @@ module.exports = function createPay(ctx) {
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
     res.end('<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Тестовая оплата</title>' +
       '<style>body{font-family:Arial,sans-serif;max-width:460px;margin:40px auto;padding:0 20px;color:#1E2A22}button{font-size:18px;padding:14px 22px;border-radius:12px;border:0;margin:6px 6px 0 0;cursor:pointer}.ok{background:#1F7A45;color:#fff}.no{background:#eee}.t{background:#fff3cd;padding:10px 14px;border-radius:10px}</style></head><body>' +
-      '<p class="t"><b>ЗАГЛУШКА БАНКА.</b> Деньги не списываются. Страница нужна только для проверки.</p><h1>Оплата: ' + o.amount + ' ₸</h1><p>Подписка на ' + o.days + ' дней.</p>' +
+      '<p class="t"><b>ЗАГЛУШКА БАНКА.</b> Деньги не списываются. Страница нужна только для проверки.</p><h1>Оплата: ' + o.amount + ' ₸</h1><p>' + planLabel(o).replace(/[<>&]/g, "") + ', ' + o.days + ' дней.</p>' +
       '<button class="ok" id="ok">Оплата прошла</button><button class="no" id="no">Отказаться</button><p id="m"></p>' +
       '<script>function go(r){fetch("/api/pay/stub-confirm",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({order:' + JSON.stringify(o.id) + ',result:r})})' +
       '.then(function(x){return x.json()}).then(function(d){if(d.redirect)location.href=d.redirect;else document.getElementById("m").textContent="Ошибка"})}' +
@@ -217,5 +239,5 @@ module.exports = function createPay(ctx) {
     send(res, r.code, { ok: r.code === 200, redirect: resultUrl(req, o).replace(/^https?:\/\/[^/]+/, "") });
   }
 
-  return { callback, config, create, status, stubPage, stubConfirm, settle, extendPlan, sign, get mode() { return MODE; }, get orders() { return ORDERS; } };
+  return { callback, config, create, status, stubPage, stubConfirm, settle, extendPlan, addPlan, sign, get mode() { return MODE; }, get orders() { return ORDERS; } };
 };

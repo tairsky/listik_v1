@@ -214,7 +214,7 @@ details.dt td,details.dt th{text-align:left;padding:4px 8px;border-top:1px solid
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const TZ = "Asia/Almaty";
-const S = { tab: "overview", users: [], tasksTotal: 0, overview: null, filter: "all", q: "", sort: "recent", openId: null, detail: null };
+const S = { tab: "overview", users: [], tasksTotal: 0, overview: null, filter: "all", q: "", sort: "recent", openId: null, detail: null, sj: "all", subjects: [] };
 
 /* ---------- сеть ---------- */
 async function api(route, body) {
@@ -283,7 +283,7 @@ async function go(tab) {
   const v = $("view"); v.innerHTML = '<p class="muted">Загрузка…</p>';
   try {
     if (tab === "overview") { S.overview = (await api("overview")).data; renderOverview(); }
-    else if (tab === "students") { const d = (await api("users")).data; S.users = d.users; S.tasksTotal = d.tasksTotal; renderStudents(); }
+    else if (tab === "students") { const d = (await api("users")).data; S.users = d.users; S.tasksTotal = d.tasksTotal; S.subjects = d.subjects || []; renderStudents(); }
     else if (tab === "watch") { renderWatch((await api("watch")).data); }
     else if (tab === "charts") { await loadCharts(); }
     else if (tab === "load") { await loadLoad(); LOAD.timer = setInterval(() => { if (S.tab === "load") loadLoad(true); }, 10000); }
@@ -306,6 +306,10 @@ function bars(values, labels, color) {
 }
 function renderOverview() {
   const o = S.overview, t = o.totals, s = o.series;
+  S.subjects = o.subjects || [];
+  const subjMin = id => o.sections.filter(x => x.subject === id).reduce((n, x) => n + x.minutes, 0);
+  const subjTable = '<div class="scroll"><table><thead><tr><th>Предмет</th><th>Занимались (всего)</th><th>Занимались за 30 дней</th><th>Выбран в настройках</th><th>Решено раз</th><th>Минут за 30 дней</th></tr></thead><tbody>' +
+    o.bySubject.map(x => '<tr><td><b>' + esc(x.title) + '</b></td><td>' + x.students + '</td><td>' + x.active30 + '</td><td>' + x.chosen + '</td><td>' + x.completions + '</td><td>' + subjMin(x.id) + '</td></tr>').join("") + '</tbody></table></div>';
   const kpi = (n, l, hl) => '<div class="kpi' + (hl ? " hl" : "") + '"><b>' + n + '</b><span>' + l + '</span></div>';
   const ul = (arr, f, empty) => arr.length ? '<ul class="list">' + arr.map(f).join("") + '</ul>' : '<p class="empty">' + empty + '</p>';
   $("view").innerHTML =
@@ -317,20 +321,34 @@ function renderOverview() {
       kpi(t.guestsToday, "гостей без кабинета сегодня") + kpi(t.lessons, "пройдено задач всего") + (t.blocked ? kpi(t.blocked, "заблокировано") : "") +
     '</div>' +
     '<div class="grid two">' +
+      '<div class="card" style="grid-column:1/-1"><h3>По предметам</h3><p class="muted" style="margin:0 0 8px;font-size:14px">Сколько учеников занимались каждым предметом. Ученик считается, если у него есть начатая или решённая задача предмета.</p>' + subjTable + '</div>' +
       '<div class="card"><h3>Регистрации по дням</h3>' + bars(s.map(x => x.regs), s.map(x => x.day), "#1A7F45") + '</div>' +
       '<div class="card"><h3>Сколько учеников занималось</h3>' + bars(s.map(x => x.active), s.map(x => x.day), "#2B4BC4") + '</div>' +
       '<div class="card"><h3>Минут занятий по дням</h3>' + bars(s.map(x => x.studyMin), s.map(x => x.day), "#E0A100") + '</div>' +
       '<div class="card"><h3>Подписка заканчивается за 7 дней</h3>' + ul(o.expiring, x =>
         '<li><span><a href="#" data-open="' + esc(x.id) + '">' + esc(x.child || x.email) + '</a> <span class="muted">' + esc(x.email) + '</span></span><b>до ' + esc(fmtDate(x.planUntil)) + '</b></li>', "Таких нет.") + '</div>' +
-      '<div class="card" style="grid-column:1/-1"><h3>Предмет и разделы</h3><p class="muted" style="margin:0 0 8px;font-size:14px">' + esc(subjectLine(o.subject)) + ' · что изучают чаще и больше, за последние 30 дней</p>' + sectionBars(o.sections) + '</div>' +
+      '<div class="card" style="grid-column:1/-1"><h3>Разделы</h3><p class="muted" style="margin:0 0 8px;font-size:14px">Что изучают чаще и больше, за последние 30 дней</p>' + subjChips() + sectionBars(secsBy(o.sections)) + '</div>' +
       '<div class="card"><h3>Что решают чаще всего</h3>' + ul(o.topTasks, x => '<li><span>' + esc(x.title) + '</span><b>' + x.completions + '</b></li>', "Пока никто ничего не решил.") + '</div>' +
       '<div class="card"><h3>Темы, где чаще ошибаются</h3><p class="muted" style="margin:0 0 6px;font-size:14px">Доля шагов, решённых с первой попытки (темы с 10+ шагами)</p>' +
-        ul(o.hardSkills, x => '<li><span>' + esc(x.name) + '</span><b>' + x.pct + '%</b></li>', "Данных пока мало.") + '</div>' +
+        ul(skillsBy(o.hardSkills).slice(0, 5), x => '<li><span>' + esc(x.name) + '</span><b>' + x.pct + '%</b></li>', "Данных пока мало.") + '</div>' +
     '</div>';
   $("view").querySelectorAll("[data-open]").forEach(a => a.addEventListener("click", e => { e.preventDefault(); openStudent(a.dataset.open); }));
+  bindSubj(renderOverview);
 }
 
 /* ---------- предмет и разделы ---------- */
+const subjTitle = (id, list) => ((list || S.subjects || []).find(x => x.id === id) || {}).title || id;
+function subjChips() {        // переключатель предмета (как в кабинете родителя): «Все предметы» и каждый предмет
+  if ((S.subjects || []).length < 2) return "";
+  return '<div class="rng" id="sjchips" role="group" aria-label="Предмет">' + [{ id: "all", title: "Все предметы" }].concat(S.subjects).map(s =>
+    '<button class="chip" data-sj="' + esc(s.id) + '" aria-pressed="' + (S.sj === s.id) + '">' + esc(s.title) + '</button>').join("") + '</div>';
+}
+function bindSubj(redraw) {
+  document.querySelectorAll("#sjchips [data-sj]").forEach(b => b.addEventListener("click", () => { S.sj = b.dataset.sj; redraw(); }));
+}
+const secsBy = a => S.sj === "all" ? a : a.filter(s => s.subject === S.sj);          // разделы выбранного предмета
+const skillsBy = a => S.sj === "all" ? a : a.filter(s => (s.subjects || []).includes(S.sj));
+const secLabel = s => s.subject ? s.title + " · " + (S.sj === "all" && S.subjects.length > 1 ? subjTitle(s.subject) + ", " : "") + s.grade + " кл." : s.title;
 const subjectLine = s => s ? (s.title + ", " + s.grade + " класс") : "";
 function hbars(items, opts) {      // горизонтальные столбики с подписями: {label, value, text}
   const max = Math.max(1, ...items.map(i => i.value));
@@ -339,7 +357,7 @@ function hbars(items, opts) {      // горизонтальные столби�
 function sectionBars(secs) {
   const a = secs.slice().sort((x, y) => y.minutes - x.minutes || y.completions - x.completions);
   if (!a.some(s => s.minutes || s.completions)) return '<p class="empty">Пока никто не занимался. Данные появятся, когда ученики начнут решать задачи.</p>';
-  return hbars(a.map(s => ({ label: s.title, value: s.minutes, text: s.minutes + ' мин <small>· решено ' + s.completions + ' раз · ' + s.students + ' уч.</small>' })));
+  return hbars(a.map(s => ({ label: secLabel(s), value: s.minutes, text: s.minutes + ' мин <small>· решено ' + s.completions + ' раз · ' + s.students + ' уч.</small>' })));
 }
 function sectionRows(secs) {
   return secs.map(s => '<li><span>' + esc(s.title) + ' <span class="muted">(решено ' + s.tasksDone + ' из ' + s.tasksTotal + ' задач)</span></span><b>' + s.minutes + ' мин' + (s.share != null ? ' · ' + s.share + '%' : '') + '</b></li>').join("");
@@ -433,18 +451,19 @@ function stackBar(parts) {
   return '<div class="legend">' + parts.map(p => '<span><i style="background:' + p.color + '"></i>' + esc(p.name) + ': <b>' + p.value + '</b></span>').join("") + '</div>' +
     '<div style="display:flex;gap:2px;height:22px">' + parts.filter(p => p.value).map(p => '<div title="' + esc(p.name) + ': ' + p.value + '" style="flex:' + p.value + ';background:' + p.color + ';border-radius:4px"></div>').join("") + '</div>';
 }
-async function loadCharts() { CH.data = (await api("charts", { days: CH.days })).data; renderCharts(); }
+async function loadCharts() { CH.data = (await api("charts", { days: CH.days })).data; S.subjects = CH.data.subjects || []; renderCharts(); }
 function renderCharts() {
   const d = CH.data, s = d.series, card = (title, sub, body) => '<div class="card"><h3>' + title + '</h3>' + (sub ? '<p class="muted" style="margin:-4px 0 8px;font-size:14px">' + sub + '</p>' : "") + body + '</div>';
   const wd = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
-  const secs = d.sections.slice().sort((a, b) => b.minutes - a.minutes), secsDone = d.sections.slice().sort((a, b) => b.completionsWin - a.completionsWin);
-  const skills = d.skills.slice(0, 10);
+  const dsecs = secsBy(d.sections);
+  const secs = dsecs.slice().sort((a, b) => b.minutes - a.minutes), secsDone = dsecs.slice().sort((a, b) => b.completionsWin - a.completionsWin);
+  const skills = skillsBy(d.skills).slice(0, 10);
   $("view").innerHTML =
-    '<h2>Графики</h2><p class="sub">' + esc(subjectLine(d.subject)) + '. Наведите курсор на график, чтобы увидеть значения; под каждым есть таблица.</p>' +
+    '<h2>Графики</h2><p class="sub">Наведите курсор на график, чтобы увидеть значения; под каждым есть таблица. Предмет выбирает разделы и темы; остальные графики общие.</p>' + subjChips() +
     '<div class="rng" role="group" aria-label="Период">' + [14, 30, 90].map(n => '<button class="chip" data-r="' + n + '" aria-pressed="' + (CH.days === n) + '">' + n + ' дней</button>').join("") + '</div>' +
     '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr))">' +
-      card("Что изучают больше всего", "Минуты занятий по разделам за период", d.sections.some(x => x.minutes) ? hbars(secs.map(x => ({ label: x.title, value: x.minutes, text: x.minutes + ' мин' }))) + tableOf(["Раздел", "Минут", "Решено задач", "Учеников"], secs.map(x => [x.title, x.minutes, x.completionsWin, x.students])) : '<p class="empty">Минуты по разделам начнут копиться с новых занятий.</p>') +
-      card("Что решают чаще", "Решённые задачи по разделам за период", d.sections.some(x => x.completionsWin) ? hbars(secsDone.map(x => ({ label: x.title, value: x.completionsWin, text: String(x.completionsWin) }))) : '<p class="empty">За период ничего не решено.</p>') +
+      card("Что изучают больше всего", "Минуты занятий по разделам за период", dsecs.some(x => x.minutes) ? hbars(secs.map(x => ({ label: secLabel(x), value: x.minutes, text: x.minutes + ' мин' }))) + tableOf(["Раздел", "Минут", "Решено задач", "Учеников"], secs.map(x => [secLabel(x), x.minutes, x.completionsWin, x.students])) : '<p class="empty">Минуты по разделам начнут копиться с новых занятий.</p>') +
+      card("Что решают чаще", "Решённые задачи по разделам за период", dsecs.some(x => x.completionsWin) ? hbars(secsDone.map(x => ({ label: secLabel(x), value: x.completionsWin, text: String(x.completionsWin) }))) : '<p class="empty">За период ничего не решено.</p>') +
       card("Сколько учеников всего", "Рост числа кабинетов", chart("line", d.days, [{ name: "Всего кабинетов", values: s.growth, color: "#2a78d6" }])) +
       card("Новые регистрации", "По дням", chart("bar", d.days, [{ name: "Новых кабинетов", values: s.regs, color: "#2a78d6" }])) +
       card("Минуты в день: занятия и голос", "Всего по всем ученикам", chart("line", d.days, [{ name: "Занятия", values: s.studyMin, color: "#2a78d6" }, { name: "Голос Листика", values: s.voiceMin, color: "#eb6834" }], "мин")) +
@@ -455,14 +474,20 @@ function renderCharts() {
       card("Подписки", "Сейчас у учеников", stackBar([{ name: "Платные", value: d.plans.paid, color: "#1baf7a" }, { name: "Пробный", value: d.plans.trial, color: "#2a78d6" }, { name: "Подписка закончилась", value: d.plans.expired, color: "#eda100" }, { name: "Заблокированы", value: d.plans.blocked, color: "#8a8f9f" }])) +
     '</div>';
   $("view").querySelectorAll("[data-r]").forEach(b => b.addEventListener("click", async () => { CH.days = Number(b.dataset.r); await loadCharts(); }));
+  bindSubj(renderCharts);
 }
 
 /* ---------- ученики ---------- */
 const FILTERS = [["all", "Все"], ["paid", "Платные"], ["trial", "Без подписки"], ["today", "Занимались сегодня"], ["idle", "Не заходили 7+ дней"], ["blocked", "Заблокированные"]];
+function progOf(u) {          // прогресс по выбранному предмету или по всем предметам, где ученик занимался
+  return (S.subjects || []).filter(s => u.bySubject && u.bySubject[s.id] && (S.sj === "all" ? u.bySubject[s.id].studied : s.id === S.sj))
+    .map(s => Object.assign({ id: s.id, title: s.title }, u.bySubject[s.id]));
+}
 function filtered() {
   const q = S.q.trim().toLowerCase(), now = Date.now();
   let a = S.users.filter(u => {
     if (q && !(u.email.toLowerCase().includes(q) || u.child.toLowerCase().includes(q))) return false;
+    if (S.sj !== "all" && !(u.bySubject && u.bySubject[S.sj] && u.bySubject[S.sj].studied)) return false;
     if (S.filter === "paid") return u.planActive;
     if (S.filter === "trial") return !u.planActive;
     if (S.filter === "today") return u.today.study > 0;
@@ -473,7 +498,7 @@ function filtered() {
   const by = {
     recent: (x, y) => (lastSeen(y) || "").localeCompare(lastSeen(x) || ""),
     new: (x, y) => (y.createdAt || "").localeCompare(x.createdAt || ""),
-    progress: (x, y) => y.tasksDone - x.tasksDone,
+    progress: (x, y) => progOf(y).reduce((n, p) => n + p.done, 0) - progOf(x).reduce((n, p) => n + p.done, 0),
     minutes: (x, y) => y.weekStudy - x.weekStudy,
     name: (x, y) => (x.child || x.email).localeCompare(y.child || y.email, "ru")
   };
@@ -481,18 +506,20 @@ function filtered() {
 }
 function renderStudents() {
   $("view").innerHTML =
-    '<h2>Ученики <span class="muted" style="font-weight:600">(' + S.users.length + ')</span></h2><p class="sub">Нажмите на ученика, чтобы увидеть прогресс и управлять лимитами и подпиской.</p>' +
+    '<h2>Ученики <span class="muted" style="font-weight:600" id="cnt">(' + S.users.length + ')</span></h2><p class="sub">Нажмите на ученика, чтобы увидеть прогресс и управлять лимитами и подпиской.</p>' +
     '<div class="filters">' +
       '<input type="search" id="q" placeholder="Поиск по имени или почте" aria-label="Поиск" value="' + esc(S.q) + '">' +
       '<select id="sort" aria-label="Сортировка">' + [["recent", "Сначала недавно заходившие"], ["new", "Сначала новые"], ["progress", "По решённым задачам"], ["minutes", "По минутам за неделю"], ["name", "По имени"]].map(o => '<option value="' + o[0] + '"' + (S.sort === o[0] ? " selected" : "") + '>' + o[1] + '</option>').join("") + '</select>' +
       '<button class="btn sm" id="csv">Скачать CSV</button>' +
       '<button class="btn sm primary" id="mk" style="margin-left:auto">+ Создать кабинет</button>' +
     '</div>' +
+    subjChips() +
     '<div class="filters" id="chips">' + FILTERS.map(f => '<button class="chip" data-f="' + f[0] + '" aria-pressed="' + (S.filter === f[0]) + '">' + f[1] + '</button>').join("") + '</div>' +
     '<div id="slist"></div>';
   $("q").addEventListener("input", e => { S.q = e.target.value; drawList(); });
   $("sort").addEventListener("change", e => { S.sort = e.target.value; drawList(); });
   $("csv").addEventListener("click", exportCsv);
+  bindSubj(renderStudents);
   $("mk").addEventListener("click", openCreate);
   $("chips").querySelectorAll(".chip").forEach(b => b.addEventListener("click", () => {
     S.filter = b.dataset.f; $("chips").querySelectorAll(".chip").forEach(x => x.setAttribute("aria-pressed", String(x === b))); drawList();
@@ -501,24 +528,26 @@ function renderStudents() {
 }
 function drawList() {
   const a = filtered(), el = $("slist");
+  if ($("cnt")) $("cnt").textContent = "(" + (a.length === S.users.length ? a.length : a.length + " из " + S.users.length) + ")";
   if (!a.length) { el.innerHTML = '<p class="empty">' + (S.users.length ? "Никого не найдено." : "Пока никто не зарегистрировался.") + '</p>'; return; }
   el.innerHTML = '<div class="shead" aria-hidden="true"><span>Ученик</span><span>Регистрация</span><span>Прогресс</span><span>С 1-й попытки</span><span>Сегодня</span><span>Подписка</span></div>' +
     a.map(u => {
-      const pct = u.tasksTotal ? Math.round(100 * u.tasksDone / u.tasksTotal) : 0;
+      const pr = progOf(u), many = (S.subjects || []).length > 1, ft = S.sj !== "all" && u.bySubject[S.sj] ? u.bySubject[S.sj].firstTryPct : u.firstTryPct;
+      const progHtml = pr.length ? pr.map(p => (many ? esc(p.title) + ': ' : '') + p.done + ' из ' + p.total + ' задач<div class="bar" style="margin:4px 0 6px"><i style="width:' + (p.total ? Math.round(100 * p.done / p.total) : 0) + '%"></i></div>').join("") : 'Ещё не начинал(а)';
       return '<button class="srow" data-id="' + esc(u.id) + '">' +
         '<span class="nm"><b>' + esc(u.child || "Без имени") + '</b><span>' + esc(u.email) + '</span></span>' +
         '<span class="cell" data-l="Регистрация">' + esc(fmtDate(u.createdAt)) + '<small>был(а): ' + esc(ago(lastSeen(u))) + '</small></span>' +
-        '<span class="cell" data-l="Прогресс">' + u.tasksDone + ' из ' + u.tasksTotal + ' задач<div class="bar" style="margin-top:4px"><i style="width:' + pct + '%"></i></div></span>' +
-        '<span class="cell" data-l="С 1-й попытки">' + (u.firstTryPct == null ? "—" : u.firstTryPct + "%") + '</span>' +
+        '<span class="cell" data-l="Прогресс">' + progHtml + '</span>' +
+        '<span class="cell" data-l="С 1-й попытки">' + (ft == null ? "—" : ft + "%") + '</span>' +
         '<span class="cell" data-l="Сегодня">' + mins(u.today.study) + ' из ' + mins(u.today.studyMax) + ' мин' + bar(u.today.study, u.today.studyMax) + '</span>' +
         '<span class="cell" data-l="Подписка">' + planBadge(u) + '</span></button>';
     }).join("");
   el.querySelectorAll(".srow").forEach(b => b.addEventListener("click", () => openStudent(b.dataset.id)));
 }
 function exportCsv() {
-  const head = ["Почта", "Ребёнок", "Регистрация", "Последний вход", "Последнее занятие", "Задач решено", "Задач всего", "С 1-й попытки %", "Минут за 7 дней", "Подписка до", "Заблокирован"];
+  const head = ["Почта", "Ребёнок", "Регистрация", "Последний вход", "Последнее занятие"].concat((S.subjects || []).reduce((a, s) => a.concat([s.title + ": занимался(ась)", s.title + ": задач решено", s.title + ": задач всего", s.title + ": с 1-й попытки %"]), []), ["С 1-й попытки % (все предметы)", "Минут за 7 дней", "Подписка до", "Заблокирован"]);
   const q = v => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
-  const rows = filtered().map(u => [u.email, u.child, u.createdAt || "", u.lastLoginAt || "", u.lastLessonAt || "", u.tasksDone, u.tasksTotal, u.firstTryPct == null ? "" : u.firstTryPct, mins(u.weekStudy), u.planActive ? u.planUntil.slice(0, 10) : "", u.blocked ? "да" : ""]);
+  const rows = filtered().map(u => [u.email, u.child, u.createdAt || "", u.lastLoginAt || "", u.lastLessonAt || ""].concat((S.subjects || []).reduce((a, s) => { const b = u.bySubject[s.id] || {}; return a.concat([b.studied ? "да" : "", b.done, b.total, b.firstTryPct == null ? "" : b.firstTryPct]); }, []), [u.firstTryPct == null ? "" : u.firstTryPct, mins(u.weekStudy), u.planActive ? u.planUntil.slice(0, 10) : "", u.blocked ? "да" : ""]));
   const csv = "﻿" + [head].concat(rows).map(r => r.map(q).join(";")).join("\r\n");
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
@@ -530,7 +559,7 @@ function closeDrawer() { $("drawer").hidden = true; $("shade").hidden = true; S.
 $("shade").addEventListener("click", closeDrawer);
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("drawer").hidden) closeDrawer(); });
 async function openStudent(id) {
-  S.openId = id; $("drawer").hidden = false; $("shade").hidden = false; document.body.style.overflow = "hidden";
+  S.openId = id; S.dsj = null; $("drawer").hidden = false; $("shade").hidden = false; document.body.style.overflow = "hidden";
   $("drawer").innerHTML = '<div class="dbody"><p class="muted">Загрузка…</p></div>';
   if (!S.overview) S.overview = (await api("overview")).data;
   const { status, data } = await api("user", { id });
@@ -548,7 +577,9 @@ function renderDrawer() {
       '<button class="btn sm" id="dclose" aria-label="Закрыть">Закрыть ✕</button></div>' +
     '<div class="dbody">' +
 
-    '<section class="card"><h3>Прогресс</h3><div class="mini">' +
+    '<section class="card"><h3>Прогресс' + ((u.subjects || []).length > 1 ? ' по предмету' : '') + '</h3>' +
+    ((u.subjects || []).length > 1 ? '<div class="rng" id="dsj" role="group" aria-label="Предмет">' + u.subjects.map(s => '<button class="chip" data-dsj="' + esc(s.id) + '" aria-pressed="' + (s.id === u.subjectId) + '">' + esc(s.title) + '</button>').join("") + '</div>' : '') +
+    '<div class="mini">' +
       '<div><b>' + u.tasksDone + ' из ' + u.tasksTotal + '</b><span>задач решено</span></div>' +
       '<div><b>' + (u.firstTryPct == null ? "—" : u.firstTryPct + "%") + '</b><span>шагов с 1-й попытки</span></div>' +
       '<div><b>' + u.lessons + '</b><span>завершённых занятий</span></div>' +
@@ -556,7 +587,7 @@ function renderDrawer() {
     '</div>' +
     '<p class="muted" style="margin:10px 0 0;font-size:14px">Регистрация: ' + esc(fmtDate(u.createdAt)) + ' · последний вход: ' + esc(fmtDT(u.lastLoginAt)) + ' · последнее занятие: ' + esc(fmtDT(u.lastLessonAt)) + '</p>' +
     '<hr class="hr"><h3 style="font-size:16px">Минуты занятий за 14 дней</h3>' + bars(u.days.map(d => mins(d.study)), u.days.map(d => d.day), "#E0A100") +
-    '<hr class="hr"><h3 style="font-size:16px">Предмет и разделы</h3><p class="muted" style="margin:0 0 4px;font-size:14px">' + esc(subjectLine(u.subject)) + ' · минуты за 90 дней и доля времени ученика</p>' +
+    '<hr class="hr"><h3 style="font-size:16px">Предмет и разделы</h3><p class="muted" style="margin:0 0 4px;font-size:14px">' + esc(subjTitle(u.subjectId, u.subjects) + ', ' + u.grade + ' класс') + ' · минуты за 90 дней и доля времени ученика</p>' +
     '<ul class="list">' + sectionRows(u.sections) + '</ul>' +
     '<hr class="hr"><h3 style="font-size:16px">Задачи</h3>' +
     (started.length ? '<ul class="list">' + started.map(t => '<li><span>№' + esc(t.no) + ' ' + esc(t.title) + '</span>' + statusT(t) + '</li>').join("") + '</ul>' : '<p class="empty">Ещё ничего не начато.</p>') +
@@ -609,6 +640,11 @@ function renderDrawer() {
   $("drawer").scrollTop = scroll;
   const on = (id, f) => { const el = $(id); if (el) el.addEventListener("click", f); };
   on("dclose", closeDrawer);
+  document.querySelectorAll("[data-dsj]").forEach(b => b.addEventListener("click", async () => {
+    const r = await api("user", { id: S.openId, subject: b.dataset.dsj });
+    if (r.status !== 200) return toast("Не получилось.", true);
+    S.dsj = b.dataset.dsj; S.detail = r.data; renderDrawer();
+  }));
   const num = id => { const v = $(id).value.trim(); return v === "" ? null : Number(v); };
   document.querySelectorAll("[data-bonus]").forEach(b => b.addEventListener("click", () => { const n = Number(b.dataset.bonus); doAct({ type: "bonus", study: n, voice: n }, "Время на сегодня изменено."); }));
   on("bonusGo", () => doAct({ type: "bonus", study: num("bs") || 0, voice: num("bv") || 0 }, "Время на сегодня изменено."));
@@ -627,7 +663,7 @@ function renderDrawer() {
 }
 async function doAct(body, okText) {
   const id = S.openId; if (!id) return;
-  const { status, data } = await api("action", Object.assign({ id }, body));
+  const { status, data } = await api("action", Object.assign({ id, subject: S.detail && S.detail.subjectId }, body));
   if (status !== 200) return toast(data.message || "Не получилось.", true);
   toast(okText);
   if (!data.user) { S.users = S.users.filter(x => x.id !== id); closeDrawer(); if (S.tab === "students") drawList(); return; }

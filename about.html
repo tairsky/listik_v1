@@ -61,6 +61,12 @@ svg .lk-blink{transform-box:fill-box;transform-origin:center;animation:lkblink 5
 .mh-final .lk-cta2{text-align:center;padding:14px 20px!important}
 }
 </style>
+<style>/* девочка перед футером стоит прямо на границе с футером */
+.mh-final{padding-bottom:0!important}
+.mh-final>div{align-items:flex-end!important}
+.mh-final>div>div:first-child{padding-bottom:64px}
+@media (max-width:720px){.mh-final>div>div:first-child{padding-bottom:0}}
+</style>
 <style>/* Кнопка «Войти» в шапке: контур рядом с зелёной «Регистрацией», отделена чертой от пунктов меню */
 @media (min-width:721px){
 .sh-nav a[href="/listik.html#cabinet"],.mh-nav a[href="/listik.html#cabinet"]{position:relative;display:inline-flex!important;align-items:center;justify-content:center;box-sizing:border-box;min-height:44px;padding:0 22px!important;margin-left:14px;border:2px solid #1F7A45!important;border-radius:999px;background:#fff;color:#1F7A45!important;font-weight:800!important;font-size:16px;line-height:1!important;white-space:nowrap}
@@ -308,6 +314,7 @@ svg .lk-blink{transform-box:fill-box;transform-origin:center;animation:lkblink 5
 <div style="font-size:14px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:#BFDFC6;margin-bottom:4px">Документы</div>
 <a href="/privacy.html" style="display:inline-flex;align-items:center;min-height:32px;font-size:16px;color:#FFFFFF;text-decoration:none">Политика конфиденциальности</a>
 <a href="/terms.html" style="display:inline-flex;align-items:center;min-height:32px;font-size:16px;color:#FFFFFF;text-decoration:none">Пользовательское соглашение</a>
+<a href="/payment.html" style="display:inline-flex;align-items:center;min-height:32px;font-size:16px;color:#FFFFFF;text-decoration:none">Условия оплаты и возврата</a>
 </div>
 </div>
 <div class="sf-bottom"><div class="sf-pay"><span>Оплата банковскими картами</span><div class="sf-logos"><img src="/img/pay/visa.svg" alt="Visa" width="47" height="30"><img src="/img/pay/mastercard.svg" alt="Mastercard" width="47" height="30"></div></div><div class="sf-copy">© 2026. ИИ-репетитор «Листик»</div><div class="sf-req">ИП «Феникс», ИИН 460104400918<br>г. Алматы, ул. Утеген батыра 17б<br>info@listik.kz · +7 (775) 971-41-63</div></div>
