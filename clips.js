@@ -81,6 +81,7 @@ function registerTasks(tasks) {
   for (const t of tasks) {
     add(t.condition); add(t.similar);
     if (t.lesson && Array.isArray(t.lesson.cards)) t.lesson.cards.forEach(c => add(c.text));
+    if (t.kind === "lesson" && Array.isArray(t.frames)) t.frames.forEach(f => add(f.say));   // объяснения-ролики: фраза каждого кадра
     for (const s of t.steps || []) {
       add(s.q); add(s.ok); add(s.rule); add(s.similar);
       if (s.wrong) for (const w of Object.values(s.wrong)) add(w && w.hint);

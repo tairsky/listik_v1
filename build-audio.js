@@ -5,14 +5,16 @@
    Запуск:  node build-audio.js            (озвучить всё, чего нет)
             node build-audio.js --dry      (только посчитать, ничего не тратить)
             node build-audio.js --only r1-1  (только задача r1-1: для пробы)
+            node build-audio.js --file rus-3.json  (только упражнения из одного файла)
    Нужен OPENAI_API_KEY в .env. Потом сделайте git add clips && commit && push: файлы поедут на сайт вместе с кодом. */
 const fs = require("fs"), path = require("path");
 const C = require("./clips.js");
 const args = process.argv.slice(2), dry = args.includes("--dry");
 const only = args.includes("--only") ? args[args.indexOf("--only") + 1] : null;
+const onlyFile = args.includes("--file") ? args[args.indexOf("--file") + 1] : null;   // например --file rus-3.json: озвучить только упражнения из этого файла
 
-/* упражнения всех классов: tasks.json (3 класс) и math-2.json (2 класс); нет файла, значит этого класса нет */
-const tasks = ["tasks.json", "math-2.json"].flatMap(f => { try { return JSON.parse(fs.readFileSync(path.join(__dirname, "data/private", f), "utf8")).tasks || []; } catch (e) { return []; } }).filter(t => !only || t.id === only);
+/* упражнения всех классов: tasks.json (3 класс), math-2.json (2 класс) и rus-3.json (русский, 3 класс) и en-3.json (английский, 3 класс); нет файла, значит этого класса нет */
+const tasks = ["tasks.json", "math-2.json", "rus-3.json", "en-3.json"].filter(f => !onlyFile || f === onlyFile).flatMap(f => { try { return JSON.parse(fs.readFileSync(path.join(__dirname, "data/private", f), "utf8")).tasks || []; } catch (e) { return []; } }).filter(t => !only || t.id === only);
 C.registerTasks(tasks);
 const todo = [...C.registry.entries()].filter(([id]) => !C.have(id));
 const chars = todo.reduce((n, [, t]) => n + t.length, 0);

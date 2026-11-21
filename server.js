@@ -38,8 +38,22 @@ const TASKS_FILE = readJSON("data/private/tasks.json");
    Если файла класса нет, этот класс просто не открыт. У каждого упражнения и раздела появляется поле grade. */
 const TASKS_FILE_2 = (() => { try { return readJSON("data/private/math-2.json"); } catch (e) { return null; } })();
 const TASKS_FILE_RU3 = (() => { try { return readJSON("data/private/rus-3.json"); } catch (e) { return null; } })();   // 3 класс, русский язык
-const GRADE_FILES = [TASKS_FILE, TASKS_FILE_2, TASKS_FILE_RU3].filter(Boolean);
+const TASKS_FILE_EN3 = (() => { try { return readJSON("data/private/en-3.json"); } catch (e) { return null; } })();   // 3 класс, английский язык
+const GRADE_FILES = [TASKS_FILE, TASKS_FILE_2, TASKS_FILE_RU3, TASKS_FILE_EN3].filter(Boolean);
 GRADE_FILES.forEach(f => { const g = f.grade || 3, sj = f.subject || "math"; (f.tasks || []).forEach(t => { t.grade = g; t.subject = sj; }); (f.sections || []).forEach(s => { s.grade = g; s.subject = sj; }); });
+/* Объяснения (kind: "lesson"): лежат в файле упражнений прямо перед тем упражнением, к которому относятся, но упражнениями не считаются.
+   Их нет в TASKS, поэтому счётчики, статусы, листики, кабинет родителя, озвучка шагов и админка их не видят. Ролик знает, перед каким упражнением стоит (before). */
+const LESSONS = [];
+GRADE_FILES.forEach(f => {
+  const keep = []; let wait = [];
+  (f.tasks || []).forEach(t => {
+    if (t.kind === "lesson") { wait.push(t); return; }
+    wait.forEach(l => { l.before = t.id; LESSONS.push(l); }); wait = [];
+    keep.push(t);
+  });
+  if (wait.length) console.error("[объяснения] нет упражнения после ролика: " + wait.map(l => l.id).join(", "));
+  f.tasks = keep;
+});
 const TASKS = GRADE_FILES.flatMap(f => f.tasks || []);
 const ALL_SECTIONS = GRADE_FILES.flatMap(f => f.sections || []);
 const OPEN_GRADES = GRADE_FILES.map(f => f.grade || 3);
@@ -442,7 +456,7 @@ const publicTask = t => {
   task.steps = t.steps.map(s => { const o = { ...s }; SECRET_STEP.forEach(k => delete o[k]); const qc = clipFor(s.q); if (qc) o.qc = qc; return o; });
   return task;
 };
-if (FAST_ON) { try { CLIPS.registerTasks(TASKS); } catch (e) { console.error("[клипы]", e.message); } }
+if (FAST_ON) { try { CLIPS.registerTasks(TASKS.concat(LESSONS)); } catch (e) { console.error("[клипы]", e.message); } }
 const PUBLIC_TASKS = TASKS.map(publicTask);
 const GENERAL_CLIPS = FAST_ON ? (() => { try { return CLIPS.generalIds(); } catch (e) { return {}; } })() : {};
 
@@ -495,6 +509,12 @@ const tasksFor = a => {
 };
 const publicById = new Map(TASKS.map((t, i) => [t.id, PUBLIC_TASKS[i]]));
 const taskById = id => TASKS.find(t => t.id === id);
+/* Объяснения для каталога: id, название, раздел, перед каким упражнением стоит и закрыто ли оно (так же, как это упражнение). */
+const lessonById = id => LESSONS.find(l => l.id === id);
+const lessonsFor = a => LESSONS.map(l => ({ l, t: taskById(l.before) })).filter(x => x.t && inScope(x.t, a && a.user))
+  .map(x => ({ id: x.l.id, title: x.l.title, section: x.l.section, before: x.l.before, locked: taskLocked(x.t, a) }));
+const publicLesson = l => ({ id: l.id, kind: "lesson", title: l.title, section: l.section, next: l.before,
+  frames: (l.frames || []).map(f => { const o = { ...f }; const qc = clipFor(f.say); if (qc) o.qc = qc; return o; }) });   // qc: номер готовой записи фразы
 
 /* ---------- хранилище кабинетов ---------- */
 const STORE_DIR = process.env.STORE_DIR || path.join(ROOT, "storage");
@@ -840,7 +860,7 @@ function quizDone(user, task, ps) {
    Начисляет только сервер. Все числа — гипотезы: подстроить по данным теста на живых семьях.
    Состояние лежит в user.progress.leaves (сохраняется вместе с кабинетом). Журнал начислений: kind "leaves" в attempts-*.jsonl. */
 const LEAVES_CFG = { first: 2, helped: 1, explain: 5, done: 10, warm: 10, back: 5, fullEx: 5, halfEx: 10, repeatWeek: 1,
-  smallEvery: Number(process.env.LEAVES_SMALL) || 1500, bigAt: Number(process.env.LEAVES_BIG) || 6000, bigSkills: Number(process.env.LEAVES_SKILLS) || 2, masteryMin: 0.85, masteryN: 3 };   // пороги можно менять без правки кода
+  smallEvery: Number(process.env.LEAVES_SMALL) || 2000, bigAt: Number(process.env.LEAVES_BIG) || 6000, bigSkills: Number(process.env.LEAVES_SKILLS) || 2, masteryMin: 0.85, masteryN: 3 };   // пороги можно менять без правки кода
 /* заглушки каталога: настоящие партнёры и промокоды появятся после договорённостей */
 const REWARD_DEFAULT = {
   small: [{ id: "pizza", title: "Пицца", icon: "🍕" }, { id: "icecream", title: "Мороженое", icon: "🍦" }, { id: "toy", title: "Игрушка", icon: "🧸" }],
@@ -1347,9 +1367,16 @@ async function api(req, res, url) {
 
   if (req.method === "GET") {
     if (url === "/api/subjects") return send(res, 200, { open: OPEN_SUBJECTS });   // какие предметы открыты в каком классе (для формы выбора)
-    if (url === "/api/tasks") return send(res, 200, { tasks: tasksFor(a), sections: ALL_SECTIONS.filter(s => inScope(s, a && a.user)) });
+    if (url === "/api/tasks") return send(res, 200, { tasks: tasksFor(a), lessons: lessonsFor(a), sections: ALL_SECTIONS.filter(s => inScope(s, a && a.user)) });
     if (url.startsWith("/api/task/")) {
       let id = ""; try { id = decodeURIComponent(url.slice(10)); } catch (e) {}
+      const L = lessonById(id);
+      if (L) {   // объяснение: открыто, если открыто упражнение, перед которым оно стоит
+        const nt = taskById(L.before);
+        if (!nt || !inScope(nt, a && a.user)) return send(res, 404, { error: "not_found" });
+        if (taskLocked(nt, a)) return send(res, 403, { error: "paid_only" });
+        return send(res, 200, { lesson: publicLesson(L) });
+      }
       const t = taskById(id);
       if (!t || !inScope(t, a && a.user)) return send(res, 404, { error: "not_found" });
       if (taskLocked(t, a)) return send(res, 403, { error: "paid_only" });

@@ -75,7 +75,7 @@
   .lead { font-size: 20px; margin: 0 0 22px; max-width: 34ch; }
 
   /* каталог задач: сотни номеров на одной странице */
-  .cat-title { display: flex; align-items: center; gap: 12px; margin: 0 0 14px; }
+  .cat-title { display: flex; align-items: center; gap: 12px; margin: 0 0 28px; }
   .cat-title .lf { width: 40px; height: 40px; flex: none; }
   .cat-title h1 { font-size: clamp(22px, 3vw, 30px); font-weight: 800; }
   .cat-tools { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 0 0 14px; }
@@ -85,6 +85,8 @@
   .seg { display: inline-flex; border: 2px solid var(--line); border-radius: 14px; overflow: hidden; background: #fff; }
   .seg button { font: inherit; font-size: 15px; font-weight: 700; min-height: 42px; padding: 0 14px; border: 0; background: none; color: var(--muted); cursor: pointer; }
   .seg button[aria-pressed="true"] { background: var(--green); color: #fff; }
+  .cat-kind { margin: 0 0 14px; }
+  .cat-kind .seg button { padding: 0 16px; }
   .cat-meta { font-size: 15px; font-weight: 600; color: var(--muted); margin: 0 0 10px; }
   .cat-meta a { color: var(--green); }
   .grp { border: 2px solid var(--line); border-radius: 18px; background: #fff; margin: 0 0 10px; overflow: hidden; }
@@ -108,6 +110,35 @@
   .tile.lock { color: var(--muted); background: #F6F4EA; }
   .tile.review { background: #FFF1DC; color: #B45F06; border-color: #F2C28A; }
   .tile.mastered { background: #DDF2E3; color: #17603A; border-color: #7CC79A; }
+  .row-btn.lessonrow { background: #EAF3FD; border-color: #8DBBEA; }
+  .row-btn.lessonrow:hover { border-color: #2F7FD0; }
+  .row-btn.lessonrow .rno { min-width: 36px; width: 36px; height: 36px; padding: 0; line-height: 36px; border-radius: 50%; background: #2F7FD0; color: #fff; font-size: 15px; }
+  .row-btn.lessonrow .rtx b { color: #1B5E9E; }
+  .tile.lessonT { background: #2F7FD0; border-color: #2F7FD0; color: #fff; font-size: 20px; }
+  .tile.lessonT:hover { border-color: #1B5E9E; background: #2672BF; }
+  .tile.lessonT.lock { color: #fff; background: #2F7FD0; opacity: .6; }
+  .lp-root { position: fixed; inset: 0; z-index: 2000; overflow: auto; display: flex; justify-content: center; padding: 16px; background-color: var(--paper); background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px); background-size: 24px 24px; }
+  .lp-wrap { width: 100%; max-width: 440px; margin: auto 0; }
+  .lp-card { background: #fff; border: 1.5px solid var(--line); border-radius: 20px; padding: 14px 14px 16px; box-shadow: 0 2px 0 var(--line); }
+  .lp-h { font-size: 18px; margin: 2px 4px 8px; }
+  .lp-scene { background: #F6F9F1; border-radius: 14px; border: 1px solid var(--line); overflow: hidden; }
+  .lp-svg { display: block; width: 100%; height: auto; }
+  .lp-chips { display: none; padding: 18px 12px; min-height: 250px; flex-direction: column; gap: 12px; justify-content: center; }
+  .lp-chip { font-size: 21px; font-weight: 800; background: #fff; border: 2px solid var(--line); border-radius: 14px; padding: 12px 16px; line-height: 1.3; opacity: 0; transform: translateY(10px); transition: opacity .4s, transform .4s; }
+  .lp-chip.in { opacity: 1; transform: none; }
+  .lp-chip b { display: inline-block; width: 28px; height: 28px; line-height: 28px; text-align: center; border-radius: 50%; background: var(--green); color: #fff; margin-right: 8px; font-size: 16px; }
+  .lp-formula { min-height: 64px; margin: 8px 0 0; display: flex; flex-direction: column; align-items: center; gap: 2px; justify-content: center; }
+  .lp-f { font-weight: 800; font-size: 22px; opacity: 0; transform: translateY(6px); transition: opacity .4s, transform .4s; }
+  .lp-f.big { font-size: 32px; }
+  .lp-f.in { opacity: 1; transform: none; }
+  .lp-cap { font-size: 20px; line-height: 1.35; font-weight: 700; margin: 8px 4px 4px; min-height: 104px; }
+  .lp-nav { display: flex; gap: 10px; margin-top: 8px; }
+  .lp-nav button { font: inherit; font-weight: 800; font-size: 17px; border: 0; border-radius: 14px; padding: 12px 18px; cursor: pointer; }
+  .lp-next { flex: 1; background: var(--green); color: #fff; box-shadow: 0 3px 0 var(--green-d); }
+  .lp-next.final { font-size: 18px; padding: 14px 16px; }
+  .lp-skip { background: #fff; color: var(--muted); border: 1.5px solid var(--line) !important; }
+  .lp-again-w { text-align: center; }
+  .lp-again { display: none; margin: 10px auto 0; background: none; border: 0; color: var(--muted); font: inherit; font-size: 15px; text-decoration: underline; padding: 6px; cursor: pointer; }
   .row-btn .rst.st-new { color: var(--muted); font-weight: 600; }
   .row-btn .rst.st-progress { color: #9A7400; }
   .row-btn .rst.st-review { color: #B45F06; }
@@ -265,6 +296,10 @@
   .pc-chart svg { width: 100%; height: auto; display: block; overflow: visible; }
   .pc-gl { stroke: var(--line); stroke-width: 1; }
   .pc-ax { font-size: 12px; fill: #4B5575; }
+  .pc-fold { margin-top: 12px; border: 1.5px solid var(--line); border-radius: 14px; background: var(--card); padding: 0 14px; }
+  .pc-fold > summary { cursor: pointer; font-weight: 700; padding: 14px 0; min-height: 24px; }
+  .pc-fold[open] > summary { border-bottom: 1px solid var(--line); margin-bottom: 12px; }
+  .pc-fold[open] { padding-bottom: 14px; }
   .pc-dt { margin-top: 8px; font-size: 15px; }
   .pc-dt summary { cursor: pointer; color: var(--muted); font-weight: 700; }
   .pc-scroll { overflow-x: auto; }
@@ -274,6 +309,7 @@
   .pc-tip { position: fixed; z-index: 90; background: var(--ink); color: #fff; border-radius: 10px; padding: 8px 12px; font-size: 15px; pointer-events: none; max-width: 260px; }
   .pc-tip b { display: block; }
   h2.sec { font-size: 19.8px; margin: 26px 0 10px; }
+  h3.sec { font-size: 17px; margin: 18px 0 6px; }
   input.inp:focus-visible, input.pin:focus-visible { outline: 3px solid var(--red); outline-offset: 2px; }
   input.num:focus-visible, .btn:focus-visible, .opt:focus-visible, .task-btn:focus-visible, .back:focus-visible,
   .key:focus-visible, .disp:focus-visible {
@@ -310,14 +346,17 @@
 
   /* нижнее меню ребёнка (только телефон): четыре зелёные объёмные кнопки */
   #kidnav { display: none; }
+  body.hasnav { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
+  #kidnav:not([hidden]) { display: flex; justify-content: center; gap: 6px; position: fixed; left: 0; right: 0; bottom: 0; z-index: 900; padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px)); background: rgba(255,255,255,.96); border-top: 1px solid var(--line); box-shadow: 0 -4px 18px rgba(30,42,34,.07); }
+  #kidnav button { flex: 1; max-width: 150px; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 4px 7px; border: 0; border-radius: 14px; background: transparent; color: var(--muted); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; transition: background .15s, color .15s, transform .08s; }
+  #kidnav button:hover { background: var(--tint); color: var(--green-d); }
+  #kidnav button:active { transform: scale(.95); }
+  #kidnav button.on { background: var(--tint); color: var(--green-d); }
+  #kidnav button.on svg { background: var(--green); color: #fff; }
+  #kidnav button:focus-visible { outline: 3px solid var(--pen); outline-offset: 2px; }
+  #kidnav svg { box-sizing: content-box; width: 22px; height: 22px; padding: 5px 16px; border-radius: 999px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: background .15s, color .15s; }
+  @media (min-width: 701px) { #kidnav button { font-size: 14px; flex-direction: row; justify-content: center; gap: 8px; padding: 10px 14px; } #kidnav svg { width: 22px; height: 22px; padding: 0; background: none !important; color: inherit !important; } #kidnav button.on { background: var(--green); color: #fff; } }
   @media (max-width: 700px) {
-    body.hasnav { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
-    #kidnav:not([hidden]) { display: flex; gap: 8px; position: fixed; left: 0; right: 0; bottom: 0; z-index: 900; padding: 10px 10px 12px; background: #fff; border-top: 2px solid var(--line); }
-    #kidnav button { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 2px 12px; border: 0; border-bottom: 5px solid #17653A; border-radius: 16px; background: #2E9A5B; color: #fff; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; transition: transform .08s; }
-    #kidnav button:active { transform: translateY(4px); border-bottom-width: 1px; }
-    #kidnav button.on { background: #17653A; border-bottom-color: #0E4527; box-shadow: 0 0 0 3px var(--sun); }
-    #kidnav button:focus-visible { outline: 3px solid var(--pen); outline-offset: 2px; }
-    #kidnav svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     body.hasnav .top.lhead { display: none; }
     body.hasnav .lmeta .hright { margin-left: auto; }
     body.hasnav .lmeta .vt { display: none; }
@@ -525,6 +564,51 @@
   .subj:focus-visible { outline: 3px solid #2B4BC4; outline-offset: 2px; }
   .subj-i { font-size: 24px; line-height: 1; }
   @media (prefers-reduced-motion: reduce) { .subj { transition: none; } }
+
+  /* кабинет родителя: шапка ребёнка, плавающий WhatsApp, предметы карточками, вкладки */
+  .cabhero { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; margin: 0 0 20px; padding: 20px 24px; border-radius: 22px; background: linear-gradient(135deg, #E5F3E9 0%, #F4FAF0 60%, #FFF6DC 100%); border: 2px solid #BFE6CE; }
+  .cabhero-av { flex: none; width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 800; color: #fff; background: var(--green); box-shadow: 0 6px 14px -6px rgba(23,101,58,.7); }
+  .cabhero-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 200px; }
+  .cabhero-eb { font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #5C6B60; }
+  .cabhero-nm { font-size: clamp(24px, 3.4vw, 32px); line-height: 1.15; overflow-wrap: anywhere; }
+  .cabhero-gr { font-size: 17px; font-weight: 700; color: var(--green-d); }
+  .cabhero-facts { display: flex; gap: 12px; flex-wrap: wrap; }
+  .cabhero-facts > div { background: rgba(255,255,255,.8); border-radius: 16px; padding: 10px 16px; min-width: 150px; }
+  .cabhero-facts span { display: block; font-size: 13px; color: var(--muted); }
+  .cabhero-facts b { font-size: 17px; }
+  .cabhero-facts em { font-style: normal; font-weight: 400; color: var(--muted); font-size: 15px; }
+  .cabact { display: flex; gap: 10px; flex-wrap: wrap; margin: -6px 0 20px; }
+  .cabact button { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 52px; padding: 0 24px; font: inherit; font-size: 17px; font-weight: 800; border-radius: 16px; cursor: pointer; transition: transform .12s, background .15s, box-shadow .15s; }
+  .cabact-go { flex: 1 1 220px; max-width: 320px; border: 0; background: var(--green); color: #fff; box-shadow: 0 8px 18px -10px rgba(31,122,69,.9); }
+  .cabact-go:hover { background: var(--green-d); transform: translateY(-2px); }
+  .cabact-out { border: 2px solid var(--line); background: #fff; color: var(--muted); }
+  .cabact-out:hover { border-color: #C9D2C2; color: var(--ink); background: #F6F8F2; }
+  .cabact button:focus-visible { outline: 3px solid #2B4BC4; outline-offset: 2px; }
+  @media (max-width: 700px) { .cabact-go { max-width: none; } }
+  .wa-fab { position: fixed; right: 20px; bottom: 20px; z-index: 950; width: 56px; height: 56px; border-radius: 50%; background: #25D366; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(18,140,70,.45); animation: waPulse 2s ease-out infinite; }
+  .wa-fab:hover { background: #1FBE5A; }
+  .wa-fab:focus-visible { outline: 3px solid #2B4BC4; outline-offset: 3px; }
+  @keyframes waPulse { 0% { box-shadow: 0 6px 16px rgba(18,140,70,.45), 0 0 0 0 rgba(37,211,102,.55); } 70% { box-shadow: 0 6px 16px rgba(18,140,70,.45), 0 0 0 18px rgba(37,211,102,0); } 100% { box-shadow: 0 6px 16px rgba(18,140,70,.45), 0 0 0 0 rgba(37,211,102,0); } }
+  @media (prefers-reduced-motion: reduce) { .wa-fab { animation: none; } }
+  .subjbar-c { padding: 0; background: none; border-radius: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+  .subj { --ac: var(--green); --acbg: #E5F3E9; position: relative; justify-content: flex-start; gap: 14px; min-height: 76px; padding: 12px 18px; text-align: left; background: #fff; border: 2px solid var(--line); border-radius: 20px; box-shadow: 0 2px 6px rgba(30,42,34,.05); transition: transform .12s, border-color .15s, background .15s, box-shadow .15s; }
+  .subj[data-s="math"] { --ac: #2F7FD0; --acbg: #E4F0FC; }
+  .subj[data-s="rus"] { --ac: #D9822B; --acbg: #FDEBD3; }
+  .subj:hover { background: var(--acbg); border-color: var(--ac); transform: translateY(-2px); }
+  .subj.on { background: var(--acbg); color: var(--ink); border-color: var(--ac); box-shadow: 0 8px 18px -10px var(--ac); }
+  .subj-i { flex: none; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; font-size: 26px; border-radius: 15px; background: var(--acbg); }
+  .subj.on .subj-i { background: #fff; }
+  .subj-t { flex: 1; min-width: 0; }
+  .subj-ck { display: none; width: 26px; height: 26px; align-items: center; justify-content: center; border-radius: 50%; background: var(--ac); color: #fff; font-size: 15px; }
+  .subj.on .subj-ck { display: flex; }
+  .cabtabs { display: flex; gap: 6px; margin: 0 0 20px; padding: 6px; background: #EEF3EA; border-radius: 20px; overflow-x: auto; scrollbar-width: none; }
+  .cabtabs::-webkit-scrollbar { display: none; }
+  .cabtab { flex: 1 0 auto; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 8px 16px; font: inherit; font-size: 16px; font-weight: 700; color: #4E5D52; white-space: nowrap; background: transparent; border: 0; border-radius: 15px; cursor: pointer; transition: background .15s, color .15s, box-shadow .15s; }
+  .cabtab:hover { background: rgba(31,122,69,.1); }
+  .cabtab.on { background: var(--green); color: #fff; box-shadow: 0 8px 16px -10px rgba(31,122,69,.9); }
+  .cabtab:focus-visible { outline: 3px solid #2B4BC4; outline-offset: 2px; }
+  .cabtab-i { font-size: 18px; line-height: 1; }
+  @media (max-width: 700px) { .cabhero { padding: 16px; gap: 12px; } .cabhero-av { width: 52px; height: 52px; font-size: 24px; } .cabhero-facts > div { flex: 1 1 140px; } .cabtab { padding: 8px 12px; font-size: 15px; } .wa-fab { right: 14px; bottom: 14px; } }
 
   .nbcol { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
   .nbno { font-size: 28px; color: var(--green); line-height: 1; }
@@ -1099,6 +1183,7 @@ function cabIdleLeave() {
   render();
 }
 /* ---------- листики (баллы за учёбу): считает и хранит сервер, здесь только показываем ---------- */
+let LV_TOTALS = {};   // листики по предметам для страницы «Листики»: { предмет: число }
 let LEAVES = null;   // { total, today, cycle, goal, catalog, rewards } только для вошедшего кабинета
 /* подарочное окно: появляется, когда в свежих данных есть награда, которой не было раньше (только награды последних 15 минут, чтобы смена предмета не показала чужие) */
 const GIFT_SHOWN = new Set();
@@ -1120,12 +1205,28 @@ function showGiftPopup(list) {
   document.body.appendChild(o);
   const b = document.getElementById("giftOk"); if (b) b.focus();
 }
-async function leavesLoad() {
+async function leavesLoad(subj) {
   if (!USER) { LEAVES = null; return; }
   const before = LEAVES ? new Set((LEAVES.rewards || []).map(x => x.id)) : null;
-  const r = await call("/api/leaves");
+  const r = await call("/api/leaves" + (subj ? "?subject=" + encodeURIComponent(subj) : ""));
   LEAVES = r.status === 200 && r.data && typeof r.data.total === "number" ? r.data : null;
   if (before && LEAVES) showGiftPopup((LEAVES.rewards || []).filter(x => !before.has(x.id)));
+}
+/* страница «Листики»: сколько листиков в каждом предмете (листики считаются по предметам отдельно) */
+async function lvTotalsLoad() {
+  LV_TOTALS = {};
+  if (!USER) return;
+  await loadSubjects();
+  const ids = openSubj((USER.child && USER.child.grade) || 3);
+  if (ids.length < 2) return;
+  await Promise.all(ids.map(async id => { const r = await call("/api/leaves?subject=" + encodeURIComponent(id)); if (r.status === 200 && r.data && typeof r.data.total === "number") LV_TOTALS[id] = r.data.total; }));
+}
+function lvSubjectBar() {
+  const ids = USER ? openSubj((USER.child && USER.child.grade) || 3) : [];
+  if (ids.length < 2) return "";
+  const cur = LEAVES && LEAVES.subject, list = subjectList((USER.child && USER.child.grade) || 3).filter(x => ids.includes(x.id));
+  return '<div class="seg" role="group" aria-label="Предмет" style="margin:0 0 16px">' + list.map(x =>
+    '<button data-action="lv-subj" data-id="' + esc(x.id) + '" aria-pressed="' + (x.id === cur) + '">' + esc(x.title) + (LV_TOTALS[x.id] !== undefined ? ' · ' + LV_TOTALS[x.id] + ' 🍃' : '') + '</button>').join("") + '</div>';
 }
 function leavesApply(l) {
   if (!LEAVES || !l) return;
@@ -1165,12 +1266,12 @@ function leavesCard() {
   if (!LEAVES) return "";
   const g = LEAVES.goal, gs = LEAVES.goalSmall;
   let h = lvReward();
-  h += '<div class="lvcard"><div class="lvtop"><span class="lvnum">🍃 ' + LEAVES.total + '</span><span class="lvlbl">' + lvWord(LEAVES.total) + '</span></div>';
+  h += '<div class="lvcard"><div class="lvtop"><span class="lvnum">🍃 ' + LEAVES.total + '</span><span class="lvlbl">' + lvWord(LEAVES.total) + ' всего</span></div>';
+  h += '<div class="lvgoal">Сегодня заработано: <b>' + (LEAVES.today.earned || 0) + '</b></div>';
   h += lvGoalLine("Простой подарок", gs, "Выбери простой подарок.") + lvSmallProgress();
   h += lvGoalLine("Большой подарок", g, "Выбери большой подарок.") + lvProgress();
   if (LEAVES.today.capped) h += '<div class="lvnote">Сегодня уже набрано много листиков. Завтра они пойдут снова, а учиться можно хоть сейчас.</div>';
-  h += '<div class="row"><button class="btn ghost small" data-action="goal-open">' + (g || gs ? 'Сменить подарки' : 'Выбрать подарки') + '</button></div></div>';
-  return h;
+  return h + '</div>';
 }
 function lvPill() {
   if (!LEAVES) return "";
@@ -1209,17 +1310,26 @@ function renderGoal() {
 /* страница «Листики» ребёнка (кнопка в нижнем меню): сколько листиков набрано и сколько осталось до подарков */
 function renderLeaves() {
   let h = '<div class="top">' + BRAND + '</div><div class="cat-title"><h1>Мои листики</h1></div>';
+  h += lvSubjectBar();
   h += LEAVES ? leavesCard() : '<p class="lead">Листики пока не загрузились. Попробуй ещё раз чуть позже.</p>';
+  if (LEAVES) {
+    h += '<h2 class="sec">Выбери подарки</h2><p class="lead">Набирай листики за учёбу. Когда дойдёшь до цели, родители получат для тебя подарок.</p>';
+    h += '<h3 class="sec">Простые подарки</h3><p class="lvnote">Каждые ' + LEAVES.cycle.small + ' ' + lvWord(LEAVES.cycle.small) + '.</p>' + lvTiles(LEAVES.catalog.small, LEAVES.goalSmall && LEAVES.goalSmall.id);
+    h += '<h3 class="sec">Большие подарки</h3><p class="lvnote">Нужны листики и освоенные навыки.</p>' + lvTiles(LEAVES.catalog.big, LEAVES.goal && LEAVES.goal.id);
+  }
+  if (S.flash) { h += '<div class="fb ok">' + esc(S.flash) + '</div>'; S.flash = ""; }
   app.innerHTML = h;
   window.scrollTo(0, 0);
 }
 async function pickGoal(id) {
-  const r = await call("/api/leaves/goal", { id });
+  const r = await call("/api/leaves/goal", { id, subject: S && S.view === "leaves" && LEAVES ? LEAVES.subject : undefined });
   if (r.status !== 200) { S.flash = "Не получилось выбрать. Попробуй ещё раз."; return render(); }
   LEAVES = r.data;
   const all = LEAVES.catalog.small.concat(LEAVES.catalog.big), c = all.find(x => x.id === id);
-  S = { view: "goal", from: S && S.from, flash: "Выбрано: " + (c ? c.title : "") };
+  const onLeaves = S && S.view === "leaves", y = window.scrollY;
+  S = { view: onLeaves ? "leaves" : "goal", from: S && S.from, flash: "Выбрано: " + (c ? c.title : "") };
   render();
+  if (onLeaves) window.scrollTo(0, y);
 }
 function lvParentBlock() {
   const v = S.lv;
@@ -1242,7 +1352,7 @@ let LOGO_LOCK = false;
 function render() {
   if (S.view === "loading") return;
   const lesson = S.view === "task" || S.view === "done";
-  app.classList.toggle("wide", lesson || S.view === "cabinet" || S.view === "home"); app.classList.toggle("cabw", S.view === "cabinet" || S.view === "home");   // кабинет родителя во всю ширину шапки
+  app.classList.toggle("wide", lesson || S.view === "cabinet" || S.view === "home" || S.view === "leaves"); app.classList.toggle("cabw", S.view === "cabinet" || S.view === "home" || S.view === "leaves");   // кабинет родителя во всю ширину шапки
   const navCab = document.getElementById("navCab");
   document.querySelectorAll('.sh-btn[href="/listik.html#register"]').forEach(a => { a.style.display = (typeof USER !== "undefined" && USER) ? "none" : ""; });
   if (navCab) { const nt = navCab.querySelector(".navcab-t"); if (nt) nt.textContent = (typeof USER !== "undefined" && USER) ? "Кабинет родителя" : "Войти"; }
@@ -1256,7 +1366,7 @@ function render() {
   const lessonsOnly = !!USER && (S.view === "cabinet" || S.view === "setup" || S.view === "paypage" || S.view === "pin" || S.view === "pinreset");   // в кабинете вместо меню одна кнопка «К занятиям!»
   const shNav = document.querySelector(".sh-nav"); if (shNav) shNav.style.display = (kid || lessonsOnly) ? "none" : "";
   const shF = document.querySelector("footer.sf"); if (shF) shF.style.display = (kid || lessonsOnly) ? "none" : "";   // у ребёнка подвала нет
-  const shL = document.getElementById("shAct"); if (shL) shL.hidden = !(lessonsOnly && S.view !== "setup");
+  const shL = document.getElementById("shAct"); if (shL) shL.hidden = !(lessonsOnly && S.view !== "setup" && S.view !== "cabinet");   // в кабинете эти кнопки стоят под шапкой ребёнка
   LOGO_LOCK = lessonsOnly;   // в кабинете родителя логотип никуда не ведёт
   const shLogo = document.querySelector(".sh-logo"); if (shLogo) shLogo.setAttribute("href", kid ? "/listik.html" : "/");
   /* режим ребёнка: ссылки в подвале (телефон, WhatsApp, документы) не нажимаются; для родителя и гостя возвращаются */
@@ -1508,50 +1618,54 @@ function renderCabinet() {
   let h = "";
   if (S.flash) { h += '<div class="fb ok setup-flash" role="status">' + esc(S.flash) + '</div>'; S.flash = ""; }   // сообщение сверху всего
   h += '<div class="top">' + BRAND + '</div>';
-  h += '<h2 class="sec">Кабинет родителя</h2>';
-  if (c.subjects && c.subjects.length > 1) h += '<div class="subjbar" role="group" aria-label="Предмет"><span class="subjbar-l">Предмет</span><div class="subjbar-c">' + c.subjects.map(x => '<button class="subj' + (x.id === c.subject.id ? ' on' : '') + '" data-action="cab-subj" data-subj="' + esc(x.id) + '" aria-pressed="' + (x.id === c.subject.id ? 'true' : 'false') + '"><span class="subj-i" aria-hidden="true">' + (SUBJ_ICON[x.id] || '📚') + '</span>' + esc(x.title) + '</button>').join("") + '</div></div>';   // выбор предмета: только если их больше одного
-  const TABS = [["progress", "Обзор"], ["perf", "Успеваемость"], ["tasks", "Задачи и темы"], ["phone", "Телефон ребёнка"], ["settings", "Настройки"]];
-  h += '<div class="tabs">' + TABS.map(t => '<button class="btn ghost' + (tab === t[0] ? ' on' : '') + '" data-action="cab-tab" data-tab="' + t[0] + '">' + t[1] + '</button>').join("") + '</div>';
+  const nm = (c.child.name || "Ребёнок").trim();
+  h += '<div class="cabhero"><div class="cabhero-av" aria-hidden="true">' + esc(nm.charAt(0).toUpperCase()) + '</div>' +
+    '<div class="cabhero-main"><span class="cabhero-eb">Кабинет родителя</span><b class="cabhero-nm">' + esc(nm) + '</b><span class="cabhero-gr">' + esc(c.subject.grade) + ' класс</span></div>' +
+    '<div class="cabhero-facts"><div><span>Начало обучения</span><b>' + (c.startedAt ? fmtDate(c.startedAt) : 'ещё не начато') + '</b></div>' +
+    '<div><span>Последнее занятие</span><b>' + (c.lastAt ? fmtDate(c.lastAt) + ' <em>(' + agoText(c.lastAt) + ')</em>' : 'пока не было') + '</b></div></div></div>';
+  h += '<div class="cabact"><button type="button" class="cabact-go" data-action="home"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>К занятиям</button>' +
+    '<button type="button" class="cabact-out" data-action="logout"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M10 4H5v16h5M15 8l4 4-4 4M19 12H9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Выйти</button></div>';
+  h += '<a class="wa-fab" href="https://wa.me/77759714163?text=' + encodeURIComponent("Здравствуйте! Пишу из кабинета родителя Листика.") + '" target="_blank" rel="noopener" aria-label="Написать нам в WhatsApp" title="Написать нам в WhatsApp"><svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><path fill="#fff" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg></a>';
+  if (c.subjects && c.subjects.length > 1) h += '<div class="subjbar" role="group" aria-label="Предмет"><span class="subjbar-l">Предмет</span><div class="subjbar-c">' + c.subjects.map(x => '<button class="subj' + (x.id === c.subject.id ? ' on' : '') + '" data-s="' + esc(x.id) + '" data-action="cab-subj" data-subj="' + esc(x.id) + '" aria-pressed="' + (x.id === c.subject.id ? 'true' : 'false') + '"><span class="subj-i" aria-hidden="true">' + (SUBJ_ICON[x.id] || '📚') + '</span><span class="subj-t">' + esc(x.title) + '</span><span class="subj-ck" aria-hidden="true">✓</span></button>').join("") + '</div></div>';   // выбор предмета: только если их больше одного
+  const TABS = [["progress", "Обзор", "🏠"], ["perf", "Успеваемость", "📈"], ["tasks", "Задачи и темы", "🧩"], ["phone", "Телефон ребёнка", "📱"], ["settings", "Настройки", "⚙️"]];
+  h += '<div class="cabtabs" role="tablist" aria-label="Разделы кабинета">' + TABS.map(t => '<button class="cabtab' + (tab === t[0] ? ' on' : '') + '" role="tab" aria-selected="' + (tab === t[0]) + '" data-action="cab-tab" data-tab="' + t[0] + '"><span class="cabtab-i" aria-hidden="true">' + t[2] + '</span><span>' + t[1] + '</span></button>').join("") + '</div>';
   const started = c.startedAt && (sm.lessons || c.tasks.some(t => t.status !== "new") || c.skills.length);
 
   if (tab === "progress") {
-    h += '<div class="pc-card pc-hero"><div><b class="nm">' + esc(c.child.name || "Ребёнок") + '</b><span>' + esc(c.subject.title) + ', ' + c.subject.grade + ' класс</span></div>' +
-      '<div class="pc-meta">' + (c.startedAt ? 'Начало обучения: ' + fmtDate(c.startedAt) : 'Обучение ещё не начато') + (c.lastAt ? '<br>Последнее занятие: ' + fmtDate(c.lastAt) + ' (' + agoText(c.lastAt) + ')' : '') + '</div></div>';
-    h += planCard(c);
     h += '<h2 class="sec">Сегодня</h2>';
     h += meter('Время занятий', c.today.studyUsed, c.today.studyMax, fmtMin(Math.round(c.today.studyUsed / 60)) + ' из ' + fmtMin(Math.round(c.today.studyMax / 60)));
     h += meter('Голос Листика', c.today.voiceUsed, c.today.voiceMax, fmtMin(Math.round(c.today.voiceUsed / 60)) + ' из ' + fmtMin(Math.round(c.today.voiceMax / 60)));
-    h += lvParentBlock();
+    let fLv = lvParentBlock(), fChart = "", fSec = "", fLes = "", fSum = "", fTips = "";
     if (!started) {
       h += '<p style="margin-top:16px">Занятий пока не было. Когда ребёнок начнёт решать задачи, здесь появятся результаты, графики и рекомендации.</p>';
     } else {
       const dw = c.week.minutes - c.week.prev;
-      h += '<h2 class="sec">Итоги</h2><div class="stats">' +
+      fSum += '<div class="stats">' +
         '<div class="stat"><b>' + sm.tasksDone + ' из ' + sm.tasksTotal + '</b><span>задач решено</span></div>' +
         '<div class="stat"><b>' + (sm.firstTryPct === null ? '—' : sm.firstTryPct + '%') + '</b><span>шагов с первого раза</span></div>' +
         '<div class="stat"><b>' + fmtMin(c.week.minutes) + '</b><span>за 7 дней' + (c.week.prev || c.week.minutes ? (dw === 0 ? ', как и неделей раньше' : dw > 0 ? ', на ' + dw + ' мин больше, чем неделей раньше' : ', на ' + (-dw) + ' мин меньше, чем неделей раньше') : '') + '</span></div>' +
         '<div class="stat"><b>' + c.streak + '</b><span>' + plural(c.streak, "день", "дня", "дней") + ' подряд занимается</span></div>' +
         '<div class="stat"><b>' + c.week.activeDays + ' из 7</b><span>дней с занятиями за неделю</span></div>' +
         '<div class="stat"><b>' + sm.lessons + '</b><span>законченных занятий</span></div></div>';
-      h += '<div class="bar" aria-hidden="true"><i style="width:' + Math.round(100 * sm.tasksDone / sm.tasksTotal) + '%"></i></div>';
+      fSum += '<div class="bar" aria-hidden="true"><i style="width:' + Math.round(100 * sm.tasksDone / sm.tasksTotal) + '%"></i></div>';
       const a14 = c.activity.slice(-14);
-      h += '<h2 class="sec">Занятия за 14 дней</h2><div class="pc-card">' + pChart("bar", a14.map(x => x.study), { color: PC.blue, unit: " мин", name: "Минут занятий", ref: Math.round(c.today.studyMax / 60), refLabel: "дневной лимит", labels: a14.map(x => fmtDM(x.day)), tips: a14.map(x => fmtDM(x.day)) }) + '</div>';
-      h += '<h2 class="sec">На что обратить внимание</h2>' + tipsBlock(c);
-      h += '<h2 class="sec">Разделы предмета</h2>';
+      fChart += '<div class="pc-card">' + pChart("bar", a14.map(x => x.study), { color: PC.blue, unit: " мин", name: "Минут занятий", ref: Math.round(c.today.studyMax / 60), refLabel: "дневной лимит", labels: a14.map(x => fmtDM(x.day)), tips: a14.map(x => fmtDM(x.day)) }) + '</div>';
+      fTips += tipsBlock(c);
       c.sections.forEach(s => {
         const pct = s.tasksTotal ? Math.round(100 * s.tasksDone / s.tasksTotal) : 0;
-        h += '<div class="rowitem"><div class="top2"><span>' + esc(s.title) + '</span><span>решено ' + s.tasksDone + ' из ' + s.tasksTotal + '</span></div><div class="bar" aria-hidden="true"><i style="width:' + pct + '%"></i></div>' +
+        fSec += '<div class="rowitem"><div class="top2"><span>' + esc(s.title) + '</span><span>решено ' + s.tasksDone + ' из ' + s.tasksTotal + '</span></div><div class="bar" aria-hidden="true"><i style="width:' + pct + '%"></i></div>' +
           '<div class="sub">За 30 дней: ' + (s.minutes30 ? fmtMin(s.minutes30) : 'без занятий') + (s.tasksStarted > s.tasksDone ? '. В процессе: ' + (s.tasksStarted - s.tasksDone) : '') + '</div></div>';
       });
       if (c.lessons.length) {
-        h += '<h2 class="sec">Последние занятия</h2>';
         c.lessons.forEach(l => {
-          h += '<div class="rowitem"><div class="top2"><span>' + fmtDate(l.at) + ' · № ' + esc(l.no) + ' ' + esc(l.title) + '</span><span>' + l.firstTry + ' из ' + l.total + ' с первого раза</span></div>' +
+          fLes += '<div class="rowitem"><div class="top2"><span>' + fmtDate(l.at) + ' · № ' + esc(l.no) + ' ' + esc(l.title) + '</span><span>' + l.firstTry + ' из ' + l.total + ' с первого раза</span></div>' +
             '<div class="bar" aria-hidden="true"><i style="width:' + Math.round(100 * l.firstTry / Math.max(1, l.total)) + '%"></i></div>' +
             (l.hard && l.hard.length ? '<div class="sub">Были трудности: ' + l.hard.map(esc).join(", ") + '</div>' : '') + '</div>';
         });
       }
     }
+    const fold = (t, body) => body ? '<details class="pc-fold"><summary>' + t + '</summary>' + body + '</details>' : '';
+    h += fold('Итоги', fSum) + fold('На что обратить внимание', fTips) + fold('Тариф', planCard(c)) + fold('Листики', fLv) + fold('Занятия за 14 дней', fChart) + fold('Разделы предмета', fSec) + fold('Последние занятия', fLes);
   }
 
   if (tab === "perf") {
@@ -1642,7 +1756,6 @@ function renderCabinet() {
     } else h += '<p class="hint">Список устройств не загрузился. Откройте «Настройки» ещё раз.</p>';
     h += '</div>';
   }
-  h += '<div class="row" style="margin-top:22px"><button class="btn ghost small" data-action="home">К списку задач</button></div>';
   app.innerHTML = h; window.scrollTo(0, 0);
 }
 
@@ -1805,13 +1918,515 @@ async function doChild() {
 }
 
 /* ---------- каталог задач ---------- */
-const HOME = { q: "", view: "list", open: {}, inited: false };
-try { const v = localStorage.getItem("lk_view2"); if (v === "tiles" || v === "list") HOME.view = v; } catch (e) {}
+const HOME = { q: "", view: "list", kind: "all", open: {}, inited: false };   // kind: что показывать в каталоге: all (всё), lesson (только объяснения), task (только упражнения); сюда же встанут тесты
+try { const v = localStorage.getItem("lk_kind"); if (v === "lesson" || v === "task") HOME.kind = v; } catch (e) {}
 let SECTIONS = [];
 const ST_MARK = { done: "✓", progress: "…", review: "↻", mastered: "✓✓" };   // в плитках (короткие значки)
 const ST_TXT = { new: "Не пройдено", progress: "В процессе", done: "Пройдено", review: "Нужно повторить", mastered: "Освоено" };   // в списке (словами)
 const isSolved = t => t.st === "done" || t.st === "review" || t.st === "mastered";
 const REC_TXT = { review: "пора повторить", harder: "можно потруднее", easier: "лучше полегче" };
+/* ---------- ОБЪЯСНЕНИЯ (ролики перед упражнениями) ----------
+   Запись kind:"lesson" из tasks.json: список кадров (say: фраза Листика, show: что нарисовать). Рисунок строит код, как и у pic.
+   Ролик стоит в каталоге перед упражнением, к которому относится. «Пропустить» и «Мне всё понятно» открывают это упражнение. */
+let LESSONS = [];
+const LP = { gen: 0, adv: null, playing: true, cur: 0, data: null, nextI: -1, prev: null, root: null };
+function lessonItem(l) {
+  const aria = "Объяснение: " + String(l.title).replace(/^Объяснение:\s*/, "") + (l.locked ? ", по подписке" : "");
+  if (HOME.view === "list") return '<li><button class="row-btn lessonrow" data-action="lesson" data-id="' + esc(l.id) + '" aria-label="' + esc(aria) + '"><span class="rno">▶</span><span class="rtx"><b>' + esc(l.title) + '</b></span><span class="rst">' + (l.locked ? "🔒" : "") + '</span></button></li>';
+  return '<li><button class="tile lessonT' + (l.locked ? " lock" : "") + '" data-action="lesson" data-id="' + esc(l.id) + '" aria-label="' + esc(aria) + '" title="' + esc(l.title) + '">▶' + (l.locked ? '<span class="mk" aria-hidden="true">🔒</span>' : "") + '</button></li>';
+}
+const lessonItems = exId => LESSONS.filter(l => l.before === exId).map(lessonItem).join("");
+async function openLesson(id) {
+  const l = LESSONS.find(x => x.id === id); if (!l) return;
+  const i = TASKS.findIndex(t => t.id === l.before);
+  if (l.locked) { if (i >= 0) { S = { view: "paywall", t: i }; render(); } return; }
+  let r; try { r = await api("/api/task/" + encodeURIComponent(id)); } catch (e) { r = { status: 0 }; }
+  if (r.status === 403) { if (i >= 0) { S = { view: "paywall", t: i }; render(); } return; }
+  if (r.status !== 200 || !r.data || !r.data.lesson) { S = { view: "home", flash: "Не получилось открыть объяснение. Проверьте интернет и попробуйте ещё раз." }; render(); return; }
+  lpShow(r.data.lesson, i);
+}
+const LP_NS = "http://www.w3.org/2000/svg", LP_COL = { h: [72, 124], t: [196, 86], u: [286, 46] }, LP_TOP = [34, 134];
+const lpLater = (fn, ms) => { const g = LP.gen; setTimeout(() => { if (g === LP.gen && LP.stage) fn(); }, ms); };
+function lpEl(tag, attrs, parent) { const e = document.createElementNS(LP_NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+function lpReveal(e, instant, delay) {
+  e.style.opacity = 0;
+  if (instant) { e.style.opacity = 1; return; }
+  e.style.transition = "opacity .35s";
+  lpLater(() => { e.style.opacity = 1; }, delay);
+}
+const lpDig = (n, c) => c === "h" ? Math.floor(n / 100) : c === "t" ? Math.floor(n / 10) % 10 : n % 10;
+function lpRow(n, top, instant, d) {   // число из кубиков: сотни квадраты, десятки палочки, единицы точки
+  const st = LP.stage, h = lpDig(n, "h"), t = lpDig(n, "t"), u = lpDig(n, "u"), r = {};
+  r.label = lpEl("text", { x: 8, y: top + 27, "font-size": 27, "font-weight": 800, fill: "#1E2A22" }, st);
+  r.label.textContent = n; lpReveal(r.label, instant, d);
+  r.gh = lpEl("g", {}, st); r.gt = lpEl("g", {}, st); r.gu = lpEl("g", {}, st);
+  let i;
+  for (i = 0; i < h; i++) { lpReveal(lpEl("rect", { x: 78 + i * (h > 4 ? 24 : 28), y: top + 5, width: h > 4 ? 21 : 24, height: h > 4 ? 21 : 24, rx: 4, fill: "#8CA3EE", stroke: "#2B4BC4", "stroke-width": 2 }, r.gh), instant, d += 160); }
+  for (i = 0; i < t; i++) { lpReveal(lpEl("rect", { x: 202 + i * 9, y: top, width: 6.5, height: 34, rx: 2, fill: "#F2A65A", stroke: "#C2620A", "stroke-width": 1.5 }, r.gt), instant, d += 120); }
+  for (i = 0; i < u; i++) { lpReveal(lpEl("circle", { cx: 296 + (i % 3) * 13, cy: top + 7 + Math.floor(i / 3) * 13, r: 5, fill: "#5DBB7E", stroke: "#1F7A45", "stroke-width": 1.5 }, r.gu), instant, d += 90); }
+  r.check = lpEl("text", { x: 342, y: top + 28, "text-anchor": "middle", "font-size": 30, "font-weight": 800, fill: "#1F7A45" }, st);
+  r.check.textContent = "✓"; r.check.style.opacity = 0; r.check.style.transition = "opacity .4s";
+  r.end = d;
+  return r;
+}
+function lpHL(x, y, w, h, delay) {
+  const r = lpEl("rect", { x: x, y: y, width: w, height: h, rx: 10, fill: "rgba(242,193,78,.30)", stroke: "#F2C14E", "stroke-width": 2.5 }, LP.stage);
+  r.style.opacity = 0; r.style.transition = "opacity .4s";
+  lpLater(() => { r.style.opacity = 1; }, delay);
+  return r;
+}
+function lpLine(text, big, delay) {
+  const d = document.createElement("div"); d.className = "lp-f" + (big ? " big" : ""); d.textContent = text;
+  LP.formula.appendChild(d); lpLater(() => { d.classList.add("in"); }, delay);
+  return d;
+}
+function lpDecomp(sh) {   // число из кубиков и его запись суммой разрядных слагаемых; stage: blocks (число), build (собираем сумму), full (готовая запись)
+  LP.stage.style.display = "block"; LP.chips.style.display = "none";
+  const st = LP.stage, n = Number(sh.n), same = !!LP.prev && LP.prev.join() === n + ",d"; LP.prev = [n, "d"];
+  const dig = [lpDig(n, "h"), lpDig(n, "t"), lpDig(n, "u")], CX = [60, 180, 300], NAMES = ["сотни", "десятки", "единицы"], COL = ["#2B4BC4", "#C2620A", "#1F7A45"];
+  const VAL = [dig[0] * 100, dig[1] * 10, dig[2]];
+  NAMES.forEach((nm, k) => { const t = lpEl("text", { x: CX[k], y: 18, "text-anchor": "middle", "font-size": 13, "font-weight": 700, fill: "#4B5575" }, st); t.textContent = nm; });
+  let d = 0, i;
+  for (i = 0; i < dig[0]; i++) lpReveal(lpEl("rect", { x: CX[0] - 43 + (i % 3) * 30, y: 34 + Math.floor(i / 3) * 30, width: 26, height: 26, rx: 4, fill: "#8CA3EE", stroke: "#2B4BC4", "stroke-width": 2 }, st), same, d += 160);
+  for (i = 0; i < dig[1]; i++) lpReveal(lpEl("rect", { x: CX[1] - (dig[1] * 11 - 4) / 2 + i * 11, y: 34, width: 7, height: 70, rx: 2, fill: "#F2A65A", stroke: "#C2620A", "stroke-width": 1.5 }, st), same, d += 120);
+  for (i = 0; i < dig[2]; i++) lpReveal(lpEl("circle", { cx: CX[2] - 16 + (i % 3) * 16, cy: 44 + Math.floor(i / 3) * 18, r: 6, fill: "#5DBB7E", stroke: "#1F7A45", "stroke-width": 1.5 }, st), same, d += 90);
+  for (let k = 0; k < 3; k++) if (!dig[k]) {   // пустой разряд: пунктирное место и подпись
+    lpReveal(lpEl("rect", { x: CX[k] - 40, y: 34, width: 80, height: 70, rx: 8, fill: "none", stroke: "#B9BFAE", "stroke-width": 2, "stroke-dasharray": "5 4" }, st), same, d += 150);
+    const e = lpEl("text", { x: CX[k], y: 75, "text-anchor": "middle", "font-size": 14, "font-weight": 700, fill: "#8A907F" }, st); e.textContent = "пусто"; lpReveal(e, same, d);
+  }
+  const labels = VAL.map((v, k) => { const t = lpEl("text", { x: CX[k], y: 138, "text-anchor": "middle", "font-size": 28, "font-weight": 800, fill: v ? COL[k] : "#8A907F" }, st); t.textContent = v; t.style.opacity = 0; t.style.transition = "opacity .4s"; return t; });
+  const parts = VAL.filter(v => v > 0), t0 = same ? 0 : d + 300;
+  if (sh.stage === "build") {   // по очереди: сотни, десятки, единицы; рамка, число под ними и сумма растёт
+    let prev = null, idx = 0;
+    VAL.forEach((v, k) => {
+      if (!v) return;
+      const t = 500 + idx * 1700, cur = idx, hl = lpHL(CX[k] - 54, 24, 108, 128, t);
+      lpLater(() => { if (prev) prev.style.opacity = 0; prev = hl; labels[k].style.opacity = 1; }, t);
+      if (cur === 0) lpLine(parts[0], true, t + 250);   // одна строка, дальше только дописываем
+      else lpLater(() => { const f = LP.formula.querySelector(".lp-f"); if (f) f.textContent = parts.slice(0, cur + 1).join(" + "); }, t + 250);
+      idx++;
+    });
+    return 500 + (parts.length - 1) * 1700 + 1400;
+  }
+  if (sh.stage === "full") {
+    labels.forEach((l, k) => lpLater(() => { l.style.opacity = 1; }, t0 + 200));
+    const zero = VAL.findIndex(v => !v);
+    if (zero >= 0) lpLater(() => { labels[zero].style.opacity = 0; }, t0 + 1800);   // нолик появляется и гаснет: пустое место не пишем
+    lpLine(n + " = " + parts.join(" + "), true, t0 + (zero >= 0 ? 2300 : 700));
+    return t0 + (zero >= 0 ? 3200 : 1700);
+  }
+  lpLine(String(n), true, t0 + 200);   // stage: blocks
+  return t0 + 900;
+}
+function lpClasses(sh) {   // число по классам; stage: plain (слитно), split (группы по три), names (подписи классов), read (читаем по классам), zeros (нули в классе единиц)
+  LP.stage.style.display = "block"; LP.chips.style.display = "none";
+  const st = LP.stage, n = String(sh.num), same = !!LP.prev && LP.prev.join() === n + ",c"; LP.prev = [n, "c"];
+  const s = sh.stage || "plain", Ln = n.length, cut = Ln - 3, CW = 38, GAP = s === "plain" ? 0 : 24;
+  const x0 = (360 - (Ln * CW + GAP)) / 2, X = i => x0 + i * CW + (i >= cut ? GAP : 0), Y = 112;
+  const G = [[0, cut, "#2B4BC4", "rgba(140,163,238,.25)", "класс тысяч"], [cut, Ln, "#C2620A", "rgba(242,166,90,.25)", "класс единиц"]];
+  if (s !== "plain") G.forEach(g => lpReveal(lpEl("rect", { x: X(g[0]) - 4, y: 52, width: (g[1] - g[0]) * CW + 8, height: 84, rx: 12, fill: g[3], stroke: g[2], "stroke-width": 2.5 }, st), same, 0));
+  let d = 0;
+  for (let i = 0; i < Ln; i++) { const t = lpEl("text", { x: X(i) + CW / 2, y: Y, "text-anchor": "middle", "font-size": 44, "font-weight": 800, fill: "#1E2A22" }, st); t.textContent = n[i]; lpReveal(t, same, d += 140); }
+  const t0 = same ? 0 : d + 400, words = [n.slice(0, cut) + " тысяч", n.slice(0, cut) + " тысяч " + n.slice(cut)];
+  if (s === "names" || s === "read") G.forEach((g, k) => { const t = lpEl("text", { x: X(g[0]) - 4 + ((g[1] - g[0]) * CW + 8) / 2, y: 162, "text-anchor": "middle", "font-size": 15, "font-weight": 700, fill: g[2] }, st); t.textContent = g[4]; lpReveal(t, s === "read" || same && false, s === "read" ? 0 : 400 + k * 900); });
+  if (s === "names") return 400 + 900 + 1200;
+  if (s === "read") {
+    const h1 = lpHL(X(0) - 8, 48, cut * CW + 16, 92, 500), h2 = lpHL(X(cut) - 8, 48, (Ln - cut) * CW + 16, 92, 3000), line = lpLine(words[0], true, 700);
+    lpLater(() => { h1.style.opacity = 0; }, 2900); lpLater(() => { line.textContent = words[1]; }, 3200);
+    return 4800;
+  }
+  if (s === "zeros") {
+    const z = []; for (let i = cut; i < Ln; i++) if (n[i] === "0") z.push(i);
+    if (z.length) lpHL(X(z[0]) - 4, 52, (z[z.length - 1] - z[0] + 1) * CW + 8, 84, t0 + 600);
+    lpLine(n.slice(0, cut) + " " + n.slice(cut), true, t0 + 1500);
+    return t0 + 2700;
+  }
+  return t0 + 300;   // stage: plain, split
+}
+function lpColumn(sh) {   // вычисление столбиком: a op b; names: подписи разрядов и обход справа налево; stuck: в единицах не хватает; done: сколько разрядов ответа записано (справа налево); all: готовый пример; fin: в конце полная запись
+  LP.stage.style.display = "block"; LP.chips.style.display = "none";
+  const st = LP.stage, a = String(sh.a), b = String(sh.b).padStart(a.length, " "), add = sh.op !== "−", Ln = a.length, key = a + sh.op + b + ",s", same = !!LP.prev && LP.prev.join() === key; LP.prev = [key];
+  const CX = i => 128 + i * 68, A = a.split("").map(Number), B = b.split("").map(ch => ch === " " ? 0 : Number(ch)), R = [], Cr = [], EQ = [], Bo = [], Ef = [];
+  let c = 0, i;
+  for (i = Ln - 1; i >= 0; i--) {
+    if (add) { const sm = A[i] + B[i] + c; EQ[i] = A[i] + " + " + B[i] + (c ? " + " + c : "") + " = " + sm; R[i] = sm % 10; Cr[i] = sm >= 10 ? 1 : 0; c = Cr[i]; }
+    else { const v = A[i] - c; Bo[i] = v < B[i] ? 1 : 0; Ef[i] = v + (Bo[i] ? 10 : 0); R[i] = Ef[i] - B[i]; EQ[i] = Ef[i] + " − " + B[i] + " = " + R[i]; c = Bo[i]; }   // Bo: разряд занимает 1 у соседа слева
+  }
+  const lent = j => !add && j < Ln - 1 && Bo[j + 1] === 1, chg = j => lent(j) || Bo[j] === 1;   // lent: у этого разряда заняли 1
+  const txt = (x, y, t, size, fill, delay, instant) => { const e = lpEl("text", { x: x, y: y, "text-anchor": "middle", "font-size": size, "font-weight": 800, fill: fill }, st); e.textContent = t; lpReveal(e, instant, delay); return e; };
+  const strike = (j, delay, instant) => lpReveal(lpEl("line", { x1: CX(j) - 15, y1: 86, x2: CX(j) + 15, y2: 52, stroke: "#C2620A", "stroke-width": 3, "stroke-linecap": "round" }, st), instant, delay);
+  const full = () => a + " " + sh.op + " " + sh.b + " = " + R.join("") + (sh.ok ? " ✓" : "");
+  let d = 0;
+  for (i = 0; i < Ln; i++) txt(CX(i), 84, A[i], 46, "#1E2A22", d += 130, same);
+  txt(76, 140, add ? "+" : "−", 40, "#4B5575", d += 130, same);
+  for (i = 0; i < Ln; i++) if (b[i] !== " ") txt(CX(i), 140, b[i], 46, "#1E2A22", d += 130, same);
+  lpReveal(lpEl("line", { x1: 58, x2: 298, y1: 156, y2: 156, stroke: "#1E2A22", "stroke-width": 3, "stroke-linecap": "round" }, st), same, d += 130);
+  const t0 = same ? 0 : d + 400, done = sh.done || 0, cur = Ln - done;
+  if (sh.names) {
+    ["сотни", "десятки", "единицы"].forEach((nm, k) => txt(CX(k), 24, nm, 10, "#4B5575", 0, true));
+    let prev = null;
+    for (let k = 0; k < Ln; k++) { const col = Ln - 1 - k, t = 500 + k * 1300, hl = lpHL(CX(col) - 32, 42, 64, 176, t); lpLater(() => { if (prev) prev.style.opacity = 0; prev = hl; }, t); }
+    return 500 + (Ln - 1) * 1300 + 1500;
+  }
+  if (sh.stuck) {   // в единицах не хватает
+    lpHL(CX(Ln - 1) - 32, 42, 64, 176, t0 + 450);
+    lpLine(A[Ln - 1] + " < " + B[Ln - 1], true, t0 + 1250); return t0 + 2400;
+  }
+  if (!done && !sh.all) return t0 + 300;
+  const past = (j) => { txt(CX(j), 206, R[j], 46, "#1F7A45", 0, true); if (add && j > 0 && Cr[j]) txt(CX(j - 1), 44, "1", 18, "#C2620A", 0, true); if (chg(j)) { strike(j, 0, true); txt(CX(j), 44, Ef[j], 18, "#C2620A", 0, true); } };   // уже посчитанный разряд
+  if (sh.all) {   // готовый пример целиком: все разряды ответа и запись в строку
+    for (i = Ln - 1; i >= 0; i--) past(i);
+    lpLine(full(), true, t0 + 400); return t0 + 1500;
+  }
+  for (i = Ln - 1; i > cur; i--) past(i);
+  lpHL(CX(cur) - 32, 42, 64, 176, t0 + 450);
+  const brw = !add && Bo[cur] === 1, tb = brw ? 700 : 0;   // занимаем: рисунок занимает ещё время
+  let mk = null;
+  if (lent(cur)) { strike(cur, 0, true); mk = txt(CX(cur), 44, A[cur] - 1, 18, "#C2620A", 0, true); }   // у этого разряда заняли раньше
+  if (brw) {
+    lpLater(() => { if (!lent(cur)) strike(cur, 0, true); }, t0 + 1000);
+    if (mk) lpLater(() => { mk.textContent = Ef[cur]; }, t0 + 1000); else mk = txt(CX(cur), 44, Ef[cur], 18, "#C2620A", t0 + 1000, false);
+    if (cur > 0) { strike(cur - 1, t0 + 1000, false); txt(CX(cur - 1), 44, A[cur - 1] - 1, 18, "#C2620A", t0 + 1000, false); }
+  }
+  const ln = lpLine(EQ[cur], true, t0 + 1250 + tb);
+  txt(CX(cur), 206, R[cur], 46, "#1F7A45", t0 + 1700 + tb, false);
+  if (add && cur > 0 && Cr[cur]) txt(CX(cur - 1), 44, "1", 18, "#C2620A", t0 + 1700, false);   // запоминаем 1
+  if (sh.fin) { lpLater(() => { ln.textContent = full(); }, t0 + 3000 + tb); return t0 + 4200 + tb; }
+  return t0 + 2600 + tb;
+}
+function lpGroups(sh) {   // g групп (коробок) по n точек; lab: подпись под рисунком; line: запись примера
+  LP.stage.style.display = "block"; LP.chips.style.display = "none"; LP.prev = null;
+  const st = LP.stage, g = Number(sh.g), n = Number(sh.n), GAP = 10, W = Math.min(150, (330 - (g - 1) * GAP) / g), x0 = (360 - (g * W + (g - 1) * GAP)) / 2, cols = Math.max(1, Math.min(4, Math.floor((W - 12) / 24)));
+  const rows = Math.ceil(n / cols), H = 120, Y = 40;
+  let d = 200;
+  if (g === 0) {   // групп нет: пустое пунктирное место
+    lpReveal(lpEl("rect", { x: 105, y: Y, width: 150, height: H, rx: 12, fill: "none", stroke: "#B9BFAE", "stroke-width": 2.5, "stroke-dasharray": "6 5" }, st), false, d);
+    const e = lpEl("text", { x: 180, y: Y + H / 2 + 6, "text-anchor": "middle", "font-size": 18, "font-weight": 700, fill: "#8A907F" }, st); e.textContent = "групп нет"; lpReveal(e, false, d); d += 400;
+  }
+  for (let k = 0; k < g; k++) {
+    const bx = x0 + k * (W + GAP);
+    const on = sh.hl === "all" || sh.hl === k;   // hl: выделенная коробка (номер) или все
+    lpReveal(lpEl("rect", { x: bx, y: Y, width: W, height: H, rx: 12, fill: on ? "rgba(242,193,78,.45)" : "rgba(140,163,238,.18)", stroke: on ? "#F2C14E" : "#2B4BC4", "stroke-width": on ? 3.5 : 2.5 }, st), false, d); d += 220;
+    for (let i = 0; i < n; i++) {
+      const r = Math.floor(i / cols), inRow = Math.min(cols, n - r * cols), cx = bx + W / 2 + (i % cols - (inRow - 1) / 2) * 24, cy = Y + H / 2 + (r - (rows - 1) / 2) * 24;
+      lpReveal(lpEl("circle", { cx: cx, cy: cy, r: 8, fill: "#5DBB7E", stroke: "#1F7A45", "stroke-width": 2 }, st), false, d); d += 110;
+    }
+  }
+  if (sh.lab) { const t = lpEl("text", { x: 180, y: 196, "text-anchor": "middle", "font-size": 16, "font-weight": 700, fill: "#4B5575" }, st); t.textContent = sh.lab; lpReveal(t, false, d + 200); }
+  if (sh.line) lpLine(sh.line, true, d + 800);
+  return d + 1800;
+}
+function lpParts(sh) {   // схема целое и две части; whole, parts: числа, "?" (неизвестно) или "" (пусто); line: запись; ans: что подставить вместо "?"
+  LP.stage.style.display = "block"; LP.chips.style.display = "none"; LP.prev = null;
+  const st = LP.stage, PX = [106, 252], unk = [];
+  const put = (x, y, v, delay) => { const e = lpEl("text", { x: x, y: y, "text-anchor": "middle", "font-size": v === "?" ? 32 : 30, "font-weight": 800, fill: v === "?" ? "#C2620A" : "#1E2A22" }, st); e.textContent = v; lpReveal(e, false, delay); if (v === "?") unk.push(e); };
+  const cap = (x, y, t, delay) => { const e = lpEl("text", { x: x, y: y, "text-anchor": "middle", "font-size": 13, "font-weight": 700, fill: "#4B5575" }, st); e.textContent = t; lpReveal(e, false, delay); };
+  let d = 200;
+  lpReveal(lpEl("rect", { x: 40, y: 46, width: 280, height: 46, rx: 10, fill: "rgba(140,163,238,.25)", stroke: "#2B4BC4", "stroke-width": 2.5 }, st), false, d); cap(180, 36, "целое", d); put(180, 79, String(sh.whole), d + 200); d += 500;
+  PX.forEach(x => lpReveal(lpEl("line", { x1: 180, y1: 92, x2: x, y2: 124, stroke: "#B9BFAE", "stroke-width": 2 }, st), false, d));
+  (sh.parts || []).forEach((v, k) => {
+    lpReveal(lpEl("rect", { x: PX[k] - 67, y: 124, width: 134, height: 46, rx: 10, fill: "rgba(242,166,90,.25)", stroke: "#C2620A", "stroke-width": 2.5 }, st), false, d); cap(PX[k], 188, "часть", d);
+    if (String(v) !== "") put(PX[k], 157, String(v), d + 200); d += 500;
+  });
+  if (sh.line) lpLine(sh.line, true, d + 500);
+  if (sh.ans !== undefined && unk.length) lpLater(() => { unk.forEach(e => { e.textContent = sh.ans; e.setAttribute("fill", "#1F7A45"); e.setAttribute("font-size", 30); }); }, d + 1500);
+  return d + (sh.ans !== undefined ? 2600 : 1400);
+}
+function lpGrid(sh) {   // прямоугольник из клеток rows на cols; mode: build (клетки появляются), one (выделена одна клетка), rows (ряды по очереди и число в ряду), all (все клетки закрашены); lab: подпись, line: запись
+  LP.stage.style.display = "block"; LP.chips.style.display = "none"; LP.prev = null;
+  const st = LP.stage, R = Number(sh.rows), C = Number(sh.cols), S = Math.min(40, Math.floor(270 / C)), x0 = (360 - C * S) / 2 + (sh.left ? 6 : -14), y0 = 24 + (140 - R * S) / 2 + (sh.top ? 8 : 0), mode = sh.mode || "build";
+  const cells = [];
+  let d = 200;
+  for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) {
+    const one = mode === "one" && r === 0 && c === 0, all = mode === "all";
+    const e = lpEl("rect", { x: x0 + c * S, y: y0 + r * S, width: S, height: S, fill: all ? "rgba(93,187,126,.45)" : one ? "rgba(242,166,90,.75)" : "rgba(140,163,238,.28)", stroke: one ? "#C2620A" : "#2B4BC4", "stroke-width": one ? 3 : 1.5 }, st);
+    lpReveal(e, mode !== "build", d); if (mode === "build") d += 70;
+  }
+  let end = mode === "build" ? d + 600 : 700;
+  const side = (x, y, t) => { const e = lpEl("text", { x: x, y: y, "text-anchor": "middle", "font-size": 18, "font-weight": 800, fill: "#1E2A22" }, st); e.textContent = t; lpReveal(e, mode !== "build", 300); };   // top и left: подписи сторон
+  if (sh.top) side(x0 + C * S / 2, y0 - 9, sh.top);
+  if (sh.left) side(x0 - 26, y0 + R * S / 2 + 6, sh.left);
+  if (mode === "one" && sh.lab) { const t = lpEl("text", { x: x0 + S / 2, y: y0 + R * S + 30, "text-anchor": "middle", "font-size": 20, "font-weight": 800, fill: "#C2620A" }, st); t.textContent = sh.lab; lpReveal(t, false, 500); end = 1500; }
+  if (mode === "rows") {
+    let prev = null;
+    const RN = Math.min(R, Number(sh.upto) || R);   // upto: сколько рядов показать
+    for (let r = 0; r < RN; r++) {
+      const t = 500 + r * 1500, hl = lpHL(x0 - 4, y0 + r * S - 3, C * S + 8, S + 6, t);
+      lpLater(() => { if (prev) prev.style.opacity = 0; prev = hl; }, t);
+      const n = lpEl("text", { x: x0 + C * S + 22, y: y0 + r * S + S / 2 + 8, "text-anchor": "middle", "font-size": 24, "font-weight": 800, fill: "#1F7A45" }, st); n.textContent = C; lpReveal(n, false, t + 400);
+    }
+    end = 500 + (RN - 1) * 1500 + 1500;
+  }
+  if (sh.lab && mode === "all") { const t = lpEl("text", { x: x0 + C * S / 2, y: y0 + R * S + 30, "text-anchor": "middle", "font-size": 18, "font-weight": 700, fill: "#4B5575" }, st); t.textContent = sh.lab; lpReveal(t, false, 400); }
+  if (sh.line) { lpLine(sh.line, true, end); end += 1200; }
+  return end + 400;
+}
+function lpVenn(sh) {   // два пересекающихся круга с именами; stage: a (только первый круг), ab (оба), inter (пересечение), union (объединение); a, both, b: имена; na, nb: подписи кругов; line: запись
+  LP.stage.style.display = "block"; LP.chips.style.display = "none";
+  const st = LP.stage, stg = sh.stage || "ab", key = "v" + JSON.stringify([sh.a, sh.both, sh.b]), same = !!LP.prev && LP.prev.join() === key; LP.prev = [key];
+  const circ = (cx, fill, stroke, delay, instant) => lpReveal(lpEl("circle", { cx: cx, cy: 108, r: 80, fill: fill, stroke: stroke, "stroke-width": 2.5 }, st), instant, delay);
+  const txt = (x, y, t, size, fill, delay, instant) => { const e = lpEl("text", { x: x, y: y, "text-anchor": "middle", "font-size": size, "font-weight": 800, fill: fill }, st); e.textContent = t; lpReveal(e, instant, delay); return e; };
+  const names = (arr, x, delay, instant) => arr.forEach((nm, i) => txt(x, 108 + (i - (arr.length - 1) / 2) * 32 + 6, nm, 15, "#1E2A22", delay + i * 350, instant));
+  const showB = stg !== "a", I = same;
+  circ(140, "rgba(140,163,238,.28)", "#2B4BC4", 200, I); txt(100, 206, sh.na || "", 15, "#2B4BC4", 200, I);
+  const bi = I || stg !== "ab";   // второй круг появляется только в кадре ab
+  if (showB) { circ(220, "rgba(242,166,90,.28)", "#C2620A", 300, bi); txt(260, 206, sh.nb || "", 15, "#C2620A", 300, bi); }   // круги рисуем раньше имён, чтобы имена были сверху
+  names(sh.a || [], 98, 500, I); names(sh.both || [], 180, 500 + (sh.a || []).length * 350, I);
+  let end = same ? 700 : 500 + ((sh.a || []).length + (sh.both || []).length) * 350 + 600;
+  if (showB) { names(sh.b || [], 262, 900, bi); if (stg === "ab") end = 900 + (sh.b || []).length * 350 + 800; }
+  if (stg === "inter") {
+    const l = lpEl("path", { d: "M180 38.7 A80 80 0 0 0 180 177.3 A80 80 0 0 0 180 38.7 Z", fill: "rgba(242,193,78,.45)", stroke: "#F2C14E", "stroke-width": 3 }, st); st.querySelectorAll("text").forEach(t => st.appendChild(t)); l.style.opacity = 0; l.style.transition = "opacity .4s"; lpLater(() => { l.style.opacity = 1; }, 500);
+    txt(180, 226, "пересечение", 16, "#8A5A00", 1300, false); end = 2800;
+  }
+  if (stg === "union") {
+    [140, 220].forEach(cx => { const c = lpEl("circle", { cx: cx, cy: 108, r: 80, fill: "rgba(242,193,78,.22)", stroke: "#F2C14E", "stroke-width": 4 }, st); st.querySelectorAll("text").forEach(t => st.appendChild(t)); c.style.opacity = 0; c.style.transition = "opacity .4s"; lpLater(() => { c.style.opacity = 1; }, 500); });
+    txt(180, 226, "объединение", 16, "#8A5A00", 1000, false);
+    if (sh.line) lpLine(sh.line, true, 1800); end = 3400;
+  }
+  return end;
+}
+function lpTree(sh) {   // дерево вариантов: 2 первых выбора, у каждого по 3 вторых; stage: root (первые выборы), first (ветки от первого), second (ветки от второго), all (все ветки и запись)
+  LP.stage.style.display = "block"; LP.chips.style.display = "none"; LP.prev = null;
+  const st = LP.stage, N = ["root", "first", "second", "all"], k = Math.max(0, N.indexOf(sh.stage || "root")), na = 2, nb = 3, LY = [70, 170], RX = 36, MX = 130, EX = 240;
+  const cap = (x, y, t, delay, instant) => { const e = lpEl("text", { x: x, y: y, "text-anchor": "middle", "font-size": 12, "font-weight": 700, fill: "#4B5575" }, st); e.textContent = t; lpReveal(e, instant, delay); };
+  const node = (x, y, label, fill, stroke, delay, instant, r) => { const c = lpEl("circle", { cx: x, cy: y, r: r || 17, fill: fill, stroke: stroke, "stroke-width": 2.5 }, st); lpReveal(c, instant, delay); const t = lpEl("text", { x: x, y: y + 5, "text-anchor": "middle", "font-size": (r || 17) > 20 ? 11 : 13, "font-weight": 800, fill: "#1E2A22" }, st); t.textContent = label; lpReveal(t, instant, delay); return c; };
+  const edge = (x1, y1, x2, y2, delay, instant, col) => lpReveal(lpEl("line", { x1: x1, y1: y1, x2: x2, y2: y2, stroke: col || "#8A907F", "stroke-width": 2 }, st), instant, delay);
+  const I0 = k > 0, leafY = (g, i) => LY[g] + (i - 1) * 34, leafFill = k === 3 ? "rgba(93,187,126,.55)" : "rgba(242,166,90,.35)";
+  cap(MX, 12, "блузка", 0, true); cap(EX, 12, "юбка", 0, true);
+  node(RX, 120, "выбор", "#fff", "#1E2A22", 200, I0, 27);
+  LY.forEach((y, g) => { edge(RX + 27, 120, MX - 17, y, 500 + g * 300, I0); node(MX, y, "Б" + (g + 1), "rgba(140,163,238,.35)", "#2B4BC4", 700 + g * 300, I0); });
+  let end = k === 0 ? 2000 : 0;
+  for (let g = 0; g < na; g++) {
+    if (k < g + 1) continue;   // ветки этой блузки ещё не нужны
+    const inst = k > g + 1, base = 500;
+    if (!inst) { const ring = lpEl("circle", { cx: MX, cy: LY[g], r: 23, fill: "none", stroke: "#F2C14E", "stroke-width": 3.5 }, st); lpReveal(ring, false, 100); }
+    for (let i = 0; i < nb; i++) { edge(MX + 17, LY[g], EX - 17, leafY(g, i), base + i * 350, inst); node(EX, leafY(g, i), "Ю" + (i + 1), leafFill, "#C2620A", base + i * 350 + 100, inst, 15); }
+    if (!inst) end = base + nb * 350 + 900;
+  }
+  if (k === 3) {
+    LY.forEach((y, g) => { const t = lpEl("text", { x: 296, y: y + 8, "text-anchor": "middle", "font-size": 24, "font-weight": 800, fill: "#1F7A45" }, st); t.textContent = nb; lpReveal(t, false, 500); });
+    const ln = lpLine("3 + 3 = 6", true, 1500); lpLater(() => { ln.textContent = "2 · 3 = 6"; }, 3300); end = 4600;
+  }
+  return end;
+}
+function lpCompare(sh) {   // две полосы-числа и разница между ними; big/small: {name, val}; diff: на сколько; hide: small|big (число неизвестно, показано пунктиром); reveal: неизвестное становится известным; stage: ask|hi|calc|back; line: запись
+  LP.stage.style.display = "block"; LP.chips.style.display = "none"; LP.prev = null;
+  const st = LP.stage, B = sh.big, S = sh.small, U = 17, X0 = 72, YB = 52, YS = 124, H = 42, bv = Number(B.val), sv = Number(S.val), df = Number(sh.diff), stg = sh.stage || "ask", hide = sh.hide || "", inst = stg !== "ask";
+  const txt = (x, y, t, size, fill, anchor, delay, instant) => { const e = lpEl("text", { x: x, y: y, "text-anchor": anchor || "middle", "font-size": size, "font-weight": 800, fill: fill }, st); e.textContent = t; lpReveal(e, instant, delay); return e; };
+  txt(8, YB + H / 2 + 6, B.name, 15, "#1E2A22", "start", 0, true); txt(8, YS + H / 2 + 6, S.name, 15, "#1E2A22", "start", 0, true);
+  const fade = (e, to, ms) => { e.style.transition = "opacity .4s"; lpLater(() => { e.style.opacity = to; }, ms); };
+  const bar = (y, v, who, fill, stroke) => {
+    const solid = [lpEl("rect", { x: X0, y: y, width: v * U, height: H, rx: 8, fill: fill, stroke: stroke, "stroke-width": 2.5 }, st), txt(X0 + v * U - 12, y + H / 2 + 8, v, 24, "#1E2A22", "end", 0, true)];
+    if (hide !== who) return;
+    const dash = [lpEl("rect", { x: X0, y: y, width: v * U, height: H, rx: 8, fill: "#fff", stroke: stroke, "stroke-width": 2.5, "stroke-dasharray": "6 5" }, st), txt(X0 + v * U - 12, y + H / 2 + 8, "?", 28, "#C2620A", "end", 0, true)];
+    if (sh.reveal) { solid.forEach(e => { e.style.opacity = 0; fade(e, 1, sh.reveal); }); dash.forEach(e => fade(e, 0, sh.reveal)); }
+    else solid.forEach(e => { e.style.opacity = 0; });
+  };
+  bar(YB, bv, "big", "rgba(140,163,238,.45)", "#2B4BC4"); bar(YS, sv, "small", "rgba(242,166,90,.45)", "#C2620A");
+  const tail = lpEl("rect", { x: X0 + sv * U, y: YB, width: df * U, height: H, rx: 6, fill: "rgba(242,193,78,.65)", stroke: "#F2C14E", "stroke-width": 2.5 }, st);
+  const tl = txt(X0 + sv * U + df * U / 2, YB - 10, "на " + df, 16, "#8A5A00", "middle", 0, true);
+  st.querySelectorAll("text").forEach(e => st.appendChild(e));   // подписи поверх жёлтой части
+  if (stg === "ask") { tail.style.opacity = 0; tl.style.opacity = 0; fade(tail, 1, 1300); fade(tl, 1, 1300); }
+  if (stg === "hi") lpHL(X0 - 8, YB - 8, bv * U + 16, H + 16, 400);
+  if (sh.line) lpLine(sh.line, true, stg === "back" ? 1000 : 1200);
+  return stg === "ask" ? 3000 : stg === "hi" ? 2400 : 3400;
+}
+function lpFrac(sh) {   // доли: shape circle (parts, shaded) или bar (sizes: неравные части); frac: [числитель, знаменатель] справа; mark: num|den; lab: подпись
+  LP.stage.style.display = "block"; LP.chips.style.display = "none";
+  const st = LP.stage, key = "f" + [sh.shape, sh.parts, sh.shaded, JSON.stringify(sh.sizes)].join(), same = !!LP.prev && LP.prev.join() === key; LP.prev = [key];
+  const txt = (x, y, t, size, fill, delay, instant) => { const e = lpEl("text", { x: x, y: y, "text-anchor": "middle", "font-size": size, "font-weight": 800, fill: fill }, st); e.textContent = t; lpReveal(e, instant, delay); return e; };
+  const cx = sh.frac ? 110 : 180, cy = 108, r = 84;
+  let d = 200;
+  if (sh.shape === "bar") {
+    const tot = sh.sizes.reduce((a, b) => a + b, 0), W = 280, cols = ["rgba(140,163,238,.45)", "rgba(242,166,90,.45)", "rgba(93,187,126,.45)"];
+    let x = 40; sh.sizes.forEach((z, i) => { const w = W * z / tot; lpReveal(lpEl("rect", { x: x, y: 70, width: w, height: 76, fill: cols[i % 3], stroke: "#2B4BC4", "stroke-width": 2.5 }, st), same, d); d += 300; x += w; });
+  } else {
+    const p = Number(sh.parts), k = Number(sh.shaded) || 0;
+    for (let i = 0; i < p; i++) {
+      const fill = i < k ? "rgba(93,187,126,.7)" : "rgba(140,163,238,.25)", a0 = -Math.PI / 2 + i * 2 * Math.PI / p, a1 = -Math.PI / 2 + (i + 1) * 2 * Math.PI / p;
+      const e = p === 1 ? lpEl("circle", { cx: cx, cy: cy, r: r, fill: fill, stroke: "#2B4BC4", "stroke-width": 2.5 }, st)
+        : lpEl("path", { d: "M" + cx + " " + cy + " L" + (cx + r * Math.cos(a0)) + " " + (cy + r * Math.sin(a0)) + " A" + r + " " + r + " 0 " + (a1 - a0 > Math.PI ? 1 : 0) + " 1 " + (cx + r * Math.cos(a1)) + " " + (cy + r * Math.sin(a1)) + " Z", fill: fill, stroke: "#2B4BC4", "stroke-width": 2.5, "stroke-linejoin": "round" }, st);
+      lpReveal(e, same, d); d += 160;
+    }
+  }
+  let end = same ? 400 : d + 400;
+  if (sh.lab) { txt(180, 214, sh.lab, 17, "#4B5575", end, same); end += 600; }
+  if (sh.frac) {
+    txt(290, 96, sh.frac[0], 52, "#1E2A22", end, same); lpReveal(lpEl("line", { x1: 256, x2: 324, y1: 112, y2: 112, stroke: "#1E2A22", "stroke-width": 4, "stroke-linecap": "round" }, st), same, end); txt(290, 166, sh.frac[1], 52, "#1E2A22", end, same); end += same ? 100 : 800;
+    if (sh.mark === "den") { lpHL(254, 124, 72, 56, end); txt(290, 204, "знаменатель", 15, "#8A5A00", end + 300, false); end += 1800; }
+    if (sh.mark === "num") { lpHL(254, 46, 72, 56, end); txt(290, 38, "числитель", 15, "#8A5A00", end + 300, false); end += 1800; }
+  }
+  return end + 500;
+}
+function lpFracBars(sh) {   // полоски-дроби: items [{parts, shaded, label}]; anim: номер полоски, которая рисуется сейчас (остальные сразу) или all; hl: номер подсвеченной; line: запись
+  LP.stage.style.display = "block"; LP.chips.style.display = "none"; LP.prev = null;
+  const st = LP.stage, W = 280, X = 40, H = 52, Y = [52, 148], an = sh.anim === undefined ? "all" : sh.anim;
+  let d = 200;
+  sh.items.forEach((it, k) => {
+    const inst = !(an === "all" || an === k), w = W / it.parts;
+    for (let i = 0; i < it.parts; i++) { lpReveal(lpEl("rect", { x: X + i * w, y: Y[k], width: w, height: H, fill: i < it.shaded ? "rgba(93,187,126,.7)" : "rgba(140,163,238,.25)", stroke: "#2B4BC4", "stroke-width": 2 }, st), inst, d); if (!inst) d += 70; }
+    if (it.label) { const t = lpEl("text", { x: X, y: Y[k] - 10, "text-anchor": "start", "font-size": 20, "font-weight": 800, fill: "#1E2A22" }, st); t.textContent = it.label; lpReveal(t, inst, d); }
+  });
+  let end = d + 700;
+  if (sh.hl !== undefined) { lpHL(X - 6, Y[sh.hl] - 6, W + 12, H + 12, end); end += 1200; }
+  if (sh.line) { lpLine(sh.line, true, end); end += 1300; }
+  return end;
+}
+function lpLayers(sh) {   // кубики слоями: один слой n на n или n слоёв рядом; stage: one | all; line: запись
+  LP.stage.style.display = "block"; LP.chips.style.display = "none";
+  const st = LP.stage, n = Number(sh.n) || 3, all = sh.stage === "all", key = "ly" + n + sh.stage, same = !!LP.prev && LP.prev.join() === key; LP.prev = [key];
+  const S = 26, G = 18, L = all ? n : 1, tw = L * n * S + (L - 1) * G, x0 = (360 - tw) / 2, y0 = 56, cols = ["rgba(140,163,238,.45)", "rgba(242,166,90,.45)", "rgba(93,187,126,.45)"];
+  let d = 200;
+  for (let l = 0; l < L; l++) {
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) { lpReveal(lpEl("rect", { x: x0 + l * (n * S + G) + c * S, y: y0 + r * S, width: S, height: S, fill: cols[l % 3], stroke: "#2B4BC4", "stroke-width": 1.5 }, st), same || (all && l === 0 && LP.prevOne), d); if (!same) d += 25; }
+    if (all) { const t = lpEl("text", { x: x0 + l * (n * S + G) + n * S / 2, y: y0 + n * S + 24, "text-anchor": "middle", "font-size": 14, "font-weight": 700, fill: "#4B5575" }, st); t.textContent = "слой " + (l + 1); lpReveal(t, same, d); }
+  }
+  let end = same ? 500 : d + 500;
+  if (sh.line) { lpLine(sh.line, true, end); end += 1400; }
+  return end;
+}
+function lpZeros(sh) {   // плитки-цифры числа и оранжевые нули; num: цифры, zeros: сколько нулей, mode: mul (приписываем) | div (зачёркиваем); line: запись
+  LP.stage.style.display = "block"; LP.chips.style.display = "none"; LP.prev = null;
+  const st = LP.stage, ds = String(sh.num).split(""), z = Number(sh.zeros) || 0, div = sh.mode === "div", T = 48, G = 8, N = ds.length + z, x0 = (360 - (N * T + (N - 1) * G)) / 2, Y = 70;
+  let d = 200;
+  const tile = (i, v, orange, delay) => {
+    lpReveal(lpEl("rect", { x: x0 + i * (T + G), y: Y, width: T, height: 62, rx: 10, fill: orange ? "rgba(242,166,90,.45)" : "rgba(140,163,238,.25)", stroke: orange ? "#C2620A" : "#2B4BC4", "stroke-width": 2.5 }, st), false, delay);
+    const t = lpEl("text", { x: x0 + i * (T + G) + T / 2, y: Y + 44, "text-anchor": "middle", "font-size": 36, "font-weight": 800, fill: "#1E2A22" }, st); t.textContent = v; lpReveal(t, false, delay + 100);
+    return i;
+  };
+  ds.forEach((v, i) => { tile(i, v, false, d); d += 200; });
+  for (let k = 0; k < z; k++) { tile(ds.length + k, "0", true, d); if (div) { const i = ds.length + k; lpReveal(lpEl("line", { x1: x0 + i * (T + G) + 4, y1: Y + 4, x2: x0 + i * (T + G) + T - 4, y2: Y + 58, stroke: "#C0392B", "stroke-width": 4 }, st), false, d + 700); } d += div ? 1000 : 700; }
+  let end = d + 600;
+  if (sh.line) { lpLine(sh.line, true, end); end += 1400; }
+  return end;
+}
+function lpFrame(i) {
+  const L = LP.data, f = L.frames[i], sh = f.show || {}, last = i === L.frames.length - 1;
+  let anim = 0;   // сколько миллисекунд играет рисунок этого кадра
+  LP.gen++; LP.cur = i; clearTimeout(LP.adv); lpStopAudio();
+  while (LP.stage.firstChild) LP.stage.removeChild(LP.stage.firstChild);
+  LP.chips.innerHTML = ""; LP.formula.innerHTML = "";
+  LP.cap.textContent = f.say || "";
+  if (sh.kind === "list") {
+    LP.stage.style.display = "none"; LP.chips.style.display = "flex"; LP.prev = null;
+    (sh.items || []).forEach((txt, k) => {
+      const c = document.createElement("div"); c.className = "lp-chip";
+      const b = document.createElement("b"); b.textContent = k + 1; c.appendChild(b); c.appendChild(document.createTextNode(txt)); LP.chips.appendChild(c);
+      lpLater(() => { c.classList.add("in"); }, 500 + k * 1500);
+    });
+    anim = 500 + Math.max(0, (sh.items || []).length - 1) * 1500 + 600;
+  } else if (sh.kind === "decomp") {
+    anim = lpDecomp(sh);
+  } else if (sh.kind === "classes") {
+    anim = lpClasses(sh);
+  } else if (sh.kind === "column") {
+    anim = lpColumn(sh);
+  } else if (sh.kind === "groups") {
+    anim = lpGroups(sh);
+  } else if (sh.kind === "parts") {
+    anim = lpParts(sh);
+  } else if (sh.kind === "grid") {
+    anim = lpGrid(sh);
+  } else if (sh.kind === "venn") {
+    anim = lpVenn(sh);
+  } else if (sh.kind === "tree") {
+    anim = lpTree(sh);
+  } else if (sh.kind === "compare") {
+    anim = lpCompare(sh);
+  } else if (sh.kind === "frac") {
+    anim = lpFrac(sh);
+  } else if (sh.kind === "fracbars") {
+    anim = lpFracBars(sh);
+  } else if (sh.kind === "layers") {
+    anim = lpLayers(sh);
+  } else if (sh.kind === "zeros") {
+    anim = lpZeros(sh);
+  } else {
+    LP.stage.style.display = "block"; LP.chips.style.display = "none";
+    const nums = (sh.nums || []).map(Number), a = nums[0], b = nums[1], same = !!LP.prev && LP.prev.join() === nums.join();
+    LP.prev = nums.slice();
+    [["сотни", 134], ["десятки", 240], ["единицы", 309]].forEach(x => { const t = lpEl("text", { x: x[1], y: 18, "text-anchor": "middle", "font-size": 12, "font-weight": 700, fill: "#4B5575" }, LP.stage); t.textContent = x[0]; });
+    const rows = [lpRow(a, LP_TOP[0], same, 200)]; rows.push(lpRow(b, LP_TOP[1], same, rows[0].end + 200));
+    lpEl("line", { x1: 8, x2: 352, y1: 122, y2: 122, stroke: "#DDE3D6", "stroke-width": 1.5, "stroke-dasharray": "4 4" }, LP.stage);
+    const t0 = same ? 0 : rows[1].end, big = a > b ? 0 : 1, op = a > b ? ">" : a < b ? "<" : "=";   // big: номер строки, где число больше
+    anim = t0 + 400;
+    if (sh.focus) {
+      const c = sh.focus, x = LP_COL[c];
+      lpHL(x[0], 24, x[1], 196, t0 + 450);
+      if (sh.eq) { lpLine(lpDig(a, c) + " = " + lpDig(b, c), true, t0 + 1250); anim = t0 + 1750; }
+      else if (sh.less) { lpLine(lpDig(a, c) + " < " + lpDig(b, c), true, t0 + 1250); anim = t0 + 2200; }   // десятков не хватает
+      else if (sh.add || sh.sub) { const x = lpDig(a, c), y = lpDig(b, c); lpLine(x + (sh.add ? " + " : " − ") + y + " = " + (sh.add ? x + y : x - y), true, t0 + 1250); anim = t0 + 2200; }   // сложение в одном разряде
+      else if (sh.win !== undefined) {
+        lpLine(lpDig(a, c) + " " + op + " " + lpDig(b, c), false, t0 + 1450);
+        lpLater(() => { rows[big].check.style.opacity = 1; }, t0 + 2900);
+        lpLine(a + " " + op + " " + b, true, t0 + 3500); anim = t0 + 4000;
+      }
+    } else if (sh.fade) {   // у меньшего числа бледнеют десятки и единицы: большие цифры на малых местах не главные
+      const lose = 1 - big;
+      lpLater(() => { rows[big].check.style.opacity = 1; }, 0);
+      const hl = lpHL(196, LP_TOP[lose] - 6, 136, 46, 500);
+      lpLater(() => { [rows[lose].gt, rows[lose].gu].forEach(g => { g.style.transition = "opacity .5s"; g.style.opacity = .22; }); }, 2200);
+      lpLater(() => { hl.style.opacity = 0; }, 3000); anim = 3400;
+    }
+  }
+  LP.last = last; LP.animDone = false; LP.audioDone = true;
+  lpLater(() => { LP.animDone = true; lpAdvance(); }, anim);
+  if (f.qc && lpSound()) {   // есть запись: следующий кадр, когда она договорила и рисунок доиграл
+    LP.audioDone = false;
+    const a = new Audio("/clips/" + f.qc + ".mp3"); LP.au = a;
+    const fb = Math.max(5000, 2500 + 85 * String(f.say || "").length);   // время на чтение, если записи нет
+    const fin = () => { if (LP.au === a) { LP.audioDone = true; lpAdvance(); } };   // запись договорила
+    const miss = () => { if (LP.au === a) { LP.au = null; lpLater(() => { LP.audioDone = true; lpAdvance(); }, fb); } };   // записи нет или не загрузилась: по таймеру
+    a.onended = fin; a.onerror = miss;
+    if (LP.playing) { const pr = a.play(); if (pr && pr.catch) pr.catch(miss); }
+  } else lpLater(() => { LP.audioDone = true; lpAdvance(); }, Math.max(5000, 2500 + 85 * String(f.say || "").length));   // без записи: по таймеру
+  lpSync();
+}
+const lpSound = () => { try { return !VOICE.quiet && !(TTS && TTS.ok && TTS.on === false); } catch (e) { return true; } };   // звук выключен кнопкой «Звук»: идём по таймеру
+function lpStopAudio() { if (LP.au) { LP.au.onended = LP.au.onerror = null; try { LP.au.pause(); } catch (e) {} LP.au = null; } }
+function lpAdvance() {   // рисунок доиграл и запись договорила: небольшая пауза и следующий кадр
+  if (!LP.playing || LP.last || !LP.animDone || !LP.audioDone || !LP.root) return;
+  const c = LP.cur; clearTimeout(LP.adv);
+  LP.adv = setTimeout(() => { if (LP.playing && LP.cur === c) lpFrame(c + 1); }, 700);
+}
+function lpSync() {
+  LP.nextB.className = "lp-next" + (LP.last ? " final" : "");
+  LP.nextB.textContent = LP.last ? "Мне всё понятно, двигаемся дальше" : (LP.playing ? "Пауза" : "Продолжить");
+  LP.skipB.style.display = LP.last ? "none" : "";
+  LP.againB.style.display = LP.last ? "block" : "none";
+}
+function lpClose() {
+  LP.gen++; clearTimeout(LP.adv); lpStopAudio();
+  if (LP.root) LP.root.remove();
+  LP.root = LP.stage = null;
+}
+function lpNext() { const i = LP.nextI; lpClose(); if (i >= 0) startTask(i); }   // и «Пропустить», и «Мне всё понятно»
+function lpShow(L, nextI) {
+  lpClose();
+  if (!L.frames || !L.frames.length) { if (nextI >= 0) startTask(nextI); return; }
+  try { stopSpeech(); } catch (e) {}
+  LP.data = L; LP.nextI = nextI; LP.playing = true; LP.prev = null;
+  const root = document.createElement("div"); root.className = "lp-root"; root.setAttribute("role", "dialog"); root.setAttribute("aria-modal", "true"); root.setAttribute("aria-label", L.title);
+  root.innerHTML = '<div class="lp-wrap"><div class="lp-card"><h1 class="lp-h"></h1><div class="lp-scene"><svg class="lp-svg" viewBox="0 0 360 230" aria-hidden="true"></svg><div class="lp-chips"></div></div>' +
+    '<div class="lp-formula"></div><div class="lp-cap" aria-live="polite"></div><div class="lp-nav"><button type="button" class="lp-next"></button><button type="button" class="lp-skip">Пропустить</button></div>' +
+    '<div class="lp-again-w"><button type="button" class="lp-again">Посмотреть ещё раз</button></div></div></div>';
+  document.body.appendChild(root);
+  LP.root = root; LP.stage = root.querySelector(".lp-svg"); LP.chips = root.querySelector(".lp-chips"); LP.formula = root.querySelector(".lp-formula"); LP.cap = root.querySelector(".lp-cap");
+  LP.nextB = root.querySelector(".lp-next"); LP.skipB = root.querySelector(".lp-skip"); LP.againB = root.querySelector(".lp-again");
+  root.querySelector(".lp-h").textContent = L.title;
+  LP.nextB.onclick = () => {
+    if (LP.last) return lpNext();
+    if (LP.playing) { LP.playing = false; clearTimeout(LP.adv); if (LP.au && !LP.audioDone) { try { LP.au.pause(); } catch (e) {} } lpSync(); }   // стоп: рисунок доигрывает, запись на паузе, дальше не идём
+    else {
+      LP.playing = true; lpSync();
+      if (LP.au && !LP.audioDone) { const a = LP.au, pr = a.play(); if (pr && pr.catch) pr.catch(() => { if (LP.au === a) { LP.au = null; LP.audioDone = true; lpAdvance(); } }); }
+      lpAdvance();
+    }
+  };
+  LP.skipB.onclick = lpNext;
+  LP.againB.onclick = () => { LP.playing = true; LP.prev = null; lpFrame(0); };
+  lpFrame(0);
+}
 function catItem(t, i) {
   const closed = !!t.closed, lock = !!t.locked || closed, cls = (lock ? " lock" : "") + (closed ? " seq" : "") + (t.st === "done" || t.st === "review" || t.st === "mastered" ? " done" : t.st === "progress" ? " progress" : "") + (t.st === "review" ? " review" : t.st === "mastered" ? " mastered" : "");
   const mk = lock ? "🔒" : (ST_MARK[t.st] || "");
@@ -1825,9 +2440,12 @@ function catItem(t, i) {
   return '<li><button class="tile' + cls + '" data-action="start" data-i="' + i + '" aria-label="' + label + '" title="' + esc(closed ? "Откроется после номера " + t.after : lock ? t.title : (t.cond || t.title)) + '">' +
     esc(t.no) + (mk ? '<span class="mk" aria-hidden="true">' + mk + '</span>' : '') + (t.rec ? '<span class="rc" title="Рекомендуем: ' + REC_TXT[t.rec] + '" aria-hidden="true">★</span>' : '') + '</button></li>';
 }
+const kindOn = () => LESSONS.length ? HOME.kind : "all";   // без объяснений в этом классе фильтр не нужен
 function catItems(idx) {
-  return '<ul class="' + (HOME.view === "list" ? "rows" : "tiles") + '">' + idx.map(i => catItem(TASKS[i], i)).join("") + '</ul>';
+  const k = kindOn();
+  return '<ul class="' + (HOME.view === "list" ? "rows" : "tiles") + '">' + idx.map(i => (k === "task" ? "" : lessonItems(TASKS[i].id)) + (k === "lesson" ? "" : catItem(TASKS[i], i))).join("") + '</ul>';
 }
+const lessonCount = idx => idx.reduce((n, i) => n + LESSONS.filter(l => l.before === TASKS[i].id).length, 0);
 function catGroups() {
   const by = {}, order = [];
   TASKS.forEach((t, i) => { if (t.quiz) return; const k = t.section || "_other"; if (!by[k]) { by[k] = []; order.push(k); } by[k].push(i); });
@@ -1839,26 +2457,32 @@ function catListHTML() {
   const q = HOME.q.trim().toLowerCase();
   const scope = QUEUE || TASKS.map((_, i) => i).filter(i => !TASKS[i].quiz);
   if (q) {
+    if (kindOn() === "lesson") {
+      const hitL = scope.filter(i => LESSONS.some(l => l.before === TASKS[i].id && String(l.title || "").toLowerCase().includes(q)));
+      if (!hitL.length) return '<p class="cat-empty">Ничего не нашлось. Попробуйте другое слово.</p>';
+      return '<p class="cat-meta">Найдено: ' + lessonCount(hitL) + '</p><ul class="' + (HOME.view === "list" ? "rows" : "tiles") + '">' + hitL.map(i => LESSONS.filter(l => l.before === TASKS[i].id && String(l.title || "").toLowerCase().includes(q)).map(lessonItem).join("")).join("") + '</ul>';
+    }
     const hit = scope.filter(i => { const t = TASKS[i]; return String(t.no).toLowerCase() === q || String(t.no).toLowerCase().startsWith(q) || (t.cond || "").toLowerCase().includes(q) || (t.title || "").toLowerCase().includes(q); });
     if (!hit.length) return '<p class="cat-empty">Ничего не нашлось. Проверьте номер или попробуйте другое слово.</p>';
     return '<p class="cat-meta">Найдено: ' + hit.length + (hit.length > 100 ? ' (показаны первые 100, уточните запрос)' : '') + '</p>' + catItems(hit.slice(0, 100));
   }
-  const groups = catGroups().filter(g => !QUEUE || g.idx.some(i => QUEUE.indexOf(i) >= 0));
+  const groups = catGroups().filter(g => !QUEUE || g.idx.some(i => QUEUE.indexOf(i) >= 0)).filter(g => kindOn() !== "lesson" || lessonCount(g.idx) > 0);   // в режиме объяснений разделы без объяснений прячем
   if (QUEUE) {
     const g = groups[0];
     const done = QUEUE.filter(i => isSolved(TASKS[i])).length;
     return '<p class="cat-meta">' + esc(g ? g.title : "Раздел") + ' · ' + QUEUE.length + ' задач' + (USER ? ', решено ' + done : '') + ' · <a href="' + (listHref() || 'start.html') + '">Выбрать другой раздел</a></p>' + catItems(QUEUE);
   }
-  const legend = USER && HOME.view === "tiles" ? '<p class="st-legend"><span>… в процессе</span><span>✓ пройдено</span><span>↻ нужно повторить</span><span>✓✓ освоено</span></p>' : "";
+  const legend = USER && HOME.view === "tiles" && kindOn() !== "lesson" ? '<p class="st-legend"><span>… в процессе</span><span>✓ пройдено</span><span>↻ нужно повторить</span><span>✓✓ освоено</span></p>' : "";
   return legend + groups.map(g => {
     const done = g.idx.filter(i => isSolved(TASKS[i])).length;
-    return '<section class="grp2"><h2 class="grp2-h"><span class="gt">' + esc(g.title) + '</span><span class="gc">' + (USER && g.idx.length ? '<b>' + done + '</b> из ' + g.idx.length : g.idx.length + ' ' + plural(g.idx.length, "задача", "задачи", "задач")) + '</span></h2>' +
+    return '<section class="grp2"><h2 class="grp2-h"><span class="gt">' + esc(g.title) + '</span><span class="gc">' + (kindOn() === "lesson" ? (n => n + ' ' + plural(n, "объяснение", "объяснения", "объяснений"))(lessonCount(g.idx)) : USER && g.idx.length ? '<b>' + done + '</b> из ' + g.idx.length : g.idx.length + ' ' + plural(g.idx.length, "задача", "задачи", "задач")) + '</span></h2>' +
       (g.idx.length ? catItems(g.idx) : '<p class="grp2-empty">Задач пока нет</p>') + '</section>';
   }).join("");
 }
 function paintCat() {
   const el = document.getElementById("catlist"); if (el) el.innerHTML = catListHTML();
-  document.querySelectorAll(".seg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === HOME.view)));
+  document.querySelectorAll(".seg button[data-v]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === HOME.view)));
+  document.querySelectorAll(".seg button[data-k]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.k === kindOn())));
 }
 function quizCard() {
   if (!USER) return "";
@@ -1880,11 +2504,9 @@ function renderHome() {
   if (wrongGrade()) return renderNoGrade();
   let h = header(false);
   h += quizCard();
-  h += leavesCard();
   h += '<div class="cat-title"><h1>' + (USER && USER.child && USER.child.name ? 'Привет, ' + esc(USER.child.name) + '! ' : '') + 'Выбери упражнение</h1></div>';
-  h += '<div class="cat-tools"><label class="cat-search"><input id="catq" type="search" inputmode="search" autocomplete="off" placeholder="Номер или слово, например 245" aria-label="Найти задачу" value="' + esc(HOME.q) + '"></label>' +
-    '<div class="seg" role="group" aria-label="Вид списка"><button data-action="view" data-v="tiles" aria-pressed="' + (HOME.view === "tiles") + '">▦ Плитки</button>' +
-    '<button data-action="view" data-v="list" aria-pressed="' + (HOME.view === "list") + '">☰ Список</button></div></div>';
+  if (LESSONS.length) h += '<div class="cat-kind"><div class="seg" role="group" aria-label="Что показывать">' +
+    [["all", "Всё"], ["lesson", "▶ Объяснения"], ["task", "Упражнения"]].map(x => '<button data-action="kind" data-k="' + x[0] + '" aria-pressed="' + (HOME.kind === x[0]) + '">' + x[1] + '</button>').join("") + '</div></div>';
   h += '<div id="catlist">' + catListHTML() + '</div>';
   if (S.flash) { h += '<div class="fb ok">' + esc(S.flash) + '</div>'; S.flash = ""; }
   if (!USER) {
@@ -2637,20 +3259,24 @@ function breakRun() {
   o.id = "brkOv"; o.className = "brk"; o.setAttribute("role", "dialog"); o.setAttribute("aria-modal", "true");
   document.body.appendChild(o);
   const tips = ["Попей воды.", "Встань и потянись.", "Посмотри в окно вдаль.", "Сделай глубокий вдох и медленный выдох."];
+  /* экран перерыва строим один раз, а каждую секунду меняем только цифры: иначе кнопка пересоздаётся и нажатие теряется */
+  o.innerHTML = '<div class="brk-box"><h2 id="brkH">Листик отдыхает</h2><div class="brk-time" id="brkT" aria-live="off"></div><p id="brkP"></p>' +
+    '<div class="brk-row"><button type="button" class="btn ghost" id="brkEnd">Закончить перерыв</button></div></div>';
+  o.addEventListener("click", e => { if (e.target.closest("#brkEnd, #brkBack")) breakClose(); });
   const tick = () => {
     until = breakUntil();
     const left = until - Date.now();
     if (!until) return breakClose();
+    const h = document.getElementById("brkH"), t = document.getElementById("brkT"), p = document.getElementById("brkP"), e = document.getElementById("brkEnd");
     if (left <= 0) {
       clearInterval(BREAK_TIMER); BREAK_TIMER = null;
-      o.innerHTML = '<div class="brk-box"><h2>Перерыв закончился</h2><p>Отдохнул? Можно вернуться к занятию.</p>' +
-        '<div class="brk-row"><button class="btn" id="brkBack">Вернуться</button></div></div>';
-      document.getElementById("brkBack").addEventListener("click", breakClose);
+      h.textContent = "Перерыв закончился"; t.textContent = ""; p.textContent = "Отдохнул? Можно вернуться к занятию.";
+      e.id = "brkBack"; e.className = "btn"; e.textContent = "Вернуться";
       return;
     }
     const sec = Math.ceil(left / 1000), mm = Math.floor(sec / 60), ss = ("0" + (sec % 60)).slice(-2);
-    const tip = tips[Math.floor(Date.now() / 20000) % tips.length];
-    o.innerHTML = '<div class="brk-box"><h2>Листик отдыхает</h2><div class="brk-time" aria-live="off">' + mm + ':' + ss + '</div><p>' + tip + '</p></div>';
+    t.textContent = mm + ":" + ss;
+    p.textContent = tips[Math.floor(Date.now() / 20000) % tips.length];
   };
   tick(); BREAK_TIMER = setInterval(tick, 1000);
 }
@@ -2817,9 +3443,11 @@ app.addEventListener("click", e => {
   if (!b) return;
   const a = b.dataset.action;
   if (a === "start") return startTask(+b.dataset.i);
+  if (a === "lesson") return openLesson(b.dataset.id);
   if (a === "quiz") return startQuiz(b.dataset.k === "warm" ? "warm" : "diag");
   if (a === "quiz-later") { OFFER.diag = false; call("/api/quiz/later", {}); return render(); }
   if (a === "sec") { HOME.open[b.dataset.s] = !HOME.open[b.dataset.s]; return paintCat(); }
+  if (a === "kind") { HOME.kind = b.dataset.k; try { localStorage.setItem("lk_kind", HOME.kind); } catch (e) {} return paintCat(); }
   if (a === "view") { HOME.view = b.dataset.v; try { localStorage.setItem("lk_view2", HOME.view); } catch (e) {} return paintCat(); }
   if (a === "list" && listHref()) { stopSpeech(); VOICE.stop(null, true); location.href = listHref(); return; }
   if (a === "home" || a === "list") {
@@ -2896,7 +3524,8 @@ app.addEventListener("click", e => {
   if (a === "report") return reportError();
   if (a === "break") return showBreakPicker();
   if (a === "kn-subject") return showSubjectPicker();
-  if (a === "kn-leaves") { stopSpeech(); VOICE.stop(null, true); leavesLoad().then(() => { S = { view: "leaves" }; render(); }); return; }
+  if (a === "kn-leaves") { stopSpeech(); VOICE.stop(null, true); Promise.all([leavesLoad(), lvTotalsLoad()]).then(() => { S = { view: "leaves" }; render(); }); return; }
+  if (a === "lv-subj") { leavesLoad(b.dataset.id).then(() => { S = { view: "leaves" }; render(); }); return; }
   if (a === "adultcheck") {
     return unlock(val("adultIn").trim());
   }
@@ -3601,6 +4230,7 @@ async function refreshLocks() {
   try {
     const t = await api("/api/tasks"); if (t.status !== 200 || !Array.isArray(t.data.tasks)) return;
     const by = new Map(t.data.tasks.map(x => [x.id, x]));
+    if (Array.isArray(t.data.lessons)) LESSONS = t.data.lessons;   // замки роликов как у их упражнений
     TASKS.forEach(x => { const n = by.get(x.id); if (!n) return; x.st = n.st; x.rec = n.rec; x.why = n.why; x.closed = !!n.closed; x.after = n.after; if (x.locked !== !!n.locked) { x.locked = !!n.locked; x.cond = n.cond; } });   // замок тоже обновляем: подписку могли выдать, пока страница была открыта
   } catch (e) {}
 }
@@ -3627,7 +4257,7 @@ async function reloadTasks() {
   try {
     const t = await api("/api/tasks");
     if (t.status === 200 && Array.isArray(t.data.tasks)) {
-      TASKS = t.data.tasks; SECTIONS = t.data.sections || [];
+      TASKS = t.data.tasks; LESSONS = t.data.lessons || []; SECTIONS = t.data.sections || [];
       HOME.open = {}; HOME.q = ""; QUEUE = null; buildQueue();
     }
   } catch (e) {}
@@ -3637,6 +4267,7 @@ async function loadData() {
   const [tasks, phrases, prompts] = await Promise.all([api("/api/tasks"), loadJSON("phrases.json"), loadJSON("prompts.json")]);
   if (tasks.status !== 200) throw new Error("tasks");
   TASKS = tasks.data.tasks;
+  LESSONS = tasks.data.lessons || [];
   SECTIONS = tasks.data.sections || [];
   CANNED = phrases.canned;
   SITUATION = phrases.situation;
